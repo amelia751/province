@@ -264,7 +264,7 @@ export function SidebarNavItems({ items, pathname, isPinned, isHovered }: Sideba
   const showText = isPinned || isHovered;
 
   return items?.length ? (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {items.map((item, index) => {
         const isActive = pathname === item.href;
         
