@@ -73,7 +73,7 @@ function OrganizationSwitcher({
 }: OrgSwitcherProps) {
   const itemContent = (
     <div className={cn(
-      "flex items-center rounded-md transition-colors text-gray-600 hover:text-black hover:bg-gray-50",
+      "flex items-center rounded-md transition-colors text-gray-600 hover:text-black hover:bg-gray-50 mx-1",
       showText ? "px-3 py-3" : "p-3 justify-center"
     )}>
        <div className="h-4 w-4 flex-shrink-0">
@@ -270,10 +270,10 @@ export function SidebarNavItems({ items, pathname, isPinned, isHovered }: Sideba
         
         const itemContent = (
           <div className={cn(
-            "flex items-center rounded-md transition-colors",
+            "flex items-center rounded-md transition-colors mx-1",
             showText ? "px-3 py-3" : "p-3 justify-center",
             isActive
-              ? "bg-black text-white"
+              ? "bg-blue-500 text-white"
               : "text-gray-600 hover:text-black hover:bg-gray-50"
           )}>
             <div className="h-4 w-4 flex-shrink-0">
@@ -457,7 +457,7 @@ const ResponsiveSidebar = ({ organizationName }: ResponsiveSidebarProps) => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className={cn(
-                "flex items-center w-full rounded-md px-3 py-3 text-gray-600 hover:text-black hover:bg-gray-50 transition-colors",
+                "flex items-center w-full rounded-md px-3 py-3 text-gray-600 hover:text-black hover:bg-gray-50 transition-colors mx-1",
                 !showText && "justify-center"
               )}>
                 <div className="h-5 w-5 rounded-full overflow-hidden flex-shrink-0">
