@@ -2,15 +2,8 @@ import { redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-import { Scale, Shield, Zap, BarChart3, FileText, Users } from 'lucide-react';
+import { Navbar } from '@/components/navbar';
+import { Shield, Zap, BarChart3 } from 'lucide-react';
 
 export default async function Home() {
   const { userId } = await auth();
@@ -23,96 +16,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Navigation */}
-      <nav className="relative z-50 border-b border-white/10 bg-black/50 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            {/* Logo */}
-            <div className="flex items-center">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Scale className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-bold">Province</span>
-              </div>
-            </div>
-
-            {/* Navigation Menu */}
-            <NavigationMenu className="hidden md:flex">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-white/80 hover:text-white">
-                    Platform
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="grid gap-3 p-6 w-[400px]">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <FileText className="w-4 h-4 text-blue-400" />
-                            <span className="font-medium">Document Analysis</span>
-                          </div>
-                          <p className="text-sm text-white/60">AI-powered legal document processing</p>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <BarChart3 className="w-4 h-4 text-blue-400" />
-                            <span className="font-medium">Analytics</span>
-                          </div>
-                          <p className="text-sm text-white/60">Comprehensive case insights</p>
-                        </div>
-                      </div>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-white/80 hover:text-white">
-                    Solutions
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="grid gap-3 p-6 w-[400px]">
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Users className="w-4 h-4 text-blue-400" />
-                            <span className="font-medium">Law Firms</span>
-                          </div>
-                          <p className="text-sm text-white/60">Streamline case management and research</p>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Shield className="w-4 h-4 text-blue-400" />
-                            <span className="font-medium">Compliance</span>
-                          </div>
-                          <p className="text-sm text-white/60">Stay ahead of regulatory changes</p>
-                        </div>
-                      </div>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <NavigationMenuLink className="text-white/80 hover:text-white px-4 py-2 rounded-md transition-colors">
-                    Customers
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <NavigationMenuLink className="text-white/80 hover:text-white px-4 py-2 rounded-md transition-colors">
-                    Security
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            {/* Sign In Button */}
-            <div className="flex items-center space-x-4">
-              <Link href="/auth">
-                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 hover:text-white">
-                  Sign In
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Hero Section */}
       <main className="relative">
