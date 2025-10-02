@@ -1,11 +1,17 @@
 import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
+import Header from '@/components/ui/header';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-white">
       <SignedIn>
-        {children}
+        <div className="min-h-screen flex flex-col">
+          <Header />
+          <div className="flex-1">
+            {children}
+          </div>
+        </div>
       </SignedIn>
       
       <SignedOut>

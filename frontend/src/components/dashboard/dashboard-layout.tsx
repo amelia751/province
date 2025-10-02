@@ -16,8 +16,8 @@ export default function DashboardLayout({ children, organizationName }: Dashboar
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Responsive Sidebar */}
+    <div className="flex flex-1 overflow-hidden">
+      {/* Sidebar */}
       <Sidebar 
         organizationName={organizationName} 
         onWidthChange={handleSidebarWidthChange}
@@ -25,7 +25,7 @@ export default function DashboardLayout({ children, organizationName }: Dashboar
 
       {/* Main content */}
       <div 
-        className="transition-all duration-300"
+        className="flex-1 overflow-auto"
         style={{ marginLeft: `${sidebarWidth}px` }}
       >
         {/* Page content */}
