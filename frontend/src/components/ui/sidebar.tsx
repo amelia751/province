@@ -273,7 +273,7 @@ export function SidebarNavItems({ items, pathname, isPinned, isHovered }: Sideba
             "flex items-center rounded-md transition-colors mx-1",
             showText ? "px-3 py-3" : "p-3 justify-center",
             isActive
-              ? "bg-blue-500 text-white"
+              ? "bg-black text-white"
               : "text-gray-600 hover:text-black hover:bg-gray-50"
           )}>
             <div className="h-4 w-4 flex-shrink-0">
