@@ -11,7 +11,7 @@ export default async function DocumentsTestPage() {
   }
 
   if (!orgId) {
-    redirect('/onboarding');
+    redirect('/app');
   }
 
   const supabase = createServerSupabaseClient();

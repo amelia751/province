@@ -30,7 +30,7 @@ interface OrgSwitcherProps {
   organization: any;
   organizationList: any[];
   setActive: any;
-  openCreateOrganization: () => void;
+  onCreateOrganization: () => void;
   openOrganizationProfile: () => void;
   getUserRole: () => string;
   isLoadingOrgSwitch: boolean;
@@ -41,7 +41,7 @@ function OrganizationSwitcher({
   organization, 
   organizationList, 
   setActive, 
-  openCreateOrganization, 
+  onCreateOrganization, 
   openOrganizationProfile, 
   getUserRole,
   isLoadingOrgSwitch,
@@ -75,7 +75,7 @@ function OrganizationSwitcher({
           organization={organization}
           organizationList={organizationList}
           setActive={setActive}
-          openCreateOrganization={openCreateOrganization}
+          onCreateOrganization={onCreateOrganization}
           openOrganizationProfile={openOrganizationProfile}
           getUserRole={getUserRole}
           isLoadingOrgSwitch={isLoadingOrgSwitch}
@@ -91,7 +91,7 @@ function OrganizationDropdownContent({
   organization, 
   organizationList, 
   setActive, 
-  openCreateOrganization, 
+  onCreateOrganization, 
   openOrganizationProfile, 
   getUserRole,
   isLoadingOrgSwitch,
@@ -166,7 +166,7 @@ function OrganizationDropdownContent({
 
       {/* Create Organization */}
       <DropdownMenuItem 
-        onClick={() => openCreateOrganization()}
+        onClick={() => onCreateOrganization()}
         className="flex items-center space-x-3 p-3 cursor-pointer"
       >
         <div className="h-8 w-8 rounded bg-gray-50 flex items-center justify-center">
@@ -215,7 +215,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
           organization={organization}
           organizationList={organizationList}
           setActive={setActive}
-          openCreateOrganization={openCreateOrganization}
+          onCreateOrganization={openCreateOrganization}
           openOrganizationProfile={openOrganizationProfile}
           getUserRole={getUserRole}
           isLoadingOrgSwitch={isLoadingOrgSwitch}

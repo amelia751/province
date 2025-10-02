@@ -8,9 +8,9 @@ import { Navbar } from '@/components/navbar';
 export default async function Home() {
   const { userId } = await auth();
   
-  // Auto-redirect signed-in users to onboarding (which will create org if needed)
+  // Auto-redirect signed-in users to app
   if (userId) {
-    redirect('/onboarding');
+    redirect('/app');
   }
 
   return (

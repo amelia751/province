@@ -13,7 +13,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </SignedIn>
-      
+
       <SignedOut>
         <div className="min-h-screen flex items-center justify-center">
           <SignInButton>

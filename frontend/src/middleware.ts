@@ -1,32 +1,18 @@
 // middleware.ts (project root)
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
 
 const isAppRoute = createRouteMatcher(['/app(.*)']);
-const isOnboardingRoute = createRouteMatcher(['/onboarding']);
 
 export default clerkMiddleware(async (auth, req) => {
-  const { userId, orgId, redirectToSignIn } = await auth();
+  const { userId, redirectToSignIn } = await auth();
 
-  // Handle /app routes - require auth and org
+  // Handle /app routes - require auth
   if (isAppRoute(req)) {
     if (!userId) return redirectToSignIn();
-
-    if (!orgId) {
-      const url = new URL(req.url);
-      url.pathname = '/onboarding';
-      return NextResponse.redirect(url);
-    }
+    // Don't check orgId - Clerk handles org creation, we just sync to DB
   }
 
-  // Handle onboarding route - require auth but allow no org
-  if (isOnboardingRoute(req)) {
-    if (!userId) return redirectToSignIn();
-    // Allow access to onboarding even without orgId
-  }
-
-  // All other routes (including /) - no restrictions, just let middleware run
-  // This ensures auth() calls work anywhere in the app
+  // All other routes (including /) - no restrictions
 });
 
 export const config = {

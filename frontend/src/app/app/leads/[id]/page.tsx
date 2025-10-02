@@ -22,7 +22,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
   const organization = await getUserOrganization();
   
   if (!organization) {
-    redirect('/onboarding');
+    redirect('/app');
   }
 
   const organizationName = await getOrganizationName();
