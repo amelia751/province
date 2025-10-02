@@ -13,13 +13,13 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
-  PanelLeftOpen, 
-  PanelLeftClose, 
-  Home, 
-  FileText, 
-  BarChart3, 
-  Search, 
-  Bell, 
+  PanelLeftOpen,
+  PanelLeftClose,
+  Home,
+  FileText,
+  BarChart3,
+  Search,
+  Bell,
   Settings,
   User,
   LogOut,
@@ -60,12 +60,12 @@ interface OrgSwitcherProps {
   setIsLoadingOrgSwitch: (loading: boolean) => void;
 }
 
-function OrganizationSwitcher({ 
-  organization, 
-  organizationList, 
-  setActive, 
-  openCreateOrganization, 
-  openOrganizationProfile, 
+function OrganizationSwitcher({
+  organization,
+  organizationList,
+  setActive,
+  openCreateOrganization,
+  openOrganizationProfile,
   getUserRole,
   showText,
   isLoadingOrgSwitch,
@@ -76,24 +76,24 @@ function OrganizationSwitcher({
       "flex items-center rounded-md transition-colors text-gray-600 hover:text-black hover:bg-gray-50 mx-1",
       showText ? "px-3 py-3" : "p-3 justify-center"
     )}>
-       <div className="h-4 w-4 flex-shrink-0">
-         {organization?.imageUrl ? (
-           <img
-             src={organization.imageUrl}
-             alt={organization.name || "Organization"}
-             className="w-4 h-4 rounded object-cover"
-           />
-         ) : (
-           <Building2 className="h-4 w-4" />
-         )}
-        </div>
-       {showText && (
-         <>
-           <span className="ml-4 text-sm font-medium flex-1 text-left">{organization?.name || "Organizations"}</span>
-           <ChevronDown className="h-4 w-4 text-gray-400" />
-         </>
-       )}
+      <div className="h-4 w-4 flex-shrink-0">
+        {organization?.imageUrl ? (
+          <img
+            src={organization.imageUrl}
+            alt={organization.name || "Organization"}
+            className="w-4 h-4 rounded object-cover"
+          />
+        ) : (
+          <Building2 className="h-4 w-4" />
+        )}
       </div>
+      {showText && (
+        <>
+          <span className="ml-4 text-sm font-medium flex-1 text-left">{organization?.name || "Organizations"}</span>
+          <ChevronDown className="h-4 w-4 text-gray-400" />
+        </>
+      )}
+    </div>
   );
 
   if (!showText) {
@@ -108,7 +108,7 @@ function OrganizationSwitcher({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-64">
-                <OrganizationDropdownContent 
+                <OrganizationDropdownContent
                   organization={organization}
                   organizationList={organizationList}
                   setActive={setActive}
@@ -150,7 +150,7 @@ function OrganizationSwitcher({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64">
-        <OrganizationDropdownContent 
+        <OrganizationDropdownContent
           organization={organization}
           organizationList={organizationList}
           setActive={setActive}
@@ -166,12 +166,12 @@ function OrganizationSwitcher({
 }
 
 // Organization Dropdown Content Component
-function OrganizationDropdownContent({ 
-  organization, 
-  organizationList, 
-  setActive, 
-  openCreateOrganization, 
-  openOrganizationProfile, 
+function OrganizationDropdownContent({
+  organization,
+  organizationList,
+  setActive,
+  openCreateOrganization,
+  openOrganizationProfile,
   getUserRole,
   isLoadingOrgSwitch,
   setIsLoadingOrgSwitch
@@ -210,7 +210,7 @@ function OrganizationDropdownContent({
           {organizationList
             .filter((org: any) => org.organization.id !== organization?.id)
             .map((org: any) => (
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 key={org.organization.id}
                 onClick={async () => {
                   setIsLoadingOrgSwitch(true);
@@ -245,7 +245,7 @@ function OrganizationDropdownContent({
       )}
 
       {/* Create Organization */}
-      <DropdownMenuItem 
+      <DropdownMenuItem
         onClick={() => openCreateOrganization()}
         className="flex items-center space-x-3 p-3 cursor-pointer"
       >
@@ -267,7 +267,7 @@ export function SidebarNavItems({ items, pathname, isPinned, isHovered }: Sideba
     <div className="space-y-3">
       {items.map((item, index) => {
         const isActive = pathname === item.href;
-        
+
         const itemContent = (
           <div className={cn(
             "flex items-center rounded-md transition-colors mx-1",
@@ -284,7 +284,7 @@ export function SidebarNavItems({ items, pathname, isPinned, isHovered }: Sideba
         );
 
         if (!showText) {
-  return (
+          return (
             <TooltipProvider key={index}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -332,11 +332,12 @@ export function SidebarNavItems({ items, pathname, isPinned, isHovered }: Sideba
   ) : null;
 }
 
-interface ResponsiveSidebarProps {
+interface SidebarProps {
   organizationName?: string | null;
+  onWidthChange?: (width: number) => void;
 }
 
-const ResponsiveSidebar = ({ organizationName }: ResponsiveSidebarProps) => {
+const Sidebar = ({ onWidthChange }: SidebarProps) => {
   const pathname = usePathname();
   const { user } = useUser();
   const { organization } = useOrganization();
@@ -345,12 +346,14 @@ const ResponsiveSidebar = ({ organizationName }: ResponsiveSidebarProps) => {
       infinite: true,
     },
   });
-  
+
   const organizationList = userMemberships?.data || [];
   const { openUserProfile, signOut, openCreateOrganization, openOrganizationProfile } = useClerk();
   const [isPinned, setIsPinned] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [isLoadingOrgSwitch, setIsLoadingOrgSwitch] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(256); // Default expanded width (64 * 4 = 256px)
+  const [isResizing, setIsResizing] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -362,6 +365,46 @@ const ResponsiveSidebar = ({ organizationName }: ResponsiveSidebarProps) => {
     handleResize();
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Handle sidebar resizing
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      const newWidth = e.clientX;
+      const maxWidth = Math.floor(window.innerWidth * (2 / 3)); // 2/3 of screen width
+      const minWidth = 200; // Minimum width when expanded
+
+      if (newWidth >= minWidth && newWidth <= maxWidth) {
+        setSidebarWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    if (isResizing) {
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (showText) { // Only allow resizing when sidebar is expanded
+      setIsResizing(true);
+    }
+  };
 
   const workNavItems: NavItem[] = [
     { title: "Dashboard", href: "/app", icon: <Home className="h-4 w-4" /> },
@@ -397,23 +440,31 @@ const ResponsiveSidebar = ({ organizationName }: ResponsiveSidebarProps) => {
   };
 
   const showText = isPinned || isHovered;
+  const currentWidth = showText ? sidebarWidth : 64;
+
+  // Notify parent component of width changes
+  useEffect(() => {
+    onWidthChange?.(currentWidth);
+  }, [currentWidth, onWidthChange]);
 
   return (
     <div
       className={cn(
-        "fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-gray-100 transition-all duration-300",
-        showText ? "w-64" : "w-16"
+        "fixed inset-y-0 left-0 z-50 flex bg-white border-r border-gray-100",
+        !isResizing && "transition-all duration-300",
+        isResizing && "shadow-sm"
       )}
+      style={{ width: `${currentWidth}px` }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full flex-1">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
           {showText && (
             <h2 className="text-lg font-semibold text-black">Province</h2>
           )}
-          
+
           <button
             onClick={() => setIsPinned(!isPinned)}
             className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
@@ -430,7 +481,7 @@ const ResponsiveSidebar = ({ organizationName }: ResponsiveSidebarProps) => {
         <nav className="flex-1 p-4">
           <div className="space-y-6">
             {/* Organization Switcher - Main Nav Item */}
-            <OrganizationSwitcher 
+            <OrganizationSwitcher
               organization={organization}
               organizationList={organizationList}
               setActive={setActive}
@@ -441,12 +492,12 @@ const ResponsiveSidebar = ({ organizationName }: ResponsiveSidebarProps) => {
               isLoadingOrgSwitch={isLoadingOrgSwitch}
               setIsLoadingOrgSwitch={setIsLoadingOrgSwitch}
             />
-            
+
             {/* Work Navigation Items */}
-            <SidebarNavItems 
-              items={workNavItems} 
-              pathname={pathname || ''} 
-              isPinned={isPinned} 
+            <SidebarNavItems
+              items={workNavItems}
+              pathname={pathname || ''}
+              isPinned={isPinned}
               isHovered={isHovered}
             />
           </div>
@@ -490,7 +541,7 @@ const ResponsiveSidebar = ({ organizationName }: ResponsiveSidebarProps) => {
                 <User className="mr-3 h-4 w-4" />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="text-red-600"
                 onClick={() => signOut()}
               >
@@ -501,8 +552,21 @@ const ResponsiveSidebar = ({ organizationName }: ResponsiveSidebarProps) => {
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Resize Handle */}
+      {showText && (
+        <div
+          className="absolute top-0 right-0 w-1 h-full cursor-col-resize group"
+          onMouseDown={handleResizeStart}
+        >
+          <div className={cn(
+            "w-px h-full bg-transparent group-hover:bg-gray-400 transition-all duration-200",
+            isResizing && "bg-gray-500"
+          )} />
+        </div>
+      )}
     </div>
   );
 };
 
-export default ResponsiveSidebar;
+export default Sidebar;

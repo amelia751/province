@@ -1,6 +1,7 @@
 'use client';
 
-import ResponsiveSidebar from '@/components/ui/sidebar';
+import { useState } from 'react';
+import Sidebar from '@/components/ui/sidebar';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -8,13 +9,25 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children, organizationName }: DashboardLayoutProps) {
+  const [sidebarWidth, setSidebarWidth] = useState(64);
+
+  const handleSidebarWidthChange = (width: number) => {
+    setSidebarWidth(width);
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Responsive Sidebar */}
-      <ResponsiveSidebar organizationName={organizationName} />
+      <Sidebar 
+        organizationName={organizationName} 
+        onWidthChange={handleSidebarWidthChange}
+      />
 
       {/* Main content */}
-      <div className="ml-16 transition-all duration-300">
+      <div 
+        className="transition-all duration-300"
+        style={{ marginLeft: `${sidebarWidth}px` }}
+      >
         {/* Page content */}
         <main className="p-6">
           {children}
