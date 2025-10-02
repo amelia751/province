@@ -1,0 +1,142 @@
+name: Personal Injury Motor Vehicle Accident Template
+description: AI-generated template for Personal Injury matters in US-CA
+version: 1.0.0
+applies_to:
+  practice_areas:
+  - personal injury
+  matter_types:
+  - motor vehicle accident
+  jurisdictions:
+  - US-CA
+folders:
+- name: Pleadings
+  subfolders:
+  - Complaint
+  - Answer
+  - Motions
+- name: Medical_Records
+  subfolders:
+  - Hospital_Records
+  - Doctor_Reports
+  - Therapy_Records
+  - Medical_Bills
+- name: Insurance
+  subfolders:
+  - Policies
+  - Correspondence
+  - Claims
+- name: Discovery
+  subfolders:
+  - Interrogatories
+  - Depositions
+  - Document_Requests
+- name: Evidence
+  subfolders:
+  - Photos
+  - Witness_Statements
+  - Police_Reports
+  - Expert_Reports
+- name: Settlement
+  subfolders:
+  - Negotiations
+  - Demands
+  - Offers
+starter_docs:
+- path: Pleadings/complaint_draft.md
+  generator: null
+  auto_generate: true
+  template_content: '# Motor Vehicle Accident Complaint
+
+
+    ## Parties
+
+    - Plaintiff: [CLIENT_NAME]
+
+    - Defendant: [DEFENDANT_NAME]
+
+
+    ## Incident Details
+
+    - Date: [INCIDENT_DATE]
+
+    - Location: [INCIDENT_LOCATION]
+
+    - Description: [INCIDENT_DESCRIPTION]
+
+
+    ## Injuries and Damages
+
+    - Medical expenses: $[MEDICAL_EXPENSES]
+
+    - Lost wages: $[LOST_WAGES]
+
+    - Pain and suffering: $[PAIN_SUFFERING]
+
+
+    ## Prayer for Relief
+
+    Plaintiff seeks damages in the amount of $[TOTAL_DAMAGES]
+
+    '
+- path: Medical_Records/medical_summary.md
+  generator: null
+  auto_generate: true
+  template_content: '# Medical Summary
+
+
+    ## Initial Treatment
+
+    - Emergency room visit: [ER_DATE]
+
+    - Treating physician: [DOCTOR_NAME]
+
+    - Initial diagnosis: [DIAGNOSIS]
+
+
+    ## Ongoing Treatment
+
+    - Physical therapy: [PT_DETAILS]
+
+    - Follow-up appointments: [FOLLOWUP_SCHEDULE]
+
+    - Current status: [CURRENT_STATUS]
+
+    '
+deadlines:
+- name: Statute of Limitations
+  compute:
+    from_field: incident_date
+    relativedelta: years=2
+  reminders:
+  - -365d
+  - -180d
+  - -90d
+  - -30d
+  required: true
+- name: Discovery Cutoff
+  compute:
+    from_field: case_filed_date
+    relativedelta: days=180
+  reminders:
+  - -30d
+  - -14d
+  - -7d
+  required: true
+agents:
+- name: MedicalRecordsAgent
+  skills:
+  - medical_record_analysis
+  - injury_assessment
+  - treatment_timeline
+  enabled: true
+- name: SettlementAgent
+  skills:
+  - damage_calculation
+  - settlement_negotiation
+  - demand_letter_drafting
+  enabled: true
+guardrails:
+  required_citations: false
+  pii_scan_before_share: true
+  privilege_review_required: true
+  auto_redaction: true

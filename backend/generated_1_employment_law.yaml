@@ -1,0 +1,210 @@
+name: Wrongful Termination - California
+description: AI-generated template for Employment Law matters in US-CA
+version: 1.0.0
+applies_to:
+  practice_areas:
+  - employment law
+  matter_types:
+  - wrongful termination
+  jurisdictions:
+  - US-CA
+folders:
+- name: 01_Client_Information
+  subfolders:
+  - Intake_Forms
+  - Client_Communications
+  - Employment_Records
+- name: 02_Case_Management
+  subfolders:
+  - Case_Notes
+  - Strategy_Documents
+  - Timeline
+- name: 03_Pleadings
+  subfolders:
+  - Complaints
+  - Answers
+  - Motions
+- name: 04_Discovery
+  subfolders:
+  - Requests_for_Production
+  - Interrogatories
+  - Depositions
+- name: 05_Evidence
+  subfolders:
+  - Documents
+  - Photos
+  - Audio_Video
+- name: 06_Correspondence
+  subfolders:
+  - Client
+  - Opposing_Counsel
+  - Court
+  - EEOC
+- name: 07_Settlement
+  subfolders:
+  - Negotiations
+  - Agreements
+- name: 08_EEOC
+  subfolders:
+  - Charge_of_Discrimination
+  - Position_Statement
+  - Determination
+- name: 09_Trial
+  subfolders:
+  - Exhibits
+  - Witness_Lists
+  - Jury_Instructions
+- 10_Appeals
+- 11_Billing
+starter_docs:
+- path: 01_Client_Information/Intake_Forms/client_intake.md
+  generator: null
+  auto_generate: true
+  template_content: '# Client Intake Form
+
+
+    Date: [DATE]
+
+    Client Name: [CLIENT_NAME]
+
+
+    ## Employment Information
+
+    Employer: [EMPLOYER_NAME]
+
+    Position: [POSITION]
+
+    Start Date: [START_DATE]
+
+    Termination Date: [TERMINATION_DATE]
+
+
+    ## Reason for Termination
+
+    [REASON_FOR_TERMINATION]
+
+
+    ## Protected Characteristics
+
+    [ ] Age (40 or older)
+
+    [ ] Race
+
+    [ ] Color
+
+    [ ] National Origin
+
+    [ ] Sex (including pregnancy, sexual orientation, gender identity)
+
+    [ ] Religion
+
+    [ ] Disability
+
+    [ ] Genetic Information
+
+
+    ## Additional Notes
+
+    [NOTES]
+
+    '
+- path: 02_Case_Management/Timeline/case_timeline.md
+  generator: null
+  auto_generate: true
+  template_content: '# Case Timeline
+
+
+    - [DATE]: Initial client consultation
+
+    - [DATE]: EEOC Charge filed (if applicable)
+
+    - [DATE]: Right to Sue letter received (if applicable)
+
+    - [DATE]: Complaint filed
+
+    - [DATE]: Discovery begins
+
+    - [DATE]: Dispositive motions deadline
+
+    - [DATE]: Settlement conference
+
+    - [DATE]: Trial date
+
+    '
+- path: 03_Pleadings/Complaints/complaint_template.md
+  generator: null
+  auto_generate: true
+  template_content: "# COMPLAINT FOR WRONGFUL TERMINATION\n\n[COURT HEADER]\n\nCOMES\
+    \ NOW the Plaintiff, [CLIENT_NAME], by and through their undersigned counsel,\
+    \ and files this Complaint against Defendant [EMPLOYER_NAME], and in support thereof\
+    \ states as follows:\n\n1. PARTIES\n2. JURISDICTION AND VENUE\n3. FACTUAL ALLEGATIONS\n\
+    4. CAUSES OF ACTION\n   a. Wrongful Termination in Violation of Public Policy\n\
+    \   b. [OTHER CAUSES OF ACTION]\n5. PRAYER FOR RELIEF\n\nWHEREFORE, Plaintiff\
+    \ prays for judgment against Defendant as follows:\n[RELIEF SOUGHT]\n\nDated:\
+    \ [DATE]\n\n[SIGNATURE BLOCK]\n"
+- path: 08_EEOC/Charge_of_Discrimination/eeoc_charge_template.md
+  generator: null
+  auto_generate: true
+  template_content: "# CHARGE OF DISCRIMINATION\n\n1. COMPLAINANT INFORMATION\n  \
+    \ Name: [CLIENT_NAME]\n   Address: [CLIENT_ADDRESS]\n   Phone: [CLIENT_PHONE]\n\
+    \n2. RESPONDENT INFORMATION\n   Name: [EMPLOYER_NAME]\n   Address: [EMPLOYER_ADDRESS]\n\
+    \   Phone: [EMPLOYER_PHONE]\n\n3. DISCRIMINATION BASED ON (Check appropriate box(es))\n\
+    \   [ ] RACE [ ] COLOR [ ] SEX [ ] RELIGION [ ] NATIONAL ORIGIN\n   [ ] RETALIATION\
+    \ [ ] AGE [ ] DISABILITY [ ] GENETIC INFORMATION\n\n4. DATE(S) DISCRIMINATION\
+    \ TOOK PLACE\n   Earliest: [EARLIEST_DATE]\n   Latest: [LATEST_DATE]\n\n5. THE\
+    \ PARTICULARS ARE (If additional paper is needed, attach extra sheet(s)):\n  \
+    \ [DESCRIPTION OF DISCRIMINATORY ACTIONS]\n\n6. I want this charge filed with\
+    \ both the EEOC and the State or local Agency, if any.\n\n7. SIGNATURE OF COMPLAINANT\n\
+    \   \n   Date: [DATE]\n   Signature: ________________________\n"
+deadlines:
+- name: EEOC Charge Filing Deadline
+  compute:
+    from_field: termination_date
+    relativedelta: days=300
+  reminders:
+  - -30d
+  - -14d
+  - -7d
+  required: true
+- name: Statute of Limitations - FEHA Claim
+  compute:
+    from_field: right_to_sue_date
+    relativedelta: years=1
+  reminders:
+  - -90d
+  - -60d
+  - -30d
+  required: true
+- name: Statute of Limitations - Wrongful Termination in Violation of Public Policy
+  compute:
+    from_field: termination_date
+    relativedelta: years=2
+  reminders:
+  - -6m
+  - -3m
+  - -1m
+  required: true
+agents:
+- name: EvidenceAnalyzer
+  skills:
+  - document_classification
+  - pii_detection
+  - relevance_scoring
+  enabled: true
+- name: TimelineBuilder
+  skills:
+  - event_extraction
+  - chronological_ordering
+  - inconsistency_detection
+  enabled: true
+- name: SettlementCalculator
+  skills:
+  - damages_estimation
+  - comparable_case_analysis
+  - risk_assessment
+  enabled: true
+guardrails:
+  required_citations: true
+  pii_scan_before_share: true
+  privilege_review_required: true
+  auto_redaction: true
