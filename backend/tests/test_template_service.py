@@ -3,10 +3,10 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from ai_legal_os.services.template import TemplateService
-from ai_legal_os.models.template import Template, TemplateCreate, FolderStructure
-from ai_legal_os.models.matter import Matter
-from ai_legal_os.core.exceptions import NotFoundError, ValidationError
+from province.services.template import TemplateService
+from province.models.template import Template, TemplateCreate, FolderStructure
+from province.models.matter import Matter
+from province.core.exceptions import NotFoundError, ValidationError
 
 
 class TestTemplateService:

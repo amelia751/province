@@ -1,4 +1,4 @@
-"""API infrastructure stack for AI Legal OS."""
+"""API infrastructure stack for Province Legal OS."""
 
 from typing import Dict, Any
 
@@ -60,8 +60,8 @@ class ApiStack(cdk.Stack):
         """Create Cognito User Pool for authentication."""
         
         self.api_resources.user_pool = cognito.UserPool(
-            self, "AILegalOSUserPool",
-            user_pool_name="ai-legal-os-users",
+            self, "ProvinceUserPool",
+            user_pool_name="province-users",
             sign_in_aliases=cognito.SignInAliases(email=True),
             auto_verify=cognito.AutoVerifiedAttrs(email=True),
             password_policy=cognito.PasswordPolicy(
@@ -72,30 +72,26 @@ class ApiStack(cdk.Stack):
                 require_symbols=True,
             ),
             account_recovery=cognito.AccountRecovery.EMAIL_ONLY,
+            custom_attributes={
+                "tenant_id": cognito.StringAttribute(min_len=1, max_len=256, mutable=False),
+                "roles": cognito.StringAttribute(min_len=1, max_len=1024, mutable=True),
+            },
             removal_policy=cdk.RemovalPolicy.RETAIN,
-        )
-        
-        # Add custom attributes for tenant isolation
-        self.api_resources.user_pool.add_custom_attributes(
-            tenant_id=cognito.StringAttribute(min_len=1, max_len=256, mutable=False),
-            roles=cognito.StringAttribute(min_len=1, max_len=1024, mutable=True),
         )
         
         # Create user pool client
         self.api_resources.user_pool_client = cognito.UserPoolClient(
-            self, "AILegalOSUserPoolClient",
+            self, "ProvinceUserPoolClient",
             user_pool=self.api_resources.user_pool,
-            user_pool_client_name="ai-legal-os-client",
+            user_pool_client_name="province-client",
             auth_flows=cognito.AuthFlow(
                 user_password=True,
                 user_srp=True,
             ),
             generate_secret=False,  # For frontend applications
-            token_validity=cognito.TokenValidity(
-                access_token=cdk.Duration.hours(1),
-                id_token=cdk.Duration.hours(1),
-                refresh_token=cdk.Duration.days(30),
-            ),
+            access_token_validity=cdk.Duration.hours(1),
+            id_token_validity=cdk.Duration.hours(1),
+            refresh_token_validity=cdk.Duration.days(30),
         )
     
     def _create_lambda_function(self) -> None:
@@ -103,7 +99,7 @@ class ApiStack(cdk.Stack):
         
         # Create execution role
         lambda_role = iam.Role(
-            self, "AILegalOSLambdaRole",
+            self, "ProvinceLambdaRole",
             assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name(
@@ -147,17 +143,16 @@ class ApiStack(cdk.Stack):
         
         # Create Lambda function
         self.api_resources.lambda_function = lambda_.Function(
-            self, "AILegalOSLambda",
-            function_name="ai-legal-os-backend",
+            self, "ProvinceLambda",
+            function_name="province-backend",
             runtime=lambda_.Runtime.PYTHON_3_11,
-            handler="ai_legal_os.lambda_handler.handler",
-            code=lambda_.Code.from_asset("src"),
+            handler="province.lambda_handler.handler",
+            code=lambda_.Code.from_asset("../src"),
             role=lambda_role,
             timeout=cdk.Duration.seconds(30),
             memory_size=1024,
             environment={
                 "ENVIRONMENT": "production",
-                "AWS_REGION": self.region,
                 "MATTERS_TABLE_NAME": self.core_resources.matters_table.table_name,
                 "DOCUMENTS_TABLE_NAME": self.core_resources.documents_table.table_name,
                 "PERMISSIONS_TABLE_NAME": self.core_resources.permissions_table.table_name,
@@ -168,9 +163,14 @@ class ApiStack(cdk.Stack):
                 "OPENSEARCH_ENDPOINT": self.core_resources.opensearch_collection.attr_collection_endpoint,
                 "COGNITO_USER_POOL_ID": self.api_resources.user_pool.user_pool_id,
                 "COGNITO_CLIENT_ID": self.api_resources.user_pool_client.user_pool_client_id,
-                "KMS_KEY_ALIAS": "alias/ai-legal-os",
+                "KMS_KEY_ALIAS": "alias/province",
             },
-            log_retention=logs.RetentionDays.ONE_MONTH,
+            log_group=logs.LogGroup(
+                self, "ProvinceLambdaLogGroup",
+                log_group_name="/aws/lambda/province-backend",
+                retention=logs.RetentionDays.ONE_MONTH,
+                removal_policy=cdk.RemovalPolicy.DESTROY,
+            ),
         )
     
     def _create_api_gateway(self) -> None:
@@ -178,16 +178,16 @@ class ApiStack(cdk.Stack):
         
         # Create Cognito authorizer
         cognito_authorizer = apigateway.CognitoUserPoolsAuthorizer(
-            self, "AILegalOSAuthorizer",
+            self, "ProvinceAuthorizer",
             cognito_user_pools=[self.api_resources.user_pool],
-            authorizer_name="ai-legal-os-authorizer",
+            authorizer_name="province-authorizer",
         )
         
         # Create API Gateway
         self.api_resources.api_gateway = apigateway.RestApi(
-            self, "AILegalOSApi",
-            rest_api_name="ai-legal-os-api",
-            description="AI Legal OS REST API",
+            self, "ProvinceApi",
+            rest_api_name="province-api",
+            description="Province Legal OS REST API",
             default_cors_preflight_options=apigateway.CorsOptions(
                 allow_origins=apigateway.Cors.ALL_ORIGINS,
                 allow_methods=apigateway.Cors.ALL_METHODS,
@@ -228,49 +228,9 @@ class ApiStack(cdk.Stack):
     def _create_websocket_api(self) -> None:
         """Create WebSocket API for real-time features."""
         
-        # Create WebSocket Lambda integration
-        websocket_integration = apigateway.LambdaWebSocketIntegration(
-            "WebSocketIntegration",
-            self.api_resources.lambda_function,
-        )
-        
-        # Create WebSocket API
-        self.api_resources.websocket_api = apigateway.WebSocketApi(
-            self, "AILegalOSWebSocketApi",
-            api_name="ai-legal-os-websocket",
-            description="AI Legal OS WebSocket API for real-time collaboration",
-            connect_route_options=apigateway.WebSocketRouteOptions(
-                integration=websocket_integration,
-            ),
-            disconnect_route_options=apigateway.WebSocketRouteOptions(
-                integration=websocket_integration,
-            ),
-            default_route_options=apigateway.WebSocketRouteOptions(
-                integration=websocket_integration,
-            ),
-        )
-        
-        # Create WebSocket stage
-        websocket_stage = apigateway.WebSocketStage(
-            self, "AILegalOSWebSocketStage",
-            web_socket_api=self.api_resources.websocket_api,
-            stage_name="v1",
-            auto_deploy=True,
-        )
-        
-        # Grant Lambda permission to manage WebSocket connections
-        self.api_resources.lambda_function.add_to_role_policy(
-            iam.PolicyStatement(
-                effect=iam.Effect.ALLOW,
-                actions=[
-                    "execute-api:ManageConnections",
-                ],
-                resources=[
-                    f"arn:aws:execute-api:{self.region}:{self.account}:"
-                    f"{self.api_resources.websocket_api.api_id}/*"
-                ],
-            )
-        )
+        # For now, we'll skip WebSocket API creation to get the basic infrastructure working
+        # This can be added later when needed for real-time collaboration features
+        pass
     
     def _create_outputs(self) -> None:
         """Create CloudFormation outputs."""
@@ -293,8 +253,4 @@ class ApiStack(cdk.Stack):
             description="API Gateway URL"
         )
         
-        cdk.CfnOutput(
-            self, "WebSocketApiUrl",
-            value=self.api_resources.websocket_api.api_endpoint,
-            description="WebSocket API URL"
-        )
+        # WebSocket API URL output will be added when WebSocket API is implemented

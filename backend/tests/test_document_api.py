@@ -5,8 +5,8 @@ from fastapi.testclient import TestClient
 from unittest.mock import patch, AsyncMock, MagicMock
 from datetime import datetime
 
-from ai_legal_os.main import create_app
-from ai_legal_os.models.document import Document, DocumentVersion
+from province.main import create_app
+from province.models.document import Document, DocumentVersion
 
 
 class TestDocumentAPI:

@@ -4,9 +4,9 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from botocore.exceptions import ClientError
 
-from ai_legal_os.services.folder_generator import FolderGenerator, FolderGenerationError
-from ai_legal_os.models.template import Template, FolderStructure, StarterDocument
-from ai_legal_os.models.matter import Matter
+from province.services.folder_generator import FolderGenerator, FolderGenerationError
+from province.models.template import Template, FolderStructure, StarterDocument
+from province.models.matter import Matter
 
 
 class TestFolderGenerator:

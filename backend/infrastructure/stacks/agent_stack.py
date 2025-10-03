@@ -41,17 +41,16 @@ class AgentStack(cdk.Stack):
         self.api_resources = api_resources
         self.agent_resources = AgentResources()
         
-        # Create EventBridge custom bus
-        self._create_event_bus()
-        
         # Create SNS topic for notifications
         self._create_notification_topic()
+        
+        # Create EventBridge custom bus
+        self._create_event_bus()
         
         # Configure X-Ray tracing
         self._configure_xray_tracing()
         
-        # Grant additional permissions to Lambda
-        self._grant_agent_permissions()
+        # Agent permissions will be granted in the API stack to avoid cyclic dependencies
         
         # Create outputs
         self._create_outputs()

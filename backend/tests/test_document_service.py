@@ -4,9 +4,9 @@ import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from ai_legal_os.services.document import DocumentService
-from ai_legal_os.models.document import Document, DocumentCreate, DocumentUpdate, DocumentVersion
-from ai_legal_os.core.exceptions import NotFoundError, ValidationError, ConflictError
+from province.services.document import DocumentService
+from province.models.document import Document, DocumentCreate, DocumentUpdate, DocumentVersion
+from province.core.exceptions import NotFoundError, ValidationError, ConflictError
 
 
 class TestDocumentService:
@@ -198,7 +198,8 @@ class TestDocumentService:
         
         assert result.size == 2048
         assert result.content_hash == "abc123hash"
-        mock_document_repo.update.assert_called_once()
+        # Should be called twice: once for document update, once for indexing status
+        assert mock_document_repo.update.call_count == 2
     
     @pytest.mark.asyncio
     async def test_get_download_url(self, document_service, mock_document_repo, mock_s3_client, sample_document):

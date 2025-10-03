@@ -4,9 +4,9 @@ import pytest
 from fastapi.testclient import TestClient
 from datetime import datetime
 
-from ai_legal_os.models.template import TemplateCreate, Template
-from ai_legal_os.services.template import TemplateService
-from ai_legal_os.repositories.template import TemplateRepository
+from province.models.template import TemplateCreate, Template
+from province.services.template import TemplateService
+from province.repositories.template import TemplateRepository
 
 
 class TestTemplateIntegration:
@@ -16,13 +16,13 @@ class TestTemplateIntegration:
     async def test_template_service_create_and_get(self, mock_aws_services):
         """Test creating and retrieving a template."""
         # Create service with mocked AWS
-        template_repo = TemplateRepository(table_name="ai-legal-os-templates")
-        from ai_legal_os.services.folder_generator import FolderGenerator
+        template_repo = TemplateRepository(table_name="province-templates")
+        from province.services.folder_generator import FolderGenerator
         folder_generator = FolderGenerator(bucket_name="test-documents-bucket")
         template_service = TemplateService(template_repo=template_repo, folder_generator=folder_generator)
         
         # Create template
-        from ai_legal_os.models.template import FolderStructure, StarterDocument
+        from province.models.template import FolderStructure, StarterDocument
         template_create = TemplateCreate(
             name="Test Template",
             description="A test template for integration testing",
@@ -64,13 +64,13 @@ class TestTemplateIntegration:
     async def test_template_service_list_templates(self, mock_aws_services):
         """Test listing templates."""
         # Create service with mocked AWS
-        template_repo = TemplateRepository(table_name="ai-legal-os-templates")
-        from ai_legal_os.services.folder_generator import FolderGenerator
+        template_repo = TemplateRepository(table_name="province-templates")
+        from province.services.folder_generator import FolderGenerator
         folder_generator = FolderGenerator(bucket_name="test-documents-bucket")
         template_service = TemplateService(template_repo=template_repo, folder_generator=folder_generator)
         
         # Create multiple templates
-        from ai_legal_os.models.template import FolderStructure
+        from province.models.template import FolderStructure
         for i in range(3):
             template_create = TemplateCreate(
                 name=f"Test Template {i+1}",
@@ -94,8 +94,8 @@ class TestTemplateIntegration:
     async def test_template_yaml_operations(self, mock_aws_services):
         """Test YAML import/export operations."""
         # Create service with mocked AWS
-        template_repo = TemplateRepository(table_name="ai-legal-os-templates")
-        from ai_legal_os.services.folder_generator import FolderGenerator
+        template_repo = TemplateRepository(table_name="province-templates")
+        from province.services.folder_generator import FolderGenerator
         folder_generator = FolderGenerator(bucket_name="test-documents-bucket")
         template_service = TemplateService(template_repo=template_repo, folder_generator=folder_generator)
         
@@ -139,8 +139,8 @@ starter_docs:
     async def test_template_validation(self, mock_aws_services):
         """Test template YAML validation."""
         # Create service with mocked AWS
-        template_repo = TemplateRepository(table_name="ai-legal-os-templates")
-        from ai_legal_os.services.folder_generator import FolderGenerator
+        template_repo = TemplateRepository(table_name="province-templates")
+        from province.services.folder_generator import FolderGenerator
         folder_generator = FolderGenerator(bucket_name="test-documents-bucket")
         template_service = TemplateService(template_repo=template_repo, folder_generator=folder_generator)
         
@@ -170,13 +170,13 @@ folders:
     async def test_template_recommendations(self, mock_aws_services):
         """Test template recommendations."""
         # Create service with mocked AWS
-        template_repo = TemplateRepository(table_name="ai-legal-os-templates")
-        from ai_legal_os.services.folder_generator import FolderGenerator
+        template_repo = TemplateRepository(table_name="province-templates")
+        from province.services.folder_generator import FolderGenerator
         folder_generator = FolderGenerator(bucket_name="test-documents-bucket")
         template_service = TemplateService(template_repo=template_repo, folder_generator=folder_generator)
         
         # Create templates with different applies_to criteria
-        from ai_legal_os.models.template import FolderStructure
+        from province.models.template import FolderStructure
         litigation_template = TemplateCreate(
             name="Litigation Template",
             description="For litigation matters",

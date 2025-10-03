@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import patch, AsyncMock, MagicMock
 import os
 
-from ai_legal_os.main import create_app
+from province.main import create_app
 
 
 class TestTemplateAPISimple:

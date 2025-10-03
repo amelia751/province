@@ -1,8 +1,8 @@
 """Tests for template parser."""
 
 import pytest
-from ai_legal_os.services.template_parser import TemplateParser, TemplateParseError
-from ai_legal_os.models.template import Template, FolderStructure, StarterDocument
+from province.services.template_parser import TemplateParser, TemplateParseError
+from province.models.template import Template, FolderStructure, StarterDocument
 
 
 class TestTemplateParser:

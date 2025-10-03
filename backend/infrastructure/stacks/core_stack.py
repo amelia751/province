@@ -1,4 +1,4 @@
-"""Core infrastructure stack for AI Legal OS."""
+"""Core infrastructure stack for Province Legal OS."""
 
 from typing import Dict, Any
 
@@ -73,7 +73,7 @@ class CoreStack(cdk.Stack):
         # Matters table
         self.core_resources.matters_table = dynamodb.Table(
             self, "MattersTable",
-            table_name="ai-legal-os-matters",
+            table_name="province-matters",
             partition_key=dynamodb.Attribute(
                 name="tenant_id_matter_id",
                 type=dynamodb.AttributeType.STRING
@@ -81,7 +81,9 @@ class CoreStack(cdk.Stack):
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             encryption=dynamodb.TableEncryption.CUSTOMER_MANAGED,
             encryption_key=self.core_resources.kms_key,
-            point_in_time_recovery=True,
+            point_in_time_recovery_specification=dynamodb.PointInTimeRecoverySpecification(
+                point_in_time_recovery_enabled=True
+            ),
             removal_policy=cdk.RemovalPolicy.RETAIN,
         )
         
@@ -101,7 +103,7 @@ class CoreStack(cdk.Stack):
         # Documents table
         self.core_resources.documents_table = dynamodb.Table(
             self, "DocumentsTable",
-            table_name="ai-legal-os-documents",
+            table_name="province-documents",
             partition_key=dynamodb.Attribute(
                 name="matter_id_path",
                 type=dynamodb.AttributeType.STRING
@@ -109,7 +111,9 @@ class CoreStack(cdk.Stack):
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             encryption=dynamodb.TableEncryption.CUSTOMER_MANAGED,
             encryption_key=self.core_resources.kms_key,
-            point_in_time_recovery=True,
+            point_in_time_recovery_specification=dynamodb.PointInTimeRecoverySpecification(
+                point_in_time_recovery_enabled=True
+            ),
             removal_policy=cdk.RemovalPolicy.RETAIN,
         )
         
@@ -138,7 +142,7 @@ class CoreStack(cdk.Stack):
         # Permissions table
         self.core_resources.permissions_table = dynamodb.Table(
             self, "PermissionsTable",
-            table_name="ai-legal-os-permissions",
+            table_name="province-permissions",
             partition_key=dynamodb.Attribute(
                 name="subject_id_matter_id",
                 type=dynamodb.AttributeType.STRING
@@ -146,14 +150,16 @@ class CoreStack(cdk.Stack):
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             encryption=dynamodb.TableEncryption.CUSTOMER_MANAGED,
             encryption_key=self.core_resources.kms_key,
-            point_in_time_recovery=True,
+            point_in_time_recovery_specification=dynamodb.PointInTimeRecoverySpecification(
+                point_in_time_recovery_enabled=True
+            ),
             removal_policy=cdk.RemovalPolicy.RETAIN,
         )
         
         # Deadlines table
         self.core_resources.deadlines_table = dynamodb.Table(
             self, "DeadlinesTable",
-            table_name="ai-legal-os-deadlines",
+            table_name="province-deadlines",
             partition_key=dynamodb.Attribute(
                 name="matter_id_deadline_id",
                 type=dynamodb.AttributeType.STRING
@@ -161,7 +167,9 @@ class CoreStack(cdk.Stack):
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             encryption=dynamodb.TableEncryption.CUSTOMER_MANAGED,
             encryption_key=self.core_resources.kms_key,
-            point_in_time_recovery=True,
+            point_in_time_recovery_specification=dynamodb.PointInTimeRecoverySpecification(
+                point_in_time_recovery_enabled=True
+            ),
             removal_policy=cdk.RemovalPolicy.RETAIN,
         )
         
@@ -181,7 +189,7 @@ class CoreStack(cdk.Stack):
         # Templates table
         self.core_resources.templates_table = dynamodb.Table(
             self, "TemplatesTable",
-            table_name="ai-legal-os-templates",
+            table_name="province-templates",
             partition_key=dynamodb.Attribute(
                 name="template_id",
                 type=dynamodb.AttributeType.STRING
@@ -189,7 +197,9 @@ class CoreStack(cdk.Stack):
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             encryption=dynamodb.TableEncryption.CUSTOMER_MANAGED,
             encryption_key=self.core_resources.kms_key,
-            point_in_time_recovery=True,
+            point_in_time_recovery_specification=dynamodb.PointInTimeRecoverySpecification(
+                point_in_time_recovery_enabled=True
+            ),
             removal_policy=cdk.RemovalPolicy.RETAIN,
         )
         

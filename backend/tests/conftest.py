@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from moto import mock_aws
 import boto3
 
-from ai_legal_os.main import create_app
+from province.main import create_app
 
 
 @pytest.fixture
@@ -34,7 +34,7 @@ def mock_aws_services(mock_aws_credentials):
         
         # Create templates table
         templates_table = dynamodb.create_table(
-            TableName="ai-legal-os-templates",
+            TableName="province-templates",
             KeySchema=[
                 {"AttributeName": "template_id", "KeyType": "HASH"}
             ],
@@ -64,7 +64,7 @@ def mock_aws_services(mock_aws_credentials):
         
         # Create matters table
         matters_table = dynamodb.create_table(
-            TableName="ai-legal-os-matters",
+            TableName="province-matters",
             KeySchema=[
                 {"AttributeName": "matter_id", "KeyType": "HASH"}
             ],
@@ -88,7 +88,7 @@ def mock_aws_services(mock_aws_credentials):
         
         # Create documents table
         documents_table = dynamodb.create_table(
-            TableName="ai-legal-os-documents",
+            TableName="province-documents",
             KeySchema=[
                 {"AttributeName": "document_id", "KeyType": "HASH"}
             ],
@@ -137,9 +137,9 @@ def mock_aws_services(mock_aws_credentials):
 def app(mock_aws_services, monkeypatch):
     """Create FastAPI application for testing."""
     # Set environment variables for testing
-    monkeypatch.setenv("TEMPLATES_TABLE_NAME", "ai-legal-os-templates")
-    monkeypatch.setenv("MATTERS_TABLE_NAME", "ai-legal-os-matters")
-    monkeypatch.setenv("DOCUMENTS_TABLE_NAME", "ai-legal-os-documents")
+    monkeypatch.setenv("TEMPLATES_TABLE_NAME", "province-templates")
+    monkeypatch.setenv("MATTERS_TABLE_NAME", "province-matters")
+    monkeypatch.setenv("DOCUMENTS_TABLE_NAME", "province-documents")
     monkeypatch.setenv("DOCUMENTS_BUCKET_NAME", "test-documents-bucket")
     monkeypatch.setenv("TEMPLATES_BUCKET_NAME", "test-templates-bucket")
     

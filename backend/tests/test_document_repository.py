@@ -5,8 +5,8 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 from botocore.exceptions import ClientError
 
-from ai_legal_os.repositories.document import DocumentRepository
-from ai_legal_os.models.document import Document, DocumentVersion
+from province.repositories.document import DocumentRepository
+from province.models.document import Document, DocumentVersion
 
 
 class TestDocumentRepository:

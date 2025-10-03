@@ -2,8 +2,8 @@
 
 import pytest
 from unittest.mock import AsyncMock, patch
-from ai_legal_os.services.ai_template_generator import AITemplateGenerator
-from ai_legal_os.models.template import Template
+from province.services.ai_template_generator import AITemplateGenerator
+from province.models.template import Template
 
 
 class TestAITemplateGenerator:
@@ -122,7 +122,7 @@ guardrails:
         """Test enhancing an existing template."""
         
         # Create a base template
-        from ai_legal_os.models.template import FolderStructure, GuardrailConfig
+        from province.models.template import FolderStructure, GuardrailConfig
         base_template = Template(
             template_id="test_id",
             name="Base Template",
@@ -161,7 +161,7 @@ guardrails:
         """Test template improvement suggestions."""
         
         # Create a template for analysis
-        from ai_legal_os.models.template import FolderStructure, GuardrailConfig
+        from province.models.template import FolderStructure, GuardrailConfig
         template = Template(
             template_id="test_id",
             name="Test Template",

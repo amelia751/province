@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, AsyncMock, MagicMock
 
-from ai_legal_os.main import create_app
+from province.main import create_app
 
 
 class TestTemplateAPI:
@@ -26,7 +26,7 @@ class TestTemplateAPI:
     
     def test_list_templates(self, client):
         """Test listing templates endpoint."""
-        with patch('ai_legal_os.api.v1.templates.get_template_service') as mock_get_service:
+        with patch('province.api.v1.templates.get_template_service') as mock_get_service:
             mock_service = AsyncMock()
             mock_service.list_templates.return_value = {
                 "templates": [],
@@ -44,7 +44,7 @@ class TestTemplateAPI:
     def test_create_template(self, client):
         """Test creating template endpoint."""
         with patch('boto3.resource'), \
-             patch('ai_legal_os.api.v1.templates.get_template_service') as mock_get_service:
+             patch('province.api.v1.templates.get_template_service') as mock_get_service:
             
             mock_service = AsyncMock()
             mock_template = {
@@ -85,7 +85,7 @@ class TestTemplateAPI:
     
     def test_validate_template_yaml(self, client):
         """Test validating template YAML endpoint."""
-        with patch('ai_legal_os.api.v1.templates.get_template_service') as mock_get_service:
+        with patch('province.api.v1.templates.get_template_service') as mock_get_service:
             mock_service = AsyncMock()
             mock_service.validate_template_yaml.return_value = []
             mock_get_service.return_value = mock_service
@@ -107,7 +107,7 @@ description: "A valid template"
     def test_create_template_from_yaml(self, client):
         """Test creating template from YAML endpoint."""
         with patch('boto3.resource'), \
-             patch('ai_legal_os.api.v1.templates.get_template_service') as mock_get_service:
+             patch('province.api.v1.templates.get_template_service') as mock_get_service:
             
             mock_service = AsyncMock()
             mock_template = {
@@ -152,7 +152,7 @@ folders:
     
     def test_get_template_recommendations(self, client):
         """Test getting template recommendations endpoint."""
-        with patch('ai_legal_os.api.v1.templates.get_template_service') as mock_get_service:
+        with patch('province.api.v1.templates.get_template_service') as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_recommended_templates.return_value = []
             mock_get_service.return_value = mock_service
@@ -166,7 +166,7 @@ folders:
     def test_get_template_by_id(self, client):
         """Test getting template by ID endpoint."""
         with patch('boto3.resource'), \
-             patch('ai_legal_os.api.v1.templates.get_template_service') as mock_get_service:
+             patch('province.api.v1.templates.get_template_service') as mock_get_service:
             
             mock_service = AsyncMock()
             mock_template = {
@@ -203,7 +203,7 @@ folders:
     def test_export_template_to_yaml(self, client):
         """Test exporting template to YAML endpoint."""
         with patch('boto3.resource'), \
-             patch('ai_legal_os.api.v1.templates.get_template_service') as mock_get_service:
+             patch('province.api.v1.templates.get_template_service') as mock_get_service:
             
             mock_service = AsyncMock()
             mock_service.export_template_to_yaml.return_value = """
