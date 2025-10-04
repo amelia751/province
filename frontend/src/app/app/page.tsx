@@ -2,7 +2,8 @@ import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { getUserOrganization, getOrganizationName } from '@/lib/organization';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-import InterfaceLayout from '@/components/ui/interface-layout';
+import StartScreenClient from '@/app/app/start-screen-client';
+import Sidebar from '@/components/ui/sidebar';
 
 export default async function AppPage() {
   const { userId, orgId } = await auth();
@@ -75,6 +76,14 @@ export default async function AppPage() {
   const organizationName = await getOrganizationName();
 
   return (
-    <InterfaceLayout organizationName={organizationName} />
+    <div className="flex h-screen overflow-hidden">
+      {/* Sidebar */}
+      <Sidebar organizationName={organizationName} />
+      
+      {/* Main content - Start Screen */}
+      <div className="flex-1 overflow-auto">
+        <StartScreenClient />
+      </div>
+    </div>
   );
 }

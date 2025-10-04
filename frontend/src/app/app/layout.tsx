@@ -1,6 +1,6 @@
 import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
-import Header from '@/components/ui/header';
+import { Header } from '@/components/interface';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
