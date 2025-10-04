@@ -346,13 +346,10 @@ export default function InterfaceLayout({ organizationName }: InterfaceLayoutPro
     setSidebarWidth(width);
   }, []);
 
-  // Calculate main editor position and width
-  const mainEditorLeft = sidebarWidth + explorerWidth;
-  const mainEditorRight = chatWidth;
-  const mainEditorWidth = getAvailableWidth() - explorerWidth - chatWidth;
+
 
   return (
-    <div className="flex flex-1 overflow-hidden">
+    <div className="flex overflow-hidden" style={{ height: 'calc(100vh - 60px)' }}>
       {/* Sidebar */}
       <Sidebar
         organizationName={organizationName}
@@ -360,22 +357,22 @@ export default function InterfaceLayout({ organizationName }: InterfaceLayoutPro
       />
 
       {/* Main Content Area - Flex container for the three panels */}
-      <div className="flex flex-1 h-full relative">
+      <div className="flex flex-1 h-full relative min-h-0">
         {/* Explorer Panel - only render if width > 0 */}
         {explorerWidth > 0 && (
           <div
-            className="flex-shrink-0 relative border-r border-gray-200"
+            className="flex-shrink-0 relative border-r border-gray-200 h-full"
             style={{ width: `${explorerWidth}px` }}
           >
-            <ExplorerPanel onWidthChange={handleExplorerWidthChange} />
+            <ExplorerPanel />
             {/* Explorer Resize Handle */}
             <ExplorerResizeHandle onResize={handleExplorerWidthChange} />
           </div>
         )}
 
         {/* Main Editor Area - Takes remaining space */}
-        <div className="flex-1 min-w-0 relative">
-          <MainEditor onWidthChange={() => { }} />
+        <div className="flex-1 min-w-0 relative h-full">
+          <MainEditor />
           {/* Main Editor Left Resize Handle - only show if explorer is visible */}
           {explorerWidth > 0 && (
             <MainEditorLeftResizeHandle onResize={handleExplorerWidthChange} />
@@ -389,12 +386,12 @@ export default function InterfaceLayout({ organizationName }: InterfaceLayoutPro
         {/* Chat Panel - only render if width > 0 */}
         {chatWidth > 0 && (
           <div
-            className="flex-shrink-0 relative border-l border-gray-200"
+            className="flex-shrink-0 relative border-l border-gray-200 h-full"
             style={{ width: `${chatWidth}px` }}
           >
             {/* Chat Resize Handle */}
             <ChatResizeHandle onResize={handleChatWidthChange} />
-            <Chat onWidthChange={handleChatWidthChange} />
+            <Chat />
           </div>
         )}
       </div>

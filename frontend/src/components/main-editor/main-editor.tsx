@@ -1,14 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   X,
   Circle,
   MoreHorizontal,
   Split,
-  Settings,
-  Search,
   Play,
   Bug
 } from "lucide-react";
@@ -49,10 +47,8 @@ const mockTabs: EditorTab[] = [
   }
 ];
 
-const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange }) => {
+const MainEditor: React.FC<MainEditorProps> = () => {
   const [tabs, setTabs] = useState(mockTabs);
-
-
 
   const closeTab = (tabId: string) => {
     setTabs(tabs.filter(tab => tab.id !== tabId));
@@ -65,13 +61,9 @@ const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange }) => {
     })));
   };
 
-
-
   return (
-    <div
-      className="main-editor-container flex bg-white h-full w-full"
-    >
-      <div className="flex flex-col h-full flex-1">
+    <div className="main-editor-container flex bg-white h-full w-full">
+      <div className="flex flex-col h-full flex-1 min-h-0">
         {/* Tab Bar */}
         <div className="flex items-center border-b border-gray-100 bg-gray-50">
           <div className="flex flex-1 overflow-x-auto">
@@ -115,19 +107,27 @@ const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange }) => {
         </div>
 
         {/* Editor Content */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-h-0">
           {tabs.find(tab => tab.isActive) ? (
-            <div className="h-full p-4">
-              <div className="h-full bg-gray-50 rounded border border-gray-200 p-4">
-                <div className="text-sm text-gray-500 mb-2">
-                  {tabs.find(tab => tab.isActive)?.path}
-                </div>
-                <div className="font-mono text-sm text-gray-800">
-                  <div className="text-blue-600">{"// Editor content would go here"}</div>
-                  <div className="text-green-600">{"import React from 'react';"}</div>
-                  <div className="text-purple-600">{"export default function Component() {"}</div>
-                  <div className="ml-4 text-gray-800">{"return <div>Hello World</div>;"}</div>
-                  <div className="text-purple-600">{"}"}</div>
+            // This is the actual scroll container
+            <div className="absolute inset-0 overflow-y-auto">
+              <div className="p-4">
+                <div className="bg-gray-50 rounded border border-gray-200 p-4">
+                  <div className="text-sm text-gray-500 mb-2">
+                    {tabs.find(tab => tab.isActive)?.path}
+                  </div>
+                  <div className="font-mono text-sm text-gray-800 space-y-1">
+                    <div className="text-blue-600">{"// Editor content would go here"}</div>
+                    <div className="text-green-600">{"import React from 'react';"}</div>
+                    <div className="text-purple-600">{"export default function Component() {"}</div>
+                    <div className="ml-4 text-gray-800">{"return <div>Hello World</div>;"}</div>
+                    <div className="text-purple-600">{"}"}</div>
+                    {Array.from({ length: 100 }, (_, i) => (
+                      <div key={i} className="text-gray-600">
+                        {`// Line ${i + 6}: This is sample content to demonstrate scrolling in the main editor`}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
