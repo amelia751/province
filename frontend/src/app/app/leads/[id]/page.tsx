@@ -7,25 +7,26 @@ import DashboardLayout from '@/components/dashboard/dashboard-layout';
 import LeadDetailView from '@/components/leads/lead-detail-view';
 
 interface LeadDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
   const { userId } = await auth();
-  
+
   if (!userId) {
     redirect('/');
   }
 
   const organization = await getUserOrganization();
-  
+
   if (!organization) {
     redirect('/app');
   }
 
   const organizationName = await getOrganizationName();
+  const { id } = await params;
 
   // Fetch all leads to find the specific one
   const leads = await leadDetector.detectLeads({
@@ -35,7 +36,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
     keywordsExclude: organization.keywords_exclude || []
   });
 
-  const lead = leads.find(l => l.id === params.id);
+  const lead = leads.find(l => l.id === id);
 
   if (!lead) {
     notFound();

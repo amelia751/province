@@ -6,9 +6,9 @@ It uses AWS's AgentCore, not custom orchestration.
 """
 
 import logging
+from datetime import datetime
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
-from datetime import datetime
 
 from .bedrock_agent_client import BedrockAgentClient, AgentSession, AgentResponse
 from .knowledge_bases import knowledge_base_manager
@@ -77,7 +77,7 @@ class LegalAgentService:
         This uses AWS's AgentCore orchestrator - no custom logic.
         """
         if session_id not in self.active_sessions:
-            raise ValueError(f"Session {session_id} not found")
+            raise ValueError(f"Session {session_id} not found. Please create a new session first.")
             
         session = self.active_sessions[session_id]
         config = self.agents.get(session.agent_id)
@@ -93,6 +93,9 @@ class LegalAgentService:
             raise ValueError(f"Agent configuration not found for session {session_id}")
             
         try:
+            # Use real Bedrock agent invocation (no mock responses)
+            logger.info(f"Invoking Bedrock agent: {config.agent_id}")
+            
             response = self.bedrock_client.invoke_agent(
                 agent_id=config.agent_id,
                 agent_alias_id=config.agent_alias_id,
@@ -151,8 +154,8 @@ def register_legal_agents():
     
     # Legal Drafting Agent
     drafting_agent = LegalAgentConfig(
-        agent_id="AGENT_DRAFTING_ID",  # Will be set during deployment
-        agent_alias_id="TSTALIASID",  # Test alias
+        agent_id="G65TGXF9QH",  # Real AWS Bedrock agent ID
+        agent_alias_id="WXRDBT4EN7",  # Real AWS Bedrock agent alias ID
         name="legal_drafting",
         description="AI agent specialized in legal document drafting and review",
         instruction="""You are a legal drafting assistant specialized in creating and reviewing legal documents. 
@@ -183,8 +186,8 @@ def register_legal_agents():
     
     # Legal Research Agent
     research_agent = LegalAgentConfig(
-        agent_id="AGENT_RESEARCH_ID",  # Will be set during deployment
-        agent_alias_id="TSTALIASID",  # Test alias
+        agent_id="C6P4UBATTT",  # Real AWS Bedrock agent ID
+        agent_alias_id="2GWTQQ6RSZ",  # Real AWS Bedrock agent alias ID
         name="legal_research",
         description="AI agent specialized in legal research and analysis",
         instruction="""You are a legal research assistant specialized in finding and analyzing legal precedents, statutes, and case law.
@@ -206,7 +209,7 @@ def register_legal_agents():
         - Extensive legal database through Knowledge Bases
         - Search tools for matter-specific research
         - Citation validation capabilities""",
-        foundation_model="amazon.nova-pro-v1:0",
+        foundation_model="anthropic.claude-3-5-sonnet-20240620-v1:0",
         knowledge_bases=["legal_corpus", "matter_specific"],
         action_groups=["search_matter_corpus", "validate_citations"]
     )
@@ -214,8 +217,8 @@ def register_legal_agents():
     
     # Case Management Agent
     case_mgmt_agent = LegalAgentConfig(
-        agent_id="AGENT_CASE_MGMT_ID",  # Will be set during deployment
-        agent_alias_id="TSTALIASID",  # Test alias
+        agent_id="VKTQRDTRBR",  # Real AWS Bedrock agent ID
+        agent_alias_id="FHM35BOHYN",  # Real AWS Bedrock agent alias ID
         name="case_management",
         description="AI agent specialized in case and matter management",
         instruction="""You are a case management assistant specialized in organizing and tracking legal matters.
@@ -237,11 +240,39 @@ def register_legal_agents():
         - Document storage and organization tools
         - Deadline creation and management tools
         - Matter search and retrieval capabilities""",
-        foundation_model="amazon.nova-lite-v1:0",
+        foundation_model="anthropic.claude-3-5-sonnet-20240620-v1:0",
         knowledge_bases=["matter_specific"],
         action_groups=["save_document", "create_deadline", "search_matter_corpus"]
     )
     legal_agent_service.register_agent(case_mgmt_agent)
+    
+    # Tax Agent
+    tax_agent = LegalAgentConfig(
+        agent_id="JXOYXIH3K9",  # Real AWS Bedrock agent ID
+        agent_alias_id="SNU2VUT3TQ",  # Real AWS Bedrock agent alias ID
+        name="tax_agent",
+        description="AI agent specialized in tax law and tax planning",
+        instruction="""You are a tax law specialist assistant focused on tax planning, compliance, and dispute resolution.
+        
+        Your capabilities include:
+        - Tax code interpretation and analysis
+        - Tax planning strategies and optimization
+        - Tax compliance and filing assistance
+        - Tax dispute resolution and audit support
+        - Corporate and individual tax matters
+        - Tax implications of business transactions
+        
+        Always:
+        - Stay current with tax law changes
+        - Provide accurate tax guidance
+        - Consider both federal and state tax implications
+        - Recommend consultation with qualified tax professionals for complex matters
+        - Maintain confidentiality of all tax information""",
+        foundation_model="anthropic.claude-3-5-sonnet-20240620-v1:0",
+        knowledge_bases=["tax_code", "legal_corpus"],
+        action_groups=["search_matter_corpus", "save_document", "create_deadline"]
+    )
+    legal_agent_service.register_agent(tax_agent)
 
 
 # Initialize legal agents

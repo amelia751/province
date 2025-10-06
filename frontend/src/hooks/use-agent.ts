@@ -179,10 +179,15 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentReturn {
     } catch (error) {
       console.error('Failed to create session:', error);
       
+      let errorContent = 'I apologize, but I encountered an error connecting to the AI service.';
+      if (error instanceof Error) {
+        errorContent += ` Error: ${error.message}`;
+      }
+      
       const errorMessage: ChatMessage = {
         id: `error_${Date.now()}`,
         type: 'assistant',
-        content: 'I apologize, but I encountered an error connecting to the AI service. The backend may not be running. Please start the backend server and try again.',
+        content: errorContent,
         timestamp: new Date(),
         status: 'error',
       };
@@ -263,10 +268,15 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentReturn {
     } catch (error) {
       console.error('Error sending message:', error);
 
+      let errorContent = 'I apologize, but I encountered an error processing your request.';
+      if (error instanceof Error) {
+        errorContent += ` Error: ${error.message}`;
+      }
+
       const errorMessage: ChatMessage = {
         id: `error_${Date.now()}`,
         type: 'assistant',
-        content: 'I apologize, but I encountered an error processing your request. Please ensure the backend server is running and try again.',
+        content: errorContent,
         timestamp: new Date(),
         agent: selectedAgent,
         status: 'error',

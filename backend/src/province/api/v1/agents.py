@@ -52,8 +52,7 @@ async def chat_with_agent(request: ChatRequest):
         # Create session if not provided
         if not request.session_id:
             session = legal_agent_service.create_session(
-                agent_name=request.agent_name,
-                matter_id=request.matter_id
+                agent_name=request.agent_name
             )
             session_id = session.session_id
         else:
@@ -63,7 +62,6 @@ async def chat_with_agent(request: ChatRequest):
         response = legal_agent_service.chat_with_agent(
             session_id=session_id,
             message=request.message,
-            matter_id=request.matter_id,
             enable_trace=request.enable_trace
         )
         
@@ -71,7 +69,7 @@ async def chat_with_agent(request: ChatRequest):
             response=response.response_text,
             session_id=response.session_id,
             agent_name=request.agent_name,
-            matter_id=request.matter_id,
+            matter_id=request.matter_id or "",
             citations=response.citations,
             trace=response.trace
         )
@@ -88,16 +86,15 @@ async def create_session(request: SessionRequest):
     """
     try:
         session = legal_agent_service.create_session(
-            agent_name=request.agent_name,
-            matter_id=request.matter_id
+            agent_name=request.agent_name
         )
         
         return {
             "session_id": session.session_id,
             "agent_name": request.agent_name,
             "agent_id": session.agent_id,
-            "matter_id": request.matter_id,
-            "status": "created"
+            "matter_id": request.matter_id or "",
+            "status": "REAL_BACKEND_ACTIVE"
         }
         
     except Exception as e:

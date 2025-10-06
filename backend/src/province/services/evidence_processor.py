@@ -24,7 +24,7 @@ from ..models.document import Document
 from ..services.document import DocumentService
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
+# settings = get_settings()  # Moved to function calls to avoid import-time errors
 
 
 @dataclass
@@ -66,10 +66,12 @@ class EvidenceProcessor:
     """Service for processing evidence documents and generating insights"""
     
     def __init__(self):
-        self.textract = boto3.client('textract', region_name=settings.aws_region)
-        self.transcribe = boto3.client('transcribe', region_name=settings.aws_region)
-        self.comprehend_medical = boto3.client('comprehendmedical', region_name=settings.aws_region)
-        self.s3 = boto3.client('s3', region_name=settings.aws_region)
+        settings = get_settings()
+        aws_region = getattr(settings, 'aws_region', 'us-east-1')  # Default fallback
+        self.textract = boto3.client('textract', region_name=aws_region)
+        self.transcribe = boto3.client('transcribe', region_name=aws_region)
+        self.comprehend_medical = boto3.client('comprehendmedical', region_name=aws_region)
+        self.s3 = boto3.client('s3', region_name=aws_region)
         self.document_service = DocumentService()
         
     async def process_document(self, document: Document, processing_options: Dict[str, Any] = None) -> ProcessingResult:
@@ -139,7 +141,7 @@ class EvidenceProcessor:
         try:
             # Get document from S3
             s3_object = {
-                'Bucket': settings.documents_bucket_name,
+                'Bucket': getattr(get_settings(), 'documents_bucket_name', 'default-bucket'),
                 'Name': document.s3_key
             }
             
@@ -180,7 +182,7 @@ class EvidenceProcessor:
             response = self.textract.start_document_text_detection(
                 DocumentLocation={
                     'S3Object': {
-                        'Bucket': settings.documents_bucket_name,
+                        'Bucket': getattr(get_settings(), 'documents_bucket_name', 'default-bucket'),
                         'Name': document.s3_key
                     }
                 },
@@ -237,7 +239,7 @@ class EvidenceProcessor:
             response = self.transcribe.start_transcription_job(
                 TranscriptionJobName=job_name,
                 Media={
-                    'MediaFileUri': f"s3://{settings.documents_bucket_name}/{document.s3_key}"
+                    'MediaFileUri': f"s3://{getattr(get_settings(), 'documents_bucket_name', 'default-bucket')}/{document.s3_key}"
                 },
                 MediaFormat=self._get_audio_format(document.mime_type),
                 LanguageCode='en-US',  # Could be configurable
@@ -300,7 +302,7 @@ class EvidenceProcessor:
         try:
             # Download document content from S3
             response = self.s3.get_object(
-                Bucket=settings.documents_bucket_name,
+                Bucket=getattr(get_settings(), 'documents_bucket_name', 'default-bucket'),
                 Key=document.s3_key
             )
             

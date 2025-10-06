@@ -46,7 +46,8 @@ class AgentService {
   private sessions: Map<string, AgentSession> = new Map();
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+    // Use Next.js API routes which proxy to backend
+    this.baseUrl = '/api';
   }
 
   /**
@@ -66,7 +67,8 @@ class AgentService {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to create session: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to create session: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -107,7 +109,8 @@ class AgentService {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to send message: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to send message: ${response.statusText}`);
       }
 
       const data = await response.json();

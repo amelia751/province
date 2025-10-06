@@ -7,6 +7,7 @@ from constructs import Construct
 from infrastructure.stacks.core_stack import CoreStack
 from infrastructure.stacks.api_stack import ApiStack
 from infrastructure.stacks.agent_stack import AgentStack
+from infrastructure.stacks.tax_stack import TaxStack
 
 
 def main() -> None:
@@ -39,6 +40,14 @@ def main() -> None:
         description="API infrastructure for AI Legal OS"
     )
     
+    # Tax infrastructure stack (Tax-specific DynamoDB tables)
+    tax_stack = TaxStack(
+        app, f"AILegalOSTax-{environment}",
+        kms_key=core_stack.core_resources.kms_key,
+        env=env,
+        description="Tax infrastructure for AI Legal OS"
+    )
+    
     # Agent runtime stack (Bedrock, EventBridge, SNS)
     agent_stack = AgentStack(
         app, f"AILegalOSAgents-{environment}",
@@ -50,6 +59,7 @@ def main() -> None:
     
     # Add dependencies
     api_stack.add_dependency(core_stack)
+    tax_stack.add_dependency(core_stack)
     agent_stack.add_dependency(core_stack)
     agent_stack.add_dependency(api_stack)
     

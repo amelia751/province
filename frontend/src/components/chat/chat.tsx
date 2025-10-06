@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useAgent } from "@/hooks/use-agent";
 import AgentActions from "./agent-actions";
+import VoiceChat from "./voice-chat";
 import {
   Send,
   Paperclip,
@@ -20,7 +21,9 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
-  Settings
+  Settings,
+  MessageSquare,
+  Mic2
 } from "lucide-react";
 
 interface ChatProps {
@@ -109,12 +112,15 @@ const mockMessages: ChatMessage[] = [
   }))
 ];
 
+type ChatMode = 'text' | 'voice';
+
 const Chat: React.FC<ChatProps> = ({
   onDocumentCreate,
   onMatterCreate,
   onDeadlineCreate
 }) => {
   const [inputValue, setInputValue] = useState("");
+  const [chatMode, setChatMode] = useState<ChatMode>('text');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -200,42 +206,91 @@ const Chat: React.FC<ChatProps> = ({
     <div className="chat-container flex bg-white h-full w-full">
       <div className="flex flex-col h-full flex-1 min-h-0">
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-gray-100">
-          <div className="flex items-center space-x-2">
-            <h3 className="text-sm font-medium text-gray-900">Legal AI Assistant</h3>
-            {currentSession && (
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                {selectedAgent.replace('_', ' ')}
-              </span>
-            )}
+        <div className="flex flex-col border-b border-gray-100">
+          <div className="flex items-center justify-between p-3">
+            <div className="flex items-center space-x-2">
+              <h3 className="text-sm font-medium text-gray-900">Legal AI Assistant</h3>
+              {currentSession && (
+                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                  {selectedAgent.replace('_', ' ')}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center space-x-1">
+              <select
+                value={selectedAgent}
+                onChange={(e) => setSelectedAgent(e.target.value)}
+                className="text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black"
+              >
+                <option value="legal_drafting">Legal Drafting</option>
+                <option value="legal_research">Legal Research</option>
+                <option value="case_management">Case Management</option>
+              </select>
+              <button
+                onClick={() => createSession(selectedAgent)}
+                className="p-1 hover:bg-gray-100 rounded"
+                title="Reset session"
+              >
+                <RotateCcw className="h-4 w-4 text-gray-500" />
+              </button>
+              <button className="p-1 hover:bg-gray-100 rounded">
+                <Settings className="h-4 w-4 text-gray-500" />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center space-x-1">
-            <select
-              value={selectedAgent}
-              onChange={(e) => setSelectedAgent(e.target.value)}
-              className="text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black"
-            >
-              <option value="legal_drafting">Legal Drafting</option>
-              <option value="legal_research">Legal Research</option>
-              <option value="case_management">Case Management</option>
-            </select>
-            <button
-              onClick={() => createSession(selectedAgent)}
-              className="p-1 hover:bg-gray-100 rounded"
-              title="Reset session"
-            >
-              <RotateCcw className="h-4 w-4 text-gray-500" />
-            </button>
-            <button className="p-1 hover:bg-gray-100 rounded">
-              <Settings className="h-4 w-4 text-gray-500" />
-            </button>
+
+          {/* Mode Toggle */}
+          <div className="px-3 pb-3">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setChatMode('text')}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all",
+                  chatMode === 'text'
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                )}
+              >
+                <MessageSquare className="h-5 w-5" />
+                <div className="text-left">
+                  <div className="text-sm font-medium">Interactive Chat</div>
+                  <div className="text-xs opacity-75">Ask questions</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setChatMode('voice')}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all",
+                  chatMode === 'voice'
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                )}
+              >
+                <Mic2 className="h-5 w-5" />
+                <div className="text-left">
+                  <div className="text-sm font-medium">Voice Support</div>
+                  <div className="text-xs opacity-75">Speak naturally</div>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 relative min-h-0">
-          {/* Actual scroll container */}
-          <div className="absolute inset-0 overflow-y-auto">
+        {/* Content Area */}
+        {chatMode === 'voice' ? (
+          <VoiceChat
+            selectedAgent={selectedAgent}
+            onDocumentCreate={onDocumentCreate}
+            onMatterCreate={onMatterCreate}
+            onDeadlineCreate={onDeadlineCreate}
+          />
+        ) : (
+          <>
+            {/* Messages */}
+            <div className="flex-1 relative min-h-0">
+              {/* Actual scroll container */}
+              <div className="absolute inset-0 overflow-y-auto">
             <div className="p-4 space-y-4">
               {displayMessages.length === 0 ? (
                 <div
@@ -346,8 +401,8 @@ const Chat: React.FC<ChatProps> = ({
           </div>
         </div>
 
-        {/* Input */}
-        <div className="p-4 border-t border-gray-100">
+            {/* Input */}
+            <div className="p-4 border-t border-gray-100">
           <div className="flex items-end space-x-2">
             <div className="flex-1 relative">
               <textarea
@@ -385,7 +440,9 @@ const Chat: React.FC<ChatProps> = ({
               </button>
             </div>
           </div>
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

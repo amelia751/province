@@ -11,9 +11,10 @@ class Settings(BaseSettings):
     """Application settings."""
     
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=[".env.local", ".env"],
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",  # Ignore extra fields from .env.local
     )
     
     # Environment
@@ -37,6 +38,13 @@ class Settings(BaseSettings):
     documents_table_name: str = Field(default="documents", description="Documents table name")
     permissions_table_name: str = Field(default="permissions", description="Permissions table name")
     deadlines_table_name: str = Field(default="deadlines", description="Deadlines table name")
+    
+    # Tax-specific DynamoDB Tables
+    tax_engagements_table_name: str = Field(default="tax-engagements", description="Tax engagements table name")
+    tax_documents_table_name: str = Field(default="tax-documents", description="Tax documents table name")
+    tax_permissions_table_name: str = Field(default="tax-permissions", description="Tax permissions table name")
+    tax_deadlines_table_name: str = Field(default="tax-deadlines", description="Tax deadlines table name")
+    tax_connections_table_name: str = Field(default="tax-connections", description="Tax connections table name")
     
     # S3 Configuration
     documents_bucket_name: str = Field(default="documents", description="Documents S3 bucket")

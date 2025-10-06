@@ -4,26 +4,27 @@ import { getOrganizationName } from '@/lib/organization';
 import ProjectClient from './project-client';
 
 interface ProjectPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const { userId, orgId } = await auth();
-  
+
   if (!userId || !orgId) {
     redirect('/');
   }
 
   const organizationName = await getOrganizationName();
-  
+  const { id } = await params;
+
   // TODO: Fetch project data from database using params.id
   // For now, we'll pass the id to the client component
-  
+
   return (
-    <ProjectClient 
-      projectId={params.id} 
+    <ProjectClient
+      projectId={id}
       organizationName={organizationName || undefined}
     />
   );
