@@ -189,19 +189,13 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
 
   const toggleMute = useCallback(async () => {
     if (roomRef.current) {
-      const audioTrack = roomRef.current.localParticipant.getTrackPublication(Track.Source.Microphone);
-      if (audioTrack) {
-        await audioTrack.setMuted(!isMuted);
+      try {
+        // Use the LocalParticipant method to toggle microphone
+        await roomRef.current.localParticipant.setMicrophoneEnabled(isMuted);
         setIsMuted(!isMuted);
-      } else {
-        // Enable microphone if not already enabled
-        try {
-          await roomRef.current.localParticipant.setMicrophoneEnabled(!isMuted);
-          setIsMuted(!isMuted);
-        } catch (error) {
-          console.error('Failed to toggle microphone:', error);
-          setError('Failed to access microphone');
-        }
+      } catch (error) {
+        console.error('Failed to toggle microphone:', error);
+        setError('Failed to access microphone');
       }
     }
   }, [isMuted]);
@@ -311,7 +305,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
           </div>
 
           {/* Transcript */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 select-text">
             {transcript.length === 0 ? (
               <div className="flex items-center justify-center h-full text-gray-400">
                 <div className="text-center">
@@ -330,13 +324,13 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
                 >
                   <div
                     className={cn(
-                      "max-w-[80%] rounded-lg px-3 py-2",
+                      "max-w-[80%] rounded-lg px-3 py-2 select-text cursor-text",
                       message.type === 'user'
                         ? "bg-black text-white"
                         : "bg-gray-100 text-gray-900"
                     )}
                   >
-                    <div className="text-sm">{message.text}</div>
+                    <div className="text-sm select-text">{message.text}</div>
                     <div
                       className={cn(
                         "text-xs mt-1",

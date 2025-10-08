@@ -53,30 +53,6 @@ interface ChatMessage {
   isStreaming?: boolean;
 }
 
-// Tax-focused mock messages
-const mockMessages: ChatMessage[] = [
-  {
-    id: "1",
-    type: "user",
-    content: "I need help filing my taxes this year. I have my W-2 from my employer.",
-    timestamp: new Date(Date.now() - 300000)
-  },
-  {
-    id: "2",
-    type: "assistant",
-    content: "Great! I'm here to help you file your taxes. I can help you with simple W-2 employee tax returns.\n\n**Let's get started:**\n- Upload your W-2 form(s)\n- I'll extract the information automatically\n- We'll go through a few questions about your filing status\n- I'll calculate your taxes and generate your 1040 form\n\nTo begin, please upload your W-2 PDF or tell me about your tax situation.",
-    timestamp: new Date(Date.now() - 240000),
-    agent: "TaxPlannerAgent",
-    actions: [
-      {
-        type: 'create_document',
-        label: 'Upload W-2',
-        data: { documentType: 'w2', action: 'upload' }
-      }
-    ],
-    status: 'completed'
-  }
-];
 
 type ChatMode = 'text' | 'voice';
 
@@ -111,7 +87,7 @@ const TaxChatInterface: React.FC<ChatProps> = ({
     enableWebSocket: false,
   });
 
-  const displayMessages = messages.length > 0 ? messages : mockMessages;
+  const displayMessages = messages;
 
   // Simulate connection process for tax agent
   useEffect(() => {
@@ -357,7 +333,7 @@ const TaxChatInterface: React.FC<ChatProps> = ({
                         ? "bg-[#278EFF] text-white"
                         : "bg-green-100 text-gray-900"
                     )}>
-                      <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+                      <div className="text-sm whitespace-pre-wrap select-text">{message.content}</div>
 
                       {message.citations && message.citations.length > 0 && (
                         <div className="mt-2 space-y-1">
