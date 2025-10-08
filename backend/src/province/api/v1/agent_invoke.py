@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/agent", tags=["agent-invoke"])
 
 # Use the global legal agent service instance (agents are already registered)
-from province.agents.agent_service import legal_agent_service
+from province.agents.agent_service import agent_service
 
 
 class AgentInvokeRequest(BaseModel):
@@ -63,7 +63,7 @@ async def invoke_agent(request: AgentInvokeRequest) -> AgentInvokeResponse:
         logger.info(f"Agent invoke request - trace_id: {trace_id}, utterance: {request.utterance[:100]}...")
         
         # Debug: List available agents
-        available_agents = list(legal_agent_service.agents.keys())
+        available_agents = list(agent_service.agents.keys())
         logger.info(f"Available agents: {available_agents}")
         
         agent_name = request.agent_name or "legal_drafting"
@@ -74,14 +74,14 @@ async def invoke_agent(request: AgentInvokeRequest) -> AgentInvokeResponse:
         
         # For now, create a new session for each request
         # In production, you'd want to maintain session state per room/user
-        session = legal_agent_service.create_session(
+        session = agent_service.create_session(
             agent_name=agent_name
         )
         
         logger.info(f"Created session {session.session_id} for agent invoke - trace_id: {trace_id}")
         
         # Delegate to AWS System Agent
-        agent_response = legal_agent_service.chat_with_agent(
+        agent_response = agent_service.chat_with_agent(
             session_id=session.session_id,
             message=request.utterance,
             enable_trace=True

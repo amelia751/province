@@ -11,7 +11,7 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 import logging
 
-from ...agents.agent_service import legal_agent_service
+from ...agents.agent_service import agent_service
 from ...agents.bedrock_agent_client import AgentSession, AgentResponse
 
 logger = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ async def chat_with_agent(request: ChatRequest):
     try:
         # Create session if not provided
         if not request.session_id:
-            session = legal_agent_service.create_session(
+            session = agent_service.create_session(
                 agent_name=request.agent_name
             )
             session_id = session.session_id
@@ -59,7 +59,7 @@ async def chat_with_agent(request: ChatRequest):
             session_id = request.session_id
         
         # Chat with agent using AWS managed service
-        response = legal_agent_service.chat_with_agent(
+        response = agent_service.chat_with_agent(
             session_id=session_id,
             message=request.message,
             enable_trace=request.enable_trace
@@ -85,7 +85,7 @@ async def create_session(request: SessionRequest):
     Create a new Bedrock Agent session with optional matter context.
     """
     try:
-        session = legal_agent_service.create_session(
+        session = agent_service.create_session(
             agent_name=request.agent_name
         )
         
@@ -108,7 +108,7 @@ async def get_session(session_id: str):
     Get information about a Bedrock Agent session.
     """
     try:
-        sessions = legal_agent_service.list_active_sessions()
+        sessions = agent_service.list_active_sessions()
         session = next((s for s in sessions if s.session_id == session_id), None)
         
         if not session:
@@ -134,7 +134,7 @@ async def delete_session(session_id: str):
     Close a Bedrock Agent session.
     """
     try:
-        legal_agent_service.close_session(session_id)
+        agent_service.close_session(session_id)
         return {"status": "closed"}
         
     except Exception as e:
@@ -149,7 +149,7 @@ async def list_agents():
     """
     try:
         agents = []
-        for agent_name, config in legal_agent_service.agents.items():
+        for agent_name, config in agent_service.agents.items():
             agents.append({
                 "name": agent_name,
                 "agent_id": config.agent_id,
@@ -172,7 +172,7 @@ async def get_agent_info(agent_name: str):
     Get detailed information about a specific Bedrock Agent.
     """
     try:
-        agent_info = legal_agent_service.get_agent_info(agent_name)
+        agent_info = agent_service.get_agent_info(agent_name)
         return agent_info
         
     except ValueError as e:
@@ -188,7 +188,7 @@ async def cleanup_expired_sessions(max_idle_minutes: int = 30):
     Clean up expired agent sessions.
     """
     try:
-        cleaned_count = legal_agent_service.cleanup_expired_sessions(max_idle_minutes)
+        cleaned_count = agent_service.cleanup_expired_sessions(max_idle_minutes)
         
         return {
             "message": f"Cleaned up {cleaned_count} expired sessions",
@@ -206,12 +206,12 @@ async def get_agent_stats():
     Get agent system statistics.
     """
     try:
-        active_sessions = legal_agent_service.list_active_sessions()
+        active_sessions = agent_service.list_active_sessions()
         
         stats = {
             "active_sessions": len(active_sessions),
-            "registered_agents": len(legal_agent_service.agents),
-            "agent_names": list(legal_agent_service.agents.keys())
+            "registered_agents": len(agent_service.agents),
+            "agent_names": list(agent_service.agents.keys())
         }
         
         return stats
@@ -227,14 +227,14 @@ async def agent_health_check():
     Check the health of the Bedrock Agent system.
     """
     try:
-        active_sessions = legal_agent_service.list_active_sessions()
+        active_sessions = agent_service.list_active_sessions()
         
         health_status = {
             "status": "healthy",
             "service": "AWS Bedrock Agents (Managed)",
             "orchestrator": "AWS AgentCore",
             "active_sessions": len(active_sessions),
-            "registered_agents": len(legal_agent_service.agents),
+            "registered_agents": len(agent_service.agents),
             "bedrock_connection": "ok"
         }
         

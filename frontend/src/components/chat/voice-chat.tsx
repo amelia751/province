@@ -68,19 +68,20 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     setError(null);
 
     try {
-      // 1. Get token from backend
-      const response = await fetch('/api/v1/livekit/token', {
+      // 1. Get token from backend (updated path)
+      const response = await fetch('http://localhost:8000/api/v1/livekit/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          room_name: `legal-session-${Date.now()}`,
+          room_name: `tax-session-${Date.now()}`,
           participant_identity: 'user-' + Math.random().toString(36).substr(2, 9),
-          participant_name: 'Legal Client',
+          participant_name: 'Tax Client',
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get access token');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to get access token');
       }
 
       const { token, url } = await response.json();
@@ -94,12 +95,20 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
       roomRef.current = room;
 
       // Set up event listeners
-      room.on('connected', () => {
+      room.on('connected', async () => {
         console.log('Connected to LiveKit room');
         setIsConnected(true);
         setIsConnecting(false);
         setConnectionState(ConnectionState.Connected);
-        addTranscript('assistant', 'Hello! I\'m your legal AI assistant. How can I help you today?');
+        addTranscript('assistant', 'Hello! I\'m your tax assistant. How can I help you with your taxes today?');
+
+        // Enable microphone after connection
+        try {
+          await room.localParticipant.setMicrophoneEnabled(true);
+        } catch (error) {
+          console.error('Failed to enable microphone:', error);
+          setError('Failed to access microphone. Please check permissions.');
+        }
       });
 
       room.on('disconnected', () => {
@@ -112,18 +121,38 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
         if (track.kind === Track.Kind.Audio) {
           console.log('Audio track received from participant:', participant.identity);
           setIsAgentSpeaking(true);
-          
+
           // Attach audio track to audio element for playback
           const audioElement = document.createElement('audio');
           audioElement.autoplay = true;
           audioElement.muted = isSpeakerMuted;
           track.attach(audioElement);
+
+          // Add to DOM
+          document.body.appendChild(audioElement);
         }
       });
 
       room.on('trackUnsubscribed', (track: RemoteTrack) => {
         if (track.kind === Track.Kind.Audio) {
           setIsAgentSpeaking(false);
+          // Detach and remove audio elements
+          track.detach();
+        }
+      });
+
+      // Listen for data messages (transcriptions, etc.)
+      room.on('dataReceived', (payload: Uint8Array, participant?: RemoteParticipant) => {
+        try {
+          const decoder = new TextDecoder();
+          const message = JSON.parse(decoder.decode(payload));
+
+          if (message.type === 'transcript') {
+            const senderType = participant?.identity.includes('agent') ? 'assistant' : 'user';
+            addTranscript(senderType, message.text);
+          }
+        } catch (error) {
+          console.error('Failed to parse data message:', error);
         }
       });
 
@@ -208,14 +237,14 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center max-w-md">
             <div className="mb-6">
-              <div className="w-20 h-20 bg-gray-100 rounded-full mx-auto flex items-center justify-center mb-4">
-                <Mic className="h-10 w-10 text-gray-400" />
+              <div className="w-20 h-20 bg-black rounded-full mx-auto flex items-center justify-center mb-4">
+                <Mic className="h-10 w-10 text-white" />
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Voice Consultation
+                Voice Tax Assistant
               </h3>
               <p className="text-sm text-gray-500">
-                Start a voice conversation with your legal AI assistant. Speak naturally and get instant responses.
+                Start a voice conversation with your AI tax assistant. Speak naturally and get instant responses.
               </p>
             </div>
 
@@ -245,14 +274,14 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
                 </>
               ) : (
                 <>
-                  <Phone className="h-5 w-5" />
-                  Start Voice Consultation
+                  <Mic className="h-5 w-5" />
+                  Start Voice Session
                 </>
               )}
             </button>
 
             <div className="mt-6 text-xs text-gray-500">
-              <p>Make sure your microphone is enabled</p>
+              <p>Microphone access required</p>
             </div>
           </div>
         </div>
@@ -260,16 +289,24 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
         /* Active Voice Chat */
         <>
           {/* Connection Status */}
-          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+          <div className="px-4 py-2 bg-white border-b border-gray-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-xs font-medium text-gray-700">Connected</span>
+                <div className={cn(
+                  "w-2 h-2 rounded-full",
+                  connectionState === ConnectionState.Connected ? "bg-green-500 animate-pulse" :
+                  connectionState === ConnectionState.Reconnecting ? "bg-yellow-500 animate-pulse" :
+                  "bg-gray-400"
+                )} />
+                <span className="text-xs font-medium text-gray-700">
+                  {connectionState === ConnectionState.Connected ? 'Connected' :
+                   connectionState === ConnectionState.Reconnecting ? 'Reconnecting...' :
+                   'Connecting...'}
+                </span>
               </div>
-              <Wifi className="h-3.5 w-3.5 text-gray-400" />
             </div>
             <div className="text-xs text-gray-500">
-              {selectedAgent.replace('_', ' ')}
+              Tax Assistant
             </div>
           </div>
 
@@ -320,12 +357,12 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
 
           {/* Agent Speaking Indicator */}
           {isAgentSpeaking && (
-            <div className="px-4 py-2 bg-blue-50 border-t border-blue-200">
-              <div className="flex items-center gap-2 text-sm text-blue-700">
+            <div className="px-4 py-2 bg-gray-50 border-t border-gray-200">
+              <div className="flex items-center gap-2 text-sm text-gray-700">
                 <div className="flex gap-1">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="w-1.5 h-1.5 bg-black rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-1.5 h-1.5 bg-black rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-1.5 h-1.5 bg-black rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
                 Assistant is speaking...
               </div>
@@ -383,7 +420,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
 
             <div className="mt-4 text-center">
               <p className="text-xs text-gray-500">
-                Speak clearly and naturally. The AI will respond in real-time.
+                Speak naturally about your tax questions
               </p>
             </div>
           </div>

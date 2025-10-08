@@ -5,26 +5,26 @@ import { cn } from "@/lib/utils";
 import { useAgent } from "@/hooks/use-agent";
 import AgentActions from "./agent-actions";
 import VoiceChat from "./voice-chat";
+import ChatInputArea from "./ChatInputArea";
+import EmptyChatState from "./EmptyChat";
 import {
   Send,
-  Paperclip,
-  Mic,
   User,
   Bot,
-  Copy,
-  ThumbsUp,
-  ThumbsDown,
   RotateCcw,
   FileText,
   Calendar,
   Search,
   Loader2,
-  CheckCircle,
-  AlertCircle,
-  Settings,
   MessageSquare,
-  Mic2
+  Mic2,
+  ChevronDown,
+  Settings,
+  RefreshCw,
+  AlertCircle,
+  Calculator
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ChatProps {
   onWidthChange?: (width: number) => void;
@@ -50,78 +50,52 @@ interface ChatMessage {
     data: any;
   }>;
   status?: 'sending' | 'processing' | 'completed' | 'error';
+  isStreaming?: boolean;
 }
 
+// Tax-focused mock messages
 const mockMessages: ChatMessage[] = [
   {
     id: "1",
     type: "user",
-    content: "I need to draft a contract for a new client acquisition. Can you help me set up the matter and create the initial documents?",
+    content: "I need help filing my taxes this year. I have my W-2 from my employer.",
     timestamp: new Date(Date.now() - 300000)
   },
   {
     id: "2",
     type: "assistant",
-    content: "I'll help you set up a new client acquisition matter and draft the contract. Let me create the matter structure and generate the initial contract template.\n\n**Matter Created:** Client Acquisition - [Client Name]\n**Practice Area:** Corporate Law\n**Documents Generated:**\n- Service Agreement Template\n- Engagement Letter\n- Conflict Check Form\n\nI've created a comprehensive folder structure with all necessary documents. The service agreement includes standard terms for professional services, liability limitations, and payment terms. Would you like me to customize any specific clauses?",
+    content: "Great! I'm here to help you file your taxes. I can help you with simple W-2 employee tax returns.\n\n**Let's get started:**\n- Upload your W-2 form(s)\n- I'll extract the information automatically\n- We'll go through a few questions about your filing status\n- I'll calculate your taxes and generate your 1040 form\n\nTo begin, please upload your W-2 PDF or tell me about your tax situation.",
     timestamp: new Date(Date.now() - 240000),
-    agent: "legal_drafting",
+    agent: "TaxPlannerAgent",
     actions: [
-      {
-        type: 'create_matter',
-        label: 'View Matter',
-        data: { matterId: 'matter_123', name: 'Client Acquisition - [Client Name]' }
-      },
       {
         type: 'create_document',
-        label: 'Open Service Agreement',
-        data: { documentId: 'doc_456', name: 'Service Agreement Template' }
+        label: 'Upload W-2',
+        data: { documentType: 'w2', action: 'upload' }
       }
     ],
     status: 'completed'
-  },
-  {
-    id: "3",
-    type: "user",
-    content: "Perfect! Can you also set up deadlines for the key milestones?",
-    timestamp: new Date(Date.now() - 120000)
-  },
-  {
-    id: "4",
-    type: "assistant",
-    content: "I've set up the key deadlines for your client acquisition matter:\n\n**Deadlines Created:**\n- Initial client meeting: 3 days from now\n- Contract review and revisions: 1 week from now\n- Final contract execution: 2 weeks from now\n- Engagement letter signed: 2 weeks from now\n\nAll deadlines include automatic reminders and are integrated with your calendar. The system will notify you 24 hours before each deadline.",
-    timestamp: new Date(Date.now() - 60000),
-    agent: "case_management",
-    actions: [
-      {
-        type: 'create_deadline',
-        label: 'View Deadlines',
-        data: { matterId: 'matter_123', deadlines: 4 }
-      }
-    ],
-    status: 'completed'
-  },
-  ...Array.from({ length: 10 }, (_, i) => ({
-    id: `demo_${i + 5}`,
-    type: (i % 2 === 0 ? 'user' : 'assistant') as 'user' | 'assistant',
-    content: i % 2 === 0
-      ? `This is user message ${i + 1} to demonstrate scrolling in the chat interface.`
-      : `This is assistant response ${i + 1}. I can help you with various legal tasks including document drafting, research, and case management. The chat interface supports scrolling when there are many messages.`,
-    timestamp: new Date(Date.now() - (60000 * (10 - i))),
-    agent: i % 3 === 0 ? 'legal_drafting' : i % 3 === 1 ? 'legal_research' : 'case_management',
-    status: 'completed' as const
-  }))
+  }
 ];
 
 type ChatMode = 'text' | 'voice';
 
-const Chat: React.FC<ChatProps> = ({
+const TaxChatInterface: React.FC<ChatProps> = ({
   onDocumentCreate,
   onMatterCreate,
   onDeadlineCreate
 }) => {
   const [inputValue, setInputValue] = useState("");
-  const [chatMode, setChatMode] = useState<ChatMode>('text');
+  const [chatMode, setChatMode] = useState<ChatMode>('voice'); // Default to voice for better UX
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const [hasReceivedFirstResponse, setHasReceivedFirstResponse] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionError, setConnectionError] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
     messages,
@@ -132,16 +106,77 @@ const Chat: React.FC<ChatProps> = ({
     setSelectedAgent,
     createSession,
   } = useAgent({
-    agentName: 'legal_drafting',
-    autoConnect: false,
+    agentName: 'TaxPlannerAgent', // Now using the correct tax agent
+    autoConnect: true,
     enableWebSocket: false,
   });
 
   const displayMessages = messages.length > 0 ? messages : mockMessages;
 
+  // Simulate connection process for tax agent
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [displayMessages]);
+    if (currentSession && !isConnected) {
+      setIsConnecting(true);
+      const timer = setTimeout(() => {
+        setIsConnected(true);
+        setIsConnecting(false);
+        setHasReceivedFirstResponse(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentSession, isConnected]);
+
+  // Auto scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (!isUserScrolling && messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      const shouldAutoScroll = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+      if (shouldAutoScroll) {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [displayMessages, isUserScrolling]);
+
+  // Handle scroll events
+  const handleScroll = () => {
+    if (!messagesContainerRef.current) return;
+
+    const container = messagesContainerRef.current;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const atBottom = scrollHeight - scrollTop - clientHeight < 50;
+
+    setShowScrollToBottom(!atBottom);
+
+    if (!atBottom) {
+      setIsUserScrolling(true);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      scrollTimeoutRef.current = setTimeout(() => {
+        const newScrollPos = container.scrollHeight - container.scrollTop - container.clientHeight;
+        if (newScrollPos < 50) {
+          setIsUserScrolling(false);
+        }
+      }, 150);
+    } else {
+      setIsUserScrolling(false);
+    }
+  };
+
+  // Scroll to bottom
+  const scrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+    setShowScrollToBottom(false);
+  };
 
   const sendMessage = async () => {
     if (!inputValue.trim() || isProcessing) return;
@@ -176,156 +211,152 @@ const Chat: React.FC<ChatProps> = ({
     }
   };
 
+  const handleRetryConnection = async () => {
+    setConnectionError(false);
+    setIsConnecting(true);
+    try {
+      await createSession('TaxPlannerAgent');
+      setIsConnected(true);
+    } catch (error) {
+      setConnectionError(true);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
   const getAgentIcon = (agent?: string) => {
+    // Tax-focused icons
     switch (agent) {
-      case 'legal_drafting':
+      case 'TaxPlannerAgent':
         return <FileText className="h-4 w-4 text-white" />;
-      case 'legal_research':
+      case 'TaxIntakeAgent':
+        return <MessageSquare className="h-4 w-4 text-white" />;
+      case 'W2IngestAgent':
+        return <FileText className="h-4 w-4 text-white" />;
+      case 'Calc1040Agent':
+        return <Calculator className="h-4 w-4 text-white" />;
+      case 'ReviewAgent':
         return <Search className="h-4 w-4 text-white" />;
-      case 'case_management':
+      case 'ReturnRenderAgent':
+        return <FileText className="h-4 w-4 text-white" />;
+      case 'DeadlinesAgent':
         return <Calendar className="h-4 w-4 text-white" />;
+      case 'ComplianceAgent':
+        return <Settings className="h-4 w-4 text-white" />;
       default:
         return <Bot className="h-4 w-4 text-white" />;
     }
   };
 
-  const getStatusIcon = (status?: string) => {
-    switch (status) {
-      case 'processing':
-        return <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />;
-      case 'completed':
-        return <CheckCircle className="h-3 w-3 text-green-500" />;
-      case 'error':
-        return <AlertCircle className="h-3 w-3 text-red-500" />;
-      default:
-        return null;
-    }
-  };
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
-    <div className="chat-container flex bg-white h-full w-full">
-      <div className="flex flex-col h-full flex-1 min-h-0">
-        {/* Header */}
-        <div className="flex flex-col border-b border-gray-100">
-          <div className="flex items-center justify-between p-3">
-            <div className="flex items-center space-x-2">
-              <h3 className="text-sm font-medium text-gray-900">Legal AI Assistant</h3>
-              {currentSession && (
-                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                  {selectedAgent.replace('_', ' ')}
+    <div className="flex flex-col h-full bg-white relative">
+      {/* Connection Loading Overlay */}
+      {!hasReceivedFirstResponse && !connectionError && (
+        <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-slate-50/95 to-blue-50/95 backdrop-blur-sm flex items-center justify-center z-50 rounded-3xl">
+          <div className="text-center p-6 sm:p-8 max-w-sm mx-4">
+            {/* Main Loading Animation */}
+            <div className="relative mb-8">
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto">
+                <div className="absolute inset-0 border-4 border-slate-200 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
+                <div className="absolute inset-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center animate-pulse">
+                  <Bot className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
+                  {!isConnected ? 'Connecting to Tax Assistant' : 'Tax Assistant Ready'}
+                </h3>
+                <p className="text-sm sm:text-base text-slate-600 leading-relaxed px-2">
+                  {!isConnected
+                    ? 'Initializing your tax filing session...'
+                    : 'Analyzing tax requirements and preparing responses...'
+                  }
+                </p>
+              </div>
+
+              <div className="flex items-center justify-center space-x-2 text-sm">
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-yellow-400'} animate-pulse`}></div>
+                <span className="text-slate-500 font-medium">
+                  {!isConnected ? 'Establishing connection...' : 'Connected'}
                 </span>
-              )}
-            </div>
-            <div className="flex items-center space-x-1">
-              <select
-                value={selectedAgent}
-                onChange={(e) => setSelectedAgent(e.target.value)}
-                className="text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black"
-              >
-                <option value="legal_drafting">Legal Drafting</option>
-                <option value="legal_research">Legal Research</option>
-                <option value="case_management">Case Management</option>
-              </select>
-              <button
-                onClick={() => createSession(selectedAgent)}
-                className="p-1 hover:bg-gray-100 rounded"
-                title="Reset session"
-              >
-                <RotateCcw className="h-4 w-4 text-gray-500" />
-              </button>
-              <button className="p-1 hover:bg-gray-100 rounded">
-                <Settings className="h-4 w-4 text-gray-500" />
-              </button>
-            </div>
-          </div>
-
-          {/* Mode Toggle */}
-          <div className="px-3 pb-3">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setChatMode('text')}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all",
-                  chatMode === 'text'
-                    ? "bg-black text-white border-black"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                )}
-              >
-                <MessageSquare className="h-5 w-5" />
-                <div className="text-left">
-                  <div className="text-sm font-medium">Interactive Chat</div>
-                  <div className="text-xs opacity-75">Ask questions</div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setChatMode('voice')}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all",
-                  chatMode === 'voice'
-                    ? "bg-black text-white border-black"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                )}
-              >
-                <Mic2 className="h-5 w-5" />
-                <div className="text-left">
-                  <div className="text-sm font-medium">Voice Support</div>
-                  <div className="text-xs opacity-75">Speak naturally</div>
-                </div>
-              </button>
+              </div>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Content Area */}
-        {chatMode === 'voice' ? (
-          <VoiceChat
-            selectedAgent={selectedAgent}
-            onDocumentCreate={onDocumentCreate}
-            onMatterCreate={onMatterCreate}
-            onDeadlineCreate={onDeadlineCreate}
-          />
-        ) : (
-          <>
-            {/* Messages */}
-            <div className="flex-1 relative min-h-0">
-              {/* Actual scroll container */}
-              <div className="absolute inset-0 overflow-y-auto">
-            <div className="p-4 space-y-4">
-              {displayMessages.length === 0 ? (
-                <div
-                  className="flex items-center justify-center text-gray-500"
-                  style={{ minHeight: 'calc(100vh - 200px)' }}
-                >
-                  <div className="text-center">
-                    <Bot className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                    <div className="text-lg mb-2">Welcome to Legal AI Assistant</div>
-                    <div className="text-sm">Start a conversation to get help with legal tasks</div>
-                  </div>
+      {/* Connection Failed Overlay */}
+      {connectionError && (
+        <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-red-50/95 to-orange-50/95 backdrop-blur-sm flex items-center justify-center z-50 rounded-3xl">
+          <div className="text-center p-6 sm:p-8 max-w-md mx-4">
+            <div className="relative mb-8">
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto">
+                <div className="absolute inset-0 bg-red-100 rounded-full animate-pulse"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-red-500 to-orange-600 rounded-full flex items-center justify-center">
+                  <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
                 </div>
-              ) : (
-                displayMessages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={cn(
-                      "flex space-x-3",
-                      message.type === 'user' ? "justify-end" : "justify-start"
-                    )}
-                  >
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
+                Connection Failed
+              </h3>
+              <p className="text-sm sm:text-base text-slate-600 leading-relaxed px-2">
+                We couldn't connect to your tax assistant. This might be due to network issues or high server load.
+              </p>
+              <Button
+                onClick={handleRetryConnection}
+                className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <RefreshCw className="h-5 w-5 mr-2" />
+                Retry Connection
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Messages Container */}
+      <div className="flex-1 relative overflow-hidden">
+        <div
+          ref={messagesContainerRef}
+          className="h-full overflow-y-auto p-4 scroll-smooth"
+          onScroll={handleScroll}
+          style={{ scrollBehavior: 'smooth' }}
+        >
+          {displayMessages.length === 0 ? (
+            <EmptyChatState />
+          ) : (
+            <div className="space-y-4 max-w-4xl mx-auto px-4">
+              {displayMessages.map((message, idx) => (
+                <div key={message.id} className="w-full">
+                  <div className={cn("flex space-x-3", message.type === 'user' ? "justify-end" : "justify-start")}>
                     {message.type === 'assistant' && (
-                      <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
                         {getAgentIcon(message.agent)}
                       </div>
                     )}
 
-                    <div
-                      className={cn(
-                        "max-w-[80%] rounded-lg px-3 py-2",
-                        message.type === 'user'
-                          ? "bg-black text-white"
-                          : "bg-gray-100 text-gray-900"
-                      )}
-                    >
+                    <div className={cn(
+                      "max-w-[80%] rounded-lg px-3 py-2",
+                      message.type === 'user'
+                        ? "bg-[#278EFF] text-white"
+                        : "bg-green-100 text-gray-900"
+                    )}>
                       <div className="text-sm whitespace-pre-wrap">{message.content}</div>
 
                       {message.citations && message.citations.length > 0 && (
@@ -347,27 +378,15 @@ const Chat: React.FC<ChatProps> = ({
                         />
                       )}
 
-                      <div
-                        className={cn(
-                          "flex items-center justify-between mt-1",
-                          message.type === 'user' ? "text-gray-300" : "text-gray-500"
-                        )}
-                      >
-                        <div className="text-xs">
-                          {message.timestamp.toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                      <div className="flex items-center justify-between mt-1">
+                        <div className={cn("text-xs", message.type === 'user' ? "text-blue-200" : "text-gray-500")}>
+                          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           {message.agent && (
-                            <span className="ml-2 capitalize">
-                              • {message.agent.replace('_', ' ')}
-                            </span>
+                            <span className="ml-2 capitalize">• Tax Assistant</span>
                           )}
                         </div>
-                        {message.status && (
-                          <div className="flex items-center">
-                            {getStatusIcon(message.status)}
-                          </div>
+                        {message.status === 'processing' && (
+                          <Loader2 className="h-3 w-3 text-gray-400 animate-spin" />
                         )}
                       </div>
                     </div>
@@ -377,75 +396,41 @@ const Chat: React.FC<ChatProps> = ({
                         <User className="h-4 w-4 text-gray-600" />
                       </div>
                     )}
-
-                    {message.type === 'assistant' && (
-                      <div className="flex flex-col space-y-1 mt-1">
-                        <button className="p-1 hover:bg-gray-100 rounded">
-                          <Copy className="h-3 w-3 text-gray-400" />
-                        </button>
-                        <button className="p-1 hover:bg-gray-100 rounded">
-                          <ThumbsUp className="h-3 w-3 text-gray-400" />
-                        </button>
-                        <button className="p-1 hover:bg-gray-100 rounded">
-                          <ThumbsDown className="h-3 w-3 text-gray-400" />
-                        </button>
-                      </div>
-                    )}
                   </div>
-                ))
-              )}
-
-              {/* Scroll anchor */}
-              <div ref={messagesEndRef} />
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </div>
 
-            {/* Input */}
-            <div className="p-4 border-t border-gray-100">
-          <div className="flex items-end space-x-2">
-            <div className="flex-1 relative">
-              <textarea
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Ask me anything..."
-                className="w-full resize-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                rows={1}
-                style={{ minHeight: '36px', maxHeight: '120px' }}
-              />
-            </div>
-            <div className="flex space-x-1">
-              <button className="p-2 hover:bg-gray-100 rounded">
-                <Paperclip className="h-4 w-4 text-gray-500" />
-              </button>
-              <button className="p-2 hover:bg-gray-100 rounded">
-                <Mic className="h-4 w-4 text-gray-500" />
-              </button>
-              <button
-                onClick={sendMessage}
-                disabled={!inputValue.trim() || isProcessing}
-                className={cn(
-                  "p-2 rounded transition-colors",
-                  inputValue.trim() && !isProcessing
-                    ? "bg-black text-white hover:bg-gray-800"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                )}
-              >
-                {isProcessing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </button>
-            </div>
+        {/* Scroll to Bottom Button */}
+        {showScrollToBottom && (
+          <div className="absolute bottom-4 right-4 z-10">
+            <Button
+              onClick={scrollToBottom}
+              size="sm"
+              className="rounded-full w-10 h-10 p-0 shadow-lg bg-[#278EFF] hover:bg-blue-700 text-white"
+              aria-label="Scroll to bottom"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
           </div>
-            </div>
-          </>
         )}
       </div>
+
+      {/* Chat Input Area */}
+      <ChatInputArea
+        hasReceivedFirstResponse={hasReceivedFirstResponse}
+        isConnected={isConnected}
+        isContextSwitching={isConnecting}
+        isTextSending={isProcessing}
+        inputValue={inputValue}
+        setInputValue={setInputValue}
+        handleSendMessage={sendMessage}
+        handleKeyPress={handleKeyPress}
+      />
     </div>
   );
 };
 
-export default Chat;
+export default TaxChatInterface;

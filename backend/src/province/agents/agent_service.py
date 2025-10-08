@@ -31,9 +31,9 @@ class LegalAgentConfig:
     action_groups: List[str]
 
 
-class LegalAgentService:
+class AgentService:
     """
-    Service for managing legal AI agents using AWS Bedrock Agents.
+    Service for managing AI agents using AWS Bedrock Agents.
     
     This service uses AWS's managed AgentCore orchestrator and does not
     implement custom agent logic.
@@ -146,134 +146,188 @@ class LegalAgentService:
 
 
 # Global agent service instance
-legal_agent_service = LegalAgentService()
+agent_service = AgentService()
+
+
+def register_tax_agents():
+    """Register the tax filing agents"""
+    
+    # TaxPlannerAgent
+    tax_planner_agent = LegalAgentConfig(
+        agent_id="DM6OT8QW8S",  # From our deployment
+        agent_alias_id="TSTALIASID",  # Test alias that should work
+        name="TaxPlannerAgent",
+        description="AI agent specialized in tax planning and filing coordination",
+        instruction="""You are the Tax Planner Agent for Province Tax Filing System. You help users with simple W-2 employee tax returns.
+
+        Your responsibilities:
+        1. Guide users through the tax filing process
+        2. Only handle simple W-2 employee returns (no complex situations)
+        3. Collect basic information: filing status, dependents, W-2 forms
+        4. Provide clear, helpful guidance throughout the process
+
+        SCOPE LIMITATIONS - You MUST reject requests for:
+        - Self-employment income
+        - Investment income  
+        - Rental income
+        - Complex tax situations
+
+        Always maintain a helpful, professional tone and explain what you're doing at each step.""",
+        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        knowledge_bases=["tax_code"],
+        action_groups=["save_document", "get_signed_url", "ingest_w2_pdf", "calc_1040", "render_1040_draft", "create_deadline", "pii_scan"]
+    )
+    agent_service.register_agent(tax_planner_agent)
+    
+    # TaxIntakeAgent
+    tax_intake_agent = LegalAgentConfig(
+        agent_id="BXETK7XKYI",  # Updated agent ID
+        agent_alias_id="TSTALIASID",
+        name="TaxIntakeAgent",
+        description="AI agent specialized in collecting tax filing information",
+        instruction="""You are the Tax Intake Agent. Your role is to collect essential information for tax filing.
+
+        Collect:
+        - Filing status (Single, Married Filing Jointly, etc.)
+        - Number of dependents and basic info
+        - Address and ZIP code
+        - Bank information for refund (optional)
+        - State information
+
+        Always be thorough but friendly in collecting this information.""",
+        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        knowledge_bases=["tax_code"],
+        action_groups=["save_document", "get_signed_url"]
+    )
+    agent_service.register_agent(tax_intake_agent)
+    
+    # W2IngestAgent
+    w2_ingest_agent = LegalAgentConfig(
+        agent_id="XLGLV9KLZ6",  # Updated agent ID
+        agent_alias_id="TSTALIASID",
+        name="W2IngestAgent",
+        description="AI agent specialized in processing W-2 documents",
+        instruction="""You are the W-2 Ingest Agent. You process W-2 forms and extract tax information.
+
+        Your responsibilities:
+        - Process uploaded W-2 PDFs using OCR
+        - Extract and validate W-2 data
+        - Handle multiple W-2s from different employers
+        - Flag any anomalies or inconsistencies
+        - Create structured JSON data with proper citations""",
+        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        knowledge_bases=["tax_code"],
+        action_groups=["save_document", "get_signed_url", "ingest_w2_pdf"]
+    )
+    agent_service.register_agent(w2_ingest_agent)
+    
+    # Calc1040Agent
+    calc_1040_agent = LegalAgentConfig(
+        agent_id="SX3FV20GED",  # Updated agent ID
+        agent_alias_id="TSTALIASID",
+        name="Calc1040Agent",
+        description="AI agent specialized in tax calculations",
+        instruction="""You are the 1040 Calculation Agent. You perform tax calculations for simple W-2 returns.
+
+        Your responsibilities:
+        - Calculate adjusted gross income from W-2 data
+        - Apply standard deductions
+        - Calculate tax using current IRS tax tables
+        - Compute Child Tax Credit when applicable
+        - Determine refund or amount due
+        - Generate detailed calculation workpapers""",
+        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        knowledge_bases=["tax_code"],
+        action_groups=["save_document", "calc_1040"]
+    )
+    agent_service.register_agent(calc_1040_agent)
+    
+    # ReviewAgent
+    review_agent = LegalAgentConfig(
+        agent_id="Q5CLGMRDN4",  # Updated agent ID
+        agent_alias_id="TSTALIASID",
+        name="ReviewAgent",
+        description="AI agent specialized in reviewing tax calculations and explanations",
+        instruction="""You are the Review Agent. You create plain-English summaries of tax calculations.
+
+        Your responsibilities:
+        - Generate clear, understandable summaries
+        - Explain how refund/amount due was calculated
+        - Include proper citations to source documents
+        - Create checklists for missing information
+        - Ensure accuracy and completeness""",
+        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        knowledge_bases=["tax_code"],
+        action_groups=["save_document"]
+    )
+    agent_service.register_agent(review_agent)
+    
+    # ReturnRenderAgent
+    return_render_agent = LegalAgentConfig(
+        agent_id="0JQ5T0ZKYR",  # Updated agent ID
+        agent_alias_id="TSTALIASID",
+        name="ReturnRenderAgent",
+        description="AI agent specialized in generating tax return PDFs",
+        instruction="""You are the Return Render Agent. You generate draft 1040 PDF forms.
+
+        Your responsibilities:
+        - Create properly formatted 1040 PDF
+        - Include all calculated values
+        - Embed provenance information
+        - Ensure professional presentation
+        - Save to appropriate folder structure""",
+        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        knowledge_bases=["tax_code"],
+        action_groups=["save_document", "render_1040_draft"]
+    )
+    agent_service.register_agent(return_render_agent)
+    
+    # DeadlinesAgent
+    deadlines_agent = LegalAgentConfig(
+        agent_id="HKGOFHHYJB",  # Updated agent ID
+        agent_alias_id="TSTALIASID",
+        name="DeadlinesAgent",
+        description="AI agent specialized in tax deadline management",
+        instruction="""You are the Deadlines Agent. You manage tax filing deadlines and reminders.
+
+        Your responsibilities:
+        - Create filing deadline calendar events
+        - Set up automatic reminders
+        - Handle extension deadlines
+        - Provide deadline-related guidance
+        - Generate .ics calendar files""",
+        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        knowledge_bases=["tax_code"],
+        action_groups=["save_document", "create_deadline"]
+    )
+    agent_service.register_agent(deadlines_agent)
+    
+    # ComplianceAgent
+    compliance_agent = LegalAgentConfig(
+        agent_id="3KPZH7DQMU",  # Updated agent ID
+        agent_alias_id="TSTALIASID",
+        name="ComplianceAgent",
+        description="AI agent specialized in compliance and PII protection",
+        instruction="""You are the Compliance Agent. You ensure privacy and compliance requirements.
+
+        Your responsibilities:
+        - Scan documents for PII
+        - Redact sensitive information
+        - Ensure privacy compliance
+        - Provide approval gates for document release
+        - Maintain audit trails""",
+        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        knowledge_bases=["tax_code"],
+        action_groups=["save_document", "pii_scan"]
+    )
+    agent_service.register_agent(compliance_agent)
 
 
 def register_legal_agents():
-    """Register the legal OS agents"""
-    
-    # Legal Drafting Agent
-    drafting_agent = LegalAgentConfig(
-        agent_id="G65TGXF9QH",  # Real AWS Bedrock agent ID
-        agent_alias_id="WXRDBT4EN7",  # Real AWS Bedrock agent alias ID
-        name="legal_drafting",
-        description="AI agent specialized in legal document drafting and review",
-        instruction="""You are a legal drafting assistant specialized in creating and reviewing legal documents. 
-        
-        Your capabilities include:
-        - Drafting contracts, briefs, motions, and other legal documents
-        - Reviewing documents for legal accuracy and completeness
-        - Ensuring proper legal citations and formatting
-        - Providing legal research and precedent analysis
-        
-        Always:
-        - Use proper legal terminology and formatting
-        - Include accurate citations when referencing case law or statutes
-        - Maintain professional legal writing standards
-        - Ask for clarification when requirements are ambiguous
-        - Validate all citations before including them
-        
-        You have access to:
-        - Legal document corpus through Knowledge Bases
-        - Document storage and retrieval tools
-        - Citation validation tools
-        - Deadline management tools""",
-        foundation_model="anthropic.claude-3-5-sonnet-20241022-v2:0",
-        knowledge_bases=["legal_corpus"],
-        action_groups=["search_matter_corpus", "save_document", "validate_citations", "create_deadline"]
-    )
-    legal_agent_service.register_agent(drafting_agent)
-    
-    # Legal Research Agent
-    research_agent = LegalAgentConfig(
-        agent_id="C6P4UBATTT",  # Real AWS Bedrock agent ID
-        agent_alias_id="2GWTQQ6RSZ",  # Real AWS Bedrock agent alias ID
-        name="legal_research",
-        description="AI agent specialized in legal research and analysis",
-        instruction="""You are a legal research assistant specialized in finding and analyzing legal precedents, statutes, and case law.
-        
-        Your capabilities include:
-        - Comprehensive legal research across multiple jurisdictions
-        - Case law analysis and precedent identification
-        - Statute and regulation interpretation
-        - Legal trend analysis and pattern recognition
-        
-        Always:
-        - Provide comprehensive research with multiple sources
-        - Include proper legal citations for all references
-        - Analyze the strength and relevance of precedents
-        - Consider jurisdictional differences and applicability
-        - Summarize key findings clearly and concisely
-        
-        You have access to:
-        - Extensive legal database through Knowledge Bases
-        - Search tools for matter-specific research
-        - Citation validation capabilities""",
-        foundation_model="anthropic.claude-3-5-sonnet-20240620-v1:0",
-        knowledge_bases=["legal_corpus", "matter_specific"],
-        action_groups=["search_matter_corpus", "validate_citations"]
-    )
-    legal_agent_service.register_agent(research_agent)
-    
-    # Case Management Agent
-    case_mgmt_agent = LegalAgentConfig(
-        agent_id="VKTQRDTRBR",  # Real AWS Bedrock agent ID
-        agent_alias_id="FHM35BOHYN",  # Real AWS Bedrock agent alias ID
-        name="case_management",
-        description="AI agent specialized in case and matter management",
-        instruction="""You are a case management assistant specialized in organizing and tracking legal matters.
-        
-        Your capabilities include:
-        - Matter organization and document management
-        - Deadline tracking and calendar management
-        - Task prioritization and workflow optimization
-        - Progress tracking and status reporting
-        
-        Always:
-        - Maintain accurate matter records and timelines
-        - Set appropriate deadlines with sufficient lead time
-        - Organize documents logically within matter structure
-        - Provide clear status updates and progress reports
-        - Alert to potential scheduling conflicts or missed deadlines
-        
-        You have access to:
-        - Document storage and organization tools
-        - Deadline creation and management tools
-        - Matter search and retrieval capabilities""",
-        foundation_model="anthropic.claude-3-5-sonnet-20240620-v1:0",
-        knowledge_bases=["matter_specific"],
-        action_groups=["save_document", "create_deadline", "search_matter_corpus"]
-    )
-    legal_agent_service.register_agent(case_mgmt_agent)
-    
-    # Tax Agent
-    tax_agent = LegalAgentConfig(
-        agent_id="JXOYXIH3K9",  # Real AWS Bedrock agent ID
-        agent_alias_id="SNU2VUT3TQ",  # Real AWS Bedrock agent alias ID
-        name="tax_agent",
-        description="AI agent specialized in tax law and tax planning",
-        instruction="""You are a tax law specialist assistant focused on tax planning, compliance, and dispute resolution.
-        
-        Your capabilities include:
-        - Tax code interpretation and analysis
-        - Tax planning strategies and optimization
-        - Tax compliance and filing assistance
-        - Tax dispute resolution and audit support
-        - Corporate and individual tax matters
-        - Tax implications of business transactions
-        
-        Always:
-        - Stay current with tax law changes
-        - Provide accurate tax guidance
-        - Consider both federal and state tax implications
-        - Recommend consultation with qualified tax professionals for complex matters
-        - Maintain confidentiality of all tax information""",
-        foundation_model="anthropic.claude-3-5-sonnet-20240620-v1:0",
-        knowledge_bases=["tax_code", "legal_corpus"],
-        action_groups=["search_matter_corpus", "save_document", "create_deadline"]
-    )
-    legal_agent_service.register_agent(tax_agent)
+    """Register the legal OS agents (deprecated - use register_tax_agents)"""
+    # This function is deprecated in favor of register_tax_agents
+    pass
 
 
-# Initialize legal agents
-register_legal_agents()
+# Initialize tax agents (replaces legal agents)
+# register_tax_agents() is called from main.py during startup

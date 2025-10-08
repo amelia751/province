@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from province.api.routes import api_router
 from province.core.config import get_settings
 from province.core.logging import setup_logging
+from province.agents.agent_service import register_tax_agents
 
 logger = structlog.get_logger()
 
@@ -20,6 +21,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup
     setup_logging()
     logger.info("Province Legal OS Backend starting up")
+    
+    # Register tax agents
+    register_tax_agents()
+    logger.info("Tax agents registered")
     
     yield
     

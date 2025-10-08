@@ -59,7 +59,7 @@ export interface UseAgentReturn {
 
 export function useAgent(options: UseAgentOptions = {}): UseAgentReturn {
   const {
-    agentName = 'legal_drafting',
+    agentName = 'TaxPlannerAgent', // Updated to use the correct tax agent
     matterId,
     autoConnect = true,
     enableWebSocket = false,
