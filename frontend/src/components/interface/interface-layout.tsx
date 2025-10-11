@@ -6,6 +6,7 @@ import Sidebar from '@/components/ui/sidebar';
 import ExplorerPanel from '@/components/explorer-panel/explorer-panel';
 import MainEditor from '@/components/main-editor/main-editor';
 import Chat from '@/components/chat/chat';
+import { mockAIMatters } from '@/components/explorer-panel/mock-data';
 
 interface InterfaceLayoutProps {
   organizationName?: string | null;
@@ -229,6 +230,27 @@ export default function InterfaceLayout({ organizationName }: InterfaceLayoutPro
   const [sidebarWidth, setSidebarWidth] = useState(64);
   const [explorerWidth, setExplorerWidth] = useState(280);
   const [chatWidth, setChatWidth] = useState(400);
+  // Use first mock matter as selected project
+  const [selectedProject] = useState(mockAIMatters[0]);
+  // Selected document state
+  const [selectedDocument, setSelectedDocument] = useState<{
+    id: string;
+    name: string;
+    type: string;
+    url?: string;
+    path: string;
+  } | null>(null);
+
+  // Handle document selection
+  const handleDocumentSelect = useCallback((document: any, matterId: string) => {
+    setSelectedDocument({
+      id: document.id,
+      name: document.name,
+      type: document.type,
+      url: document.url,
+      path: document.path
+    });
+  }, []);
 
   // Calculate available space for panels
   const getAvailableWidth = () => {
@@ -364,7 +386,10 @@ export default function InterfaceLayout({ organizationName }: InterfaceLayoutPro
             className="flex-shrink-0 relative border-r border-gray-200 h-full"
             style={{ width: `${explorerWidth}px` }}
           >
-            <ExplorerPanel />
+            <ExplorerPanel 
+              selectedProject={selectedProject} 
+              onDocumentSelect={handleDocumentSelect}
+            />
             {/* Explorer Resize Handle */}
             <ExplorerResizeHandle onResize={handleExplorerWidthChange} />
           </div>
@@ -372,7 +397,7 @@ export default function InterfaceLayout({ organizationName }: InterfaceLayoutPro
 
         {/* Main Editor Area - Takes remaining space */}
         <div className="flex-1 min-w-0 relative h-full">
-          <MainEditor />
+          <MainEditor selectedDocument={selectedDocument} />
           {/* Main Editor Left Resize Handle - only show if explorer is visible */}
           {explorerWidth > 0 && (
             <MainEditorLeftResizeHandle onResize={handleExplorerWidthChange} />

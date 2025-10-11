@@ -195,35 +195,223 @@ const mockProgress: MatterProgress[] = [
   }
 ];
 
+// Mock folders for tax return (1040)
+const taxReturnFolders: AIFolder[] = [
+  {
+    id: 'folder-intake',
+    name: 'Intake',
+    purpose: 'Client intake and organizer documents',
+    requiredDocuments: ['Organizer'],
+    suggestedTemplates: [],
+    children: [],
+    expanded: true,
+    aiGenerated: false,
+    createdAt: new Date('2025-01-10T09:00:00')
+  },
+  {
+    id: 'folder-documents',
+    name: 'Documents',
+    purpose: 'Source documents and prior year returns',
+    requiredDocuments: ['W-2', 'Prior Year Returns'],
+    suggestedTemplates: [],
+    children: [
+      {
+        id: 'folder-w2',
+        name: 'W2',
+        purpose: 'W-2 forms from employers',
+        requiredDocuments: [],
+        suggestedTemplates: [],
+        children: [],
+        expanded: false,
+        aiGenerated: false,
+        needsDocumentIngest: true,
+        createdAt: new Date('2025-01-10T09:00:00')
+      },
+      {
+        id: 'folder-prior-year',
+        name: 'Prior_Year',
+        purpose: 'Prior year tax returns',
+        requiredDocuments: [],
+        suggestedTemplates: [],
+        children: [],
+        expanded: false,
+        aiGenerated: false,
+        createdAt: new Date('2025-01-10T09:00:00')
+      }
+    ],
+    expanded: true,
+    aiGenerated: false,
+    createdAt: new Date('2025-01-10T09:00:00')
+  },
+  {
+    id: 'folder-workpapers',
+    name: 'Workpapers',
+    purpose: 'Calculation worksheets and extracts',
+    requiredDocuments: ['W2 Extracts', '1040 Calculations'],
+    suggestedTemplates: [],
+    children: [],
+    expanded: true,
+    aiGenerated: true,
+    createdAt: new Date('2025-01-10T09:00:00')
+  },
+  {
+    id: 'folder-returns',
+    name: 'Returns',
+    purpose: 'Draft and final tax returns',
+    requiredDocuments: ['1040 Draft', '1040 Final'],
+    suggestedTemplates: [],
+    children: [],
+    expanded: true,
+    aiGenerated: false,
+    createdAt: new Date('2025-01-10T09:00:00')
+  },
+  {
+    id: 'folder-deadlines',
+    name: 'Deadlines',
+    purpose: 'Important tax deadline reminders',
+    requiredDocuments: ['Federal Deadlines'],
+    suggestedTemplates: [],
+    children: [],
+    expanded: true,
+    aiGenerated: false,
+    createdAt: new Date('2025-01-10T09:00:00')
+  },
+  {
+    id: 'folder-correspondence',
+    name: 'Correspondence',
+    purpose: 'Client and IRS correspondence',
+    requiredDocuments: [],
+    suggestedTemplates: [],
+    children: [],
+    expanded: true,
+    aiGenerated: false,
+    createdAt: new Date('2025-01-10T09:00:00')
+  }
+];
+
+// Mock documents for tax return
+const taxReturnDocuments: AIDocument[] = [
+  {
+    id: 'doc-tax-1',
+    name: 'Organizer.md',
+    type: 'tax-organizer',
+    path: '/Doe_John_1040_2025/Intake/Organizer.md',
+    status: 'final',
+    lastModified: new Date('2025-01-10T10:00:00'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 8500
+  },
+  {
+    id: 'doc-w2-1',
+    name: 'W2_XL_input_clean_1000.pdf',
+    type: 'w2-form',
+    path: '/Doe_John_1040_2025/Documents/W2/W2_XL_input_clean_1000.pdf',
+    status: 'final',
+    lastModified: new Date('2025-01-10T09:30:00'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 143030,
+    url: 'https://province-documents-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/datasets/w2-forms/W2_Clean_DataSet_01_20Sep2019/W2_XL_input_clean_1000.pdf'
+  },
+  {
+    id: 'doc-tax-2',
+    name: 'W2_Extracts.json',
+    type: 'tax-workpaper',
+    path: '/Doe_John_1040_2025/Workpapers/W2_Extracts.json',
+    status: 'final',
+    lastModified: new Date('2025-01-10T11:30:00'),
+    aiGenerated: true,
+    generationPrompt: 'Extract W-2 data from uploaded documents',
+    collaborators: ['tax.preparer@firm.com'],
+    size: 3200
+  },
+  {
+    id: 'doc-tax-3',
+    name: 'Calc_1040_Simple.json',
+    type: 'tax-workpaper',
+    path: '/Doe_John_1040_2025/Workpapers/Calc_1040_Simple.json',
+    status: 'final',
+    lastModified: new Date('2025-01-10T12:45:00'),
+    aiGenerated: true,
+    generationPrompt: 'Calculate Form 1040 from W-2 data',
+    collaborators: ['tax.preparer@firm.com'],
+    size: 15600
+  },
+  {
+    id: 'doc-tax-4',
+    name: '1040_Draft.pdf',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/1040_Draft.pdf',
+    status: 'review',
+    lastModified: new Date('2025-01-10T14:00:00'),
+    aiGenerated: true,
+    generationPrompt: 'Generate Form 1040 PDF from calculations',
+    collaborators: ['tax.preparer@firm.com'],
+    size: 45000
+  },
+  {
+    id: 'doc-tax-5',
+    name: 'Federal.ics',
+    type: 'calendar',
+    path: '/Doe_John_1040_2025/Deadlines/Federal.ics',
+    status: 'final',
+    lastModified: new Date('2025-01-10T09:30:00'),
+    aiGenerated: true,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 1200
+  }
+];
+
 // Mock AI Matters
 export const mockAIMatters: AIMatter[] = [
   {
     id: 'matter-1',
-    name: 'Smith v. ABC Insurance - Car Accident',
-    type: 'personal-injury',
-    practiceArea: 'legal',
-    client: 'John Smith',
-    description: 'Personal injury case arising from motor vehicle accident on Highway 101. Client sustained back injuries and seeks damages for medical expenses, lost wages, and pain and suffering.',
+    name: 'Doe_John_1040_2025',
+    type: 'tax-return',
+    practiceArea: 'tax',
+    client: 'John Doe',
+    description: 'Individual Form 1040 tax return for 2025 tax year. Simple W-2 employee return with standard deduction.',
     status: 'active',
     priority: 'high',
     aiGenerated: true,
-    generationPrompt: 'Build me a personal injury case for a car accident in California',
+    generationPrompt: 'Prepare individual 1040 tax return for W-2 employee',
     structure: {
-      folders: personalInjuryFolders,
-      documents: [mockDocuments[0], mockDocuments[1]],
+      folders: taxReturnFolders,
+      documents: taxReturnDocuments,
       workflows: [],
       templates: []
     },
-    progress: mockProgress[0],
-    deadlines: [mockDeadlines[0], mockDeadlines[1]],
-    suggestedActions: [mockAIActions[0], mockAIActions[1], mockAIActions[2]],
-    chatContext: mockChatContexts[0],
-    createdAt: new Date('2024-01-15T10:30:00'),
-    lastModified: new Date('2024-01-16T14:20:00'),
-    assignedTo: ['john.doe@firm.com', 'jane.smith@firm.com'],
-    jurisdiction: 'California',
-    estimatedValue: 150000,
-    tags: ['motor-vehicle', 'personal-injury', 'insurance-claim']
+    progress: {
+      completedTasks: 4,
+      totalTasks: 6,
+      percentage: 67,
+      nextMilestone: 'Client Review',
+      estimatedCompletion: new Date('2025-04-10T17:00:00')
+    },
+    deadlines: [
+      {
+        id: 'deadline-tax-1',
+        task: 'File Form 1040',
+        dueDate: new Date('2025-04-15T23:59:59'),
+        priority: 'high',
+        description: 'Federal income tax return filing deadline',
+        completed: false
+      }
+    ],
+    suggestedActions: [mockAIActions[3], mockAIActions[4]],
+    chatContext: {
+      sessionId: 'session-tax-1',
+      lastInteraction: new Date('2025-01-10T14:30:00'),
+      conversationSummary: 'Discussed W-2 income and standard deduction',
+      relatedDocuments: ['Organizer.md', 'W2_Extracts.json']
+    },
+    createdAt: new Date('2025-01-10T09:00:00'),
+    lastModified: new Date('2025-01-10T14:30:00'),
+    assignedTo: ['tax.preparer@firm.com'],
+    jurisdiction: 'Federal',
+    estimatedValue: 500,
+    tags: ['1040', 'individual', 'w2-employee', '2025']
   },
   {
     id: 'matter-2',

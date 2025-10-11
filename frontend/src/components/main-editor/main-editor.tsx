@@ -15,11 +15,19 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  Server
+  Server,
+  File
 } from "lucide-react";
 
 interface MainEditorProps {
   onWidthChange?: (width: number) => void;
+  selectedDocument?: {
+    id: string;
+    name: string;
+    type: string;
+    url?: string;
+    path: string;
+  } | null;
 }
 
 interface EditorTab {
@@ -28,6 +36,8 @@ interface EditorTab {
   path: string;
   isDirty: boolean;
   isActive: boolean;
+  type?: string;
+  url?: string;
 }
 
 interface LogEntry {
@@ -63,12 +73,47 @@ const mockTabs: EditorTab[] = [
   }
 ];
 
-const MainEditor: React.FC<MainEditorProps> = () => {
+const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange, selectedDocument }) => {
   const [tabs, setTabs] = useState(mockTabs);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
+
+  // Handle document selection
+  useEffect(() => {
+    if (selectedDocument) {
+      // Check if document tab already exists
+      const existingTab = tabs.find(tab => tab.id === selectedDocument.id);
+      
+      if (!existingTab) {
+        // Create new tab for the document
+        const newTab: EditorTab = {
+          id: selectedDocument.id,
+          name: selectedDocument.name,
+          path: selectedDocument.path,
+          isDirty: false,
+          isActive: true,
+          type: selectedDocument.type,
+          url: selectedDocument.url
+        };
+        
+        // Add new tab and make it active
+        setTabs(prevTabs => [
+          ...prevTabs.map(tab => ({ ...tab, isActive: false })),
+          newTab
+        ]);
+      } else {
+        // Make existing tab active
+        setTabs(prevTabs => 
+          prevTabs.map(tab => ({
+            ...tab,
+            isActive: tab.id === selectedDocument.id
+          }))
+        );
+      }
+    }
+  }, [selectedDocument, tabs]);
 
   // Add initial system logs
   useEffect(() => {
@@ -351,19 +396,71 @@ const MainEditor: React.FC<MainEditorProps> = () => {
                   </div>
                 </div>
               ) : (
-                // Regular file editor
-                <div className="p-4">
-                  <div className="bg-gray-50 rounded border border-gray-200 p-4">
-                    <div className="text-sm text-gray-500 mb-2">
-                      {activeTab.path}
+                // Document viewer
+                <div className="h-full flex flex-col">
+                  {/* Document Header */}
+                  <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
+                    <div className="flex items-center space-x-2">
+                      <File className="h-5 w-5 text-gray-600" />
+                      <h3 className="font-medium text-gray-800">{activeTab.name}</h3>
+                      <span className="text-sm text-gray-500">({activeTab.type})</span>
                     </div>
-                    <div className="font-mono text-sm text-gray-800 space-y-1">
-                      <div className="text-blue-600">{"// Editor content would go here"}</div>
-                      <div className="text-green-600">{"import React from 'react';"}</div>
-                      <div className="text-purple-600">{"export default function Component() {"}</div>
-                      <div className="ml-4 text-gray-800">{"return <div>Hello World</div>;"}</div>
-                      <div className="text-purple-600">{"}"}</div>
+                    <div className="flex items-center space-x-2">
+                      {activeTab.url && (
+                        <a
+                          href={activeTab.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                          Open in New Tab
+                        </a>
+                      )}
                     </div>
+                  </div>
+
+                  {/* Document Content */}
+                  <div className="flex-1 relative">
+                    {activeTab.type === 'w2-form' && activeTab.url ? (
+                      // PDF Viewer for W2 forms
+                      <iframe
+                        src={activeTab.url}
+                        className="w-full h-full border-0"
+                        title={`PDF Viewer - ${activeTab.name}`}
+                      />
+                    ) : activeTab.type?.includes('pdf') && activeTab.url ? (
+                      // Generic PDF viewer
+                      <iframe
+                        src={activeTab.url}
+                        className="w-full h-full border-0"
+                        title={`PDF Viewer - ${activeTab.name}`}
+                      />
+                    ) : activeTab.type?.includes('image') && activeTab.url ? (
+                      // Image viewer
+                      <div className="flex items-center justify-center h-full p-4">
+                        <img
+                          src={activeTab.url}
+                          alt={activeTab.name}
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      </div>
+                    ) : (
+                      // Default text/code editor
+                      <div className="p-4">
+                        <div className="bg-gray-50 rounded border border-gray-200 p-4">
+                          <div className="text-sm text-gray-500 mb-2">
+                            {activeTab.path}
+                          </div>
+                          <div className="font-mono text-sm text-gray-800 space-y-1">
+                            <div className="text-blue-600">{"// Document content would be loaded here"}</div>
+                            <div className="text-gray-600">{"// Type: " + activeTab.type}</div>
+                            {activeTab.url && (
+                              <div className="text-gray-600">{"// URL: " + activeTab.url}</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

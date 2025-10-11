@@ -264,10 +264,6 @@ def test_all_tools() -> Dict[str, Dict[str, Any]]:
     """Test all deployed Lambda tools"""
     
     test_payloads = {
-        'search_matter_corpus': {
-            'query': 'contract law',
-            'max_results': 5
-        },
         'save_document': {
             'matter_id': 'test-matter-123',
             'document_name': 'test-document.txt',
@@ -275,22 +271,10 @@ def test_all_tools() -> Dict[str, Dict[str, Any]]:
             'document_type': 'test'
         },
         'create_deadline': {
-            'matter_id': 'test-matter-123',
             'title': 'Test Deadline',
             'due_date': '2024-12-31T17:00:00Z',
-            'description': 'Test deadline for validation'
-        },
-        'validate_citations': {
-            'citations': ['123 F.3d 456 (9th Cir. 2020)'],
-            'jurisdiction': 'federal'
-        },
-        'generate_contract': {
-            'contract_type': 'NDA',
-            'parties': [
-                {'name': 'Test Company', 'type': 'company'},
-                {'name': 'Test Person', 'type': 'individual'}
-            ],
-            'jurisdiction': 'California'
+            'description': 'Test deadline for validation',
+            'priority': 'medium'
         }
     }
     

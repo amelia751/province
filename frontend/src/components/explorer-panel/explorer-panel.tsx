@@ -17,7 +17,6 @@ import {
   Calculator,
   Shield,
   FileText,
-  Sparkles,
   ArrowLeft
 } from "lucide-react";
 
@@ -25,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import DocumentIngest from './document-ingest';
 
 // Import types and mock data
 import {
@@ -163,6 +163,8 @@ const EnhancedExplorerPanel: React.FC<EnhancedExplorerPanelProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [ingestDialogOpen, setIngestDialogOpen] = useState(false);
+  const [selectedIngestFolder, setSelectedIngestFolder] = useState<{ id: string; name: string } | null>(null);
 
   // If no project is selected, show empty state
   if (!selectedProject) {
@@ -199,6 +201,16 @@ const EnhancedExplorerPanel: React.FC<EnhancedExplorerPanelProps> = ({
   const filteredDocuments = selectedProject.structure.documents.filter(document =>
     !searchQuery || document.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleOpenIngestDialog = (folderId: string, folderName: string) => {
+    setSelectedIngestFolder({ id: folderId, name: folderName });
+    setIngestDialogOpen(true);
+  };
+
+  const handleUploadComplete = (files: File[], folderId: string) => {
+    console.log('Files uploaded to folder:', folderId, files);
+    // TODO: Implement actual file upload logic
+  };
 
   return (
     <div className="explorer-panel-container flex bg-background h-full w-full border-r">
@@ -258,6 +270,7 @@ const EnhancedExplorerPanel: React.FC<EnhancedExplorerPanelProps> = ({
                   isExpanded={expandedFolders.has(folder.id)}
                   onToggle={() => toggleFolder(folder.id)}
                   onDocumentSelect={handleDocumentSelect}
+                  onOpenIngest={handleOpenIngestDialog}
                   matterId={selectedProject.id}
                   depth={0}
                 />
@@ -298,6 +311,17 @@ const EnhancedExplorerPanel: React.FC<EnhancedExplorerPanelProps> = ({
             </div>
           )}
         </div>
+
+        {/* Document Ingest Dialog */}
+        {selectedIngestFolder && (
+          <DocumentIngest
+            folderId={selectedIngestFolder.id}
+            folderName={selectedIngestFolder.name}
+            open={ingestDialogOpen}
+            onOpenChange={setIngestDialogOpen}
+            onUpload={handleUploadComplete}
+          />
+        )}
       </div>
     </div>
   );
@@ -309,37 +333,49 @@ const ProjectFolderNode: React.FC<{
   isExpanded: boolean;
   onToggle: () => void;
   onDocumentSelect: (document: AIDocument, matterId: string) => void;
+  onOpenIngest: (folderId: string, folderName: string) => void;
   matterId: string;
   depth: number;
-}> = ({ folder, isExpanded, onToggle, onDocumentSelect, matterId, depth }) => {
+}> = ({ folder, isExpanded, onToggle, onDocumentSelect, onOpenIngest, matterId, depth }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <div>
       <div
-        className="flex items-center py-1 px-3 hover:bg-muted cursor-pointer text-sm"
+        className="flex items-center py-1 px-3 hover:bg-muted cursor-pointer text-sm group relative"
         style={{ paddingLeft: `${depth * 12 + 12}px` }}
-        onClick={onToggle}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
-        <div className="w-4 h-4 flex items-center justify-center mr-2">
+        <div className="w-4 h-4 flex items-center justify-center mr-2" onClick={onToggle}>
           {isExpanded ? (
             <ChevronDown className="h-3 w-3" />
           ) : (
             <ChevronRight className="h-3 w-3" />
           )}
         </div>
-        <Folder className="h-4 w-4 mr-2 text-muted-foreground" />
-        <div className="flex-1 min-w-0">
+        <Folder className="h-4 w-4 mr-2 text-muted-foreground" onClick={onToggle} />
+        <div className="flex-1 min-w-0" onClick={onToggle}>
           <div className="flex items-center space-x-2">
             <span className="truncate">{folder.name}</span>
-            {folder.aiGenerated && (
-              <Badge variant="secondary" className="h-4 px-1 text-xs">
-                <Sparkles className="h-2 w-2" />
-              </Badge>
-            )}
           </div>
           {folder.purpose && (
             <div className="text-xs text-muted-foreground truncate">{folder.purpose}</div>
           )}
         </div>
+        {/* Add document button - shown on hover if folder needs ingest */}
+        {folder.needsDocumentIngest && isHovered && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenIngest(folder.id, folder.name);
+            }}
+            className="flex-shrink-0 p-1 rounded hover:bg-gray-200 transition-colors"
+            title="Add documents"
+          >
+            <Plus className="h-3.5 w-3.5 text-gray-600" />
+          </button>
+        )}
       </div>
 
       {isExpanded && (
@@ -352,6 +388,7 @@ const ProjectFolderNode: React.FC<{
               isExpanded={false} // Child folders start collapsed
               onToggle={() => { /* Implement nested folder expansion if needed */ }}
               onDocumentSelect={onDocumentSelect}
+              onOpenIngest={onOpenIngest}
               matterId={matterId}
               depth={depth + 1}
             />
@@ -391,11 +428,6 @@ const ProjectDocumentNode: React.FC<{
       <div className="flex-1 min-w-0">
         <div className="flex items-center space-x-2">
           <span className="truncate">{document.name}</span>
-          {document.aiGenerated && (
-            <Badge variant="secondary" className="h-4 px-1 text-xs">
-              <Sparkles className="h-2 w-2" />
-            </Badge>
-          )}
           <StatusIcon
             className={cn(
               "h-3 w-3",

@@ -1,0 +1,26 @@
+{
+  "dataset_location": "s3://province-documents-[REDACTED-ACCOUNT-ID]-us-east-2/datasets/w2-forms/",
+  "total_files": 50,
+  "total_size_bytes": 12279660,
+  "total_size_mb": 11.71,
+  "file_types": {
+    ".jpg": 25,
+    ".pdf": 25
+  },
+  "w2_compatible_files": 50,
+  "compatibility_score": 100.0,
+  "sample_files": [
+    "W2_XL_input_clean_1000.jpg",
+    "W2_XL_input_clean_1000.pdf",
+    "W2_XL_input_clean_1001.jpg",
+    "W2_XL_input_clean_1001.pdf",
+    "W2_XL_input_clean_1002.jpg"
+  ],
+  "recommendations": [
+    "Dataset appears compatible with W2 processing.",
+    "PDF files found - ideal for OCR processing with Textract.",
+    "Image files found - can be processed with Textract."
+  ],
+  "agent_test_passed": true,
+  "success": true
+}

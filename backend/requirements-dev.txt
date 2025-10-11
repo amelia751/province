@@ -15,3 +15,6 @@ moto[all]>=4.2.0
 # CDK for infrastructure
 aws-cdk-lib>=2.110.0
 constructs>=10.3.0
+
+# Data processing and external APIs
+kaggle>=1.5.16

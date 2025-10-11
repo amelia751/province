@@ -57,6 +57,7 @@ export interface AIFolder {
   children: AIFolder[];
   expanded?: boolean;
   aiGenerated: boolean;
+  needsDocumentIngest?: boolean; // Flag for folders that accept document uploads
   createdAt: Date;
 }
 
@@ -64,7 +65,7 @@ export interface AIDocument {
   id: string;
   name: string;
   type: 'legal-complaint' | 'legal-motion' | 'legal-contract' | 'legal-brief'
-       | 'tax-return' | 'tax-memo' | 'tax-planning'
+       | 'tax-return' | 'tax-memo' | 'tax-planning' | 'tax-organizer' | 'tax-workpaper' | 'w2-form' | 'calendar'
        | 'financial-statement' | 'audit-report' | 'management-letter'
        | 'compliance-report' | 'policy-document' | 'audit-checklist';
   path: string;
@@ -74,6 +75,7 @@ export interface AIDocument {
   generationPrompt?: string;
   collaborators: string[];
   size?: number;
+  url?: string; // Optional URL for external documents (e.g., S3 links)
 }
 
 export interface MatterStructure {
