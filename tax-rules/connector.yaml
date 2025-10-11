@@ -1,0 +1,62 @@
+name: tax_rules_connector
+display_name: "IRS Tax Rules Connector"
+description: "Extracts authoritative tax rules from IRS sources including newsroom releases, revenue procedures, draft forms, and MeF schemas"
+version: "1.0.0"
+documentation_url: "https://github.com/your-org/tax-rules-connector"
+icon_file: "icon.svg"
+
+configuration_schema:
+  properties:
+    jurisdiction_level:
+      type: string
+      enum: ["federal", "state", "city"]
+      default: "federal"
+      title: "Jurisdiction Level"
+      description: "Level of tax jurisdiction to sync"
+    
+    jurisdiction_code:
+      type: string
+      default: "US"
+      title: "Jurisdiction Code"
+      description: "Code for the jurisdiction (US for federal, CA/NY/etc for states, NYC/PHL for cities)"
+    
+    enabled_streams:
+      type: array
+      items:
+        type: string
+        enum: ["newsroom_releases", "revproc_items", "irb_bulletins", "draft_forms", "mef_summaries"]
+      default: ["newsroom_releases", "revproc_items", "irb_bulletins", "draft_forms", "mef_summaries"]
+      title: "Enabled Streams"
+      description: "Which data streams to sync"
+    
+    base_urls:
+      type: object
+      properties:
+        newsroom:
+          type: string
+          default: "https://www.irs.gov/newsroom"
+        irb:
+          type: string
+          default: "https://www.irs.gov/irb"
+        draft_forms:
+          type: string
+          default: "https://www.irs.gov/forms-pubs/draft-tax-forms"
+        mef:
+          type: string
+          default: "https://www.irs.gov/modernized-e-file-mf-business-rules-and-schemas"
+      title: "Base URLs"
+      description: "Base URLs for IRS sources"
+    
+    request_timeout:
+      type: integer
+      default: 30
+      title: "Request Timeout"
+      description: "HTTP request timeout in seconds"
+    
+    max_retries:
+      type: integer
+      default: 3
+      title: "Max Retries"
+      description: "Maximum number of retry attempts for failed requests"
+
+  required: ["jurisdiction_level", "jurisdiction_code"]
