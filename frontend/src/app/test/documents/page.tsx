@@ -10,9 +10,7 @@ export default async function DocumentsTestPage() {
     redirect('/');
   }
 
-  if (!orgId) {
-    redirect('/app');
-  }
+  // Remove orgId requirement - support personal accounts
 
   const supabase = createServerSupabaseClient();
 

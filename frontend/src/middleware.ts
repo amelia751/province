@@ -6,10 +6,10 @@ const isAppRoute = createRouteMatcher(['/app(.*)']);
 export default clerkMiddleware(async (auth, req) => {
   const { userId, redirectToSignIn } = await auth();
 
-  // Handle /app routes - require auth
+  // Handle /app routes - require auth only, allow personal accounts
   if (isAppRoute(req)) {
     if (!userId) return redirectToSignIn();
-    // Don't check orgId - Clerk handles org creation, we just sync to DB
+    // No orgId check - allow personal accounts without organizations
   }
 
   // All other routes (including /) - no restrictions

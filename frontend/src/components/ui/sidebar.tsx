@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import {
   Home,
@@ -10,7 +11,8 @@ import {
   BarChart3,
   Search,
   Bell,
-  Settings
+  Settings,
+  LogOut
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -72,12 +74,14 @@ export function SidebarNavItems({ items, pathname }: { items: NavItem[]; pathnam
 
 interface SidebarProps {
   organizationName?: string | null;
+  isPersonalAccount?: boolean;
   onWidthChange?: (width: number) => void;
 }
 
-const Sidebar = ({ onWidthChange }: SidebarProps) => {
+const Sidebar = ({ organizationName, isPersonalAccount, onWidthChange }: SidebarProps) => {
   const pathname = usePathname();
   const [sidebarWidth] = useState(64); // Fixed compact width
+  const { signOut } = useClerk();
 
   const workNavItems: NavItem[] = [
     { title: "Dashboard", href: "/app", icon: <Home className="h-5 w-5" /> },
@@ -107,6 +111,25 @@ const Sidebar = ({ onWidthChange }: SidebarProps) => {
           />
         </div>
       </nav>
+
+      {/* Sign Out Button at Bottom */}
+      <div className="p-3">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => signOut()}
+                className="flex items-center justify-center p-3 rounded-md transition-colors mx-1 w-full text-gray-600 hover:text-black hover:bg-gray-50"
+              >
+                <LogOut className="h-5 w-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="bg-gray-900 text-white border-gray-700">
+              <p>Sign out</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
     </div>
   );
 };

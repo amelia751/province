@@ -141,7 +141,7 @@ export default function DocumentIngest({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Upload Documents to {folderName}</DialogTitle>
+          <DialogTitle>Upload Your {folderName}</DialogTitle>
           <DialogDescription>
             Drag and drop files here or click to browse your computer
           </DialogDescription>

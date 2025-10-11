@@ -11,6 +11,12 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Building2,
   Plus,
   ChevronDown,
@@ -18,11 +24,14 @@ import {
   ArrowRight,
   Loader2,
   User,
-  LogOut
+  PanelLeft,
+  PanelRight
 } from "lucide-react";
 
 interface HeaderProps {
   className?: string;
+  onToggleExplorer?: () => void;
+  onToggleChat?: () => void;
 }
 
 // Organization Switcher Component
@@ -37,40 +46,54 @@ interface OrgSwitcherProps {
   setIsLoadingOrgSwitch: (loading: boolean) => void;
 }
 
-function OrganizationSwitcher({ 
-  organization, 
-  organizationList, 
-  setActive, 
-  onCreateOrganization, 
-  openOrganizationProfile, 
+function OrganizationSwitcher({
+  organization,
+  organizationList,
+  setActive,
+  onCreateOrganization,
+  openOrganizationProfile,
   getUserRole,
   isLoadingOrgSwitch,
   setIsLoadingOrgSwitch
 }: OrgSwitcherProps) {
+  const { user } = useUser();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button className="flex items-center space-x-2 px-2 py-1 rounded-md hover:bg-gray-50 transition-colors">
-          <div className="h-5 w-5 flex-shrink-0">
+          <div className="h-5 w-5 flex-shrink-0 rounded overflow-hidden">
             {organization?.imageUrl ? (
               <img
                 src={organization.imageUrl}
                 alt={organization.name || "Organization"}
-                className="w-5 h-5 rounded object-cover"
+                className="w-full h-full object-cover"
+              />
+            ) : organization ? (
+              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                <Building2 className="h-3 w-3 text-gray-600" />
+              </div>
+            ) : user?.imageUrl ? (
+              <img
+                src={user.imageUrl}
+                alt={user.fullName || user.firstName || "User"}
+                className="w-full h-full object-cover"
               />
             ) : (
-              <Building2 className="h-5 w-5 text-gray-600" />
+              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                <User className="h-3 w-3 text-gray-600" />
+              </div>
             )}
           </div>
           <div className="flex flex-col items-start min-w-0">
             <span className="text-sm font-medium text-gray-900 truncate">
-              {organization?.name || "Organizations"}
+              {organization?.name || user?.fullName || user?.firstName || "Personal Account"}
             </span>
           </div>
           <ChevronDown className="h-3 w-3 text-gray-400" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
+      <DropdownMenuContent align="start" className="w-56">
         <OrganizationDropdownContent 
           organization={organization}
           organizationList={organizationList}
@@ -87,42 +110,69 @@ function OrganizationSwitcher({
 }
 
 // Organization Dropdown Content Component
-function OrganizationDropdownContent({ 
-  organization, 
-  organizationList, 
-  setActive, 
-  onCreateOrganization, 
-  openOrganizationProfile, 
+function OrganizationDropdownContent({
+  organization,
+  organizationList,
+  setActive,
+  onCreateOrganization,
+  openOrganizationProfile,
   getUserRole,
   isLoadingOrgSwitch,
   setIsLoadingOrgSwitch
 }: Omit<OrgSwitcherProps, 'showText'>) {
+  const { openUserProfile } = useClerk();
+  const { user } = useUser();
+
   return (
     <>
-      {/* Current Organization */}
-      {organization && (
-        <>
-          <div className="flex items-center space-x-3 p-3">
-            <div className="h-8 w-8 rounded bg-gray-100 flex items-center justify-center">
-              <Building2 className="h-4 w-4 text-gray-500" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-black truncate">{organization.name}</div>
-              <div className="text-xs text-gray-500">{getUserRole()}</div>
-            </div>
-            <div
-              onClick={(e) => {
-                e.stopPropagation();
-                openOrganizationProfile();
-              }}
-              className="flex items-center text-xs text-gray-600 hover:text-black transition-colors border border-gray-200 rounded px-2 py-1 cursor-pointer hover:bg-gray-50"
-            >
-              <SettingsIcon className="mr-1 h-3 w-3" />
-              Manage
-            </div>
+      {/* Current Organization or Personal Account */}
+      <div className="flex items-center space-x-2 p-2">
+        <div className="h-6 w-6 rounded overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+          {organization ? (
+            organization.imageUrl ? (
+              <img
+                src={organization.imageUrl}
+                alt={organization.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <Building2 className="h-3 w-3 text-gray-500" />
+            )
+          ) : user?.imageUrl ? (
+            <img
+              src={user.imageUrl}
+              alt={user.fullName || user.firstName || "User"}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <User className="h-3 w-3 text-gray-500" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-medium text-black truncate">
+            {organization?.name || user?.fullName || user?.firstName || "Personal Account"}
           </div>
-          <DropdownMenuSeparator />
-        </>
+          {organization && (
+            <div className="text-[10px] text-gray-500">{getUserRole()}</div>
+          )}
+        </div>
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            if (organization) {
+              openOrganizationProfile();
+            } else {
+              openUserProfile();
+            }
+          }}
+          className="flex items-center text-[10px] text-gray-600 hover:text-black transition-colors border border-gray-200 rounded px-1.5 py-0.5 cursor-pointer hover:bg-gray-50"
+        >
+          <SettingsIcon className="mr-0.5 h-2.5 w-2.5" />
+          Manage
+        </div>
+      </div>
+      {organizationList && organizationList.length > 0 && (
+        <DropdownMenuSeparator />
       )}
 
       {/* Other Organizations */}
@@ -131,7 +181,7 @@ function OrganizationDropdownContent({
           {organizationList
             .filter((org: any) => org.organization.id !== organization?.id)
             .map((org: any) => (
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 key={org.organization.id}
                 onClick={async () => {
                   setIsLoadingOrgSwitch(true);
@@ -144,19 +194,19 @@ function OrganizationDropdownContent({
                     setIsLoadingOrgSwitch(false);
                   }
                 }}
-                className="flex items-center space-x-3 p-3 cursor-pointer group"
+                className="flex items-center space-x-2 p-2 cursor-pointer group"
                 disabled={isLoadingOrgSwitch}
               >
-                <div className="h-8 w-8 rounded bg-gray-100 flex items-center justify-center">
-                  <Building2 className="h-4 w-4 text-gray-500" />
+                <div className="h-6 w-6 rounded bg-gray-100 flex items-center justify-center">
+                  <Building2 className="h-3 w-3 text-gray-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-black truncate">{org.organization.name}</div>
+                  <div className="text-xs font-medium text-black truncate">{org.organization.name}</div>
                 </div>
                 {isLoadingOrgSwitch ? (
-                  <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
+                  <Loader2 className="h-3 w-3 text-gray-400 animate-spin" />
                 ) : (
-                  <ArrowRight className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRight className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                 )}
               </DropdownMenuItem>
             ))}
@@ -165,32 +215,31 @@ function OrganizationDropdownContent({
       )}
 
       {/* Create Organization */}
-      <DropdownMenuItem 
+      <DropdownMenuItem
         onClick={() => onCreateOrganization()}
-        className="flex items-center space-x-3 p-3 cursor-pointer"
+        className="flex items-center space-x-2 p-2 cursor-pointer"
       >
-        <div className="h-8 w-8 rounded bg-gray-50 flex items-center justify-center">
-          <Plus className="h-4 w-4 text-gray-400" />
+        <div className="h-6 w-6 rounded bg-gray-50 flex items-center justify-center">
+          <Plus className="h-3 w-3 text-gray-400" />
         </div>
         <div className="flex-1">
-          <div className="font-medium text-black">Create Organization</div>
+          <div className="text-xs font-medium text-black">Create Organization</div>
         </div>
       </DropdownMenuItem>
     </>
   );
 }
 
-const Header: React.FC<HeaderProps> = ({ className }) => {
-  const { user } = useUser();
+const Header: React.FC<HeaderProps> = ({ className, onToggleExplorer, onToggleChat }) => {
   const { organization } = useOrganization();
   const { userMemberships, setActive } = useOrganizationList({
     userMemberships: {
       infinite: true,
     },
   });
-  
+
   const organizationList = userMemberships?.data || [];
-  const { openUserProfile, signOut, openCreateOrganization, openOrganizationProfile } = useClerk();
+  const { openCreateOrganization, openOrganizationProfile } = useClerk();
   const [isLoadingOrgSwitch, setIsLoadingOrgSwitch] = useState(false);
 
   // Get user role in current organization
@@ -211,7 +260,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
     )}>
       {/* Left side - Organization */}
       <div className="flex items-center">
-        <OrganizationSwitcher 
+        <OrganizationSwitcher
           organization={organization}
           organizationList={organizationList}
           setActive={setActive}
@@ -223,44 +272,39 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
         />
       </div>
 
-      {/* Right side - User */}
-      <div className="flex items-center">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center space-x-2 px-2 py-1 rounded-md hover:bg-gray-50 transition-colors">
-              <div className="h-5 w-5 rounded-full overflow-hidden flex-shrink-0">
-                {user?.imageUrl ? (
-                  <img
-                    src={user.imageUrl}
-                    alt={user.fullName || user.firstName || "User"}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <User className="h-3 w-3 text-gray-500" />
-                  </div>
-                )}
-              </div>
-              <span className="text-sm font-medium text-gray-900 truncate">
-                {user?.fullName || user?.firstName || "User"}
-              </span>
-              <ChevronDown className="h-3 w-3 text-gray-400" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => openUserProfile()}>
-              <User className="mr-3 h-4 w-4" />
-              Account
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-red-600"
-              onClick={() => signOut()}
-            >
-              <LogOut className="mr-3 h-4 w-4" />
-              Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      {/* Right side - Panel Toggles */}
+      <div className="flex items-center space-x-0.5">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onToggleExplorer}
+                className="p-1.5 rounded-md text-gray-600 hover:text-black hover:bg-gray-50 transition-colors"
+              >
+                <PanelLeft className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Toggle Explorer Panel</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onToggleChat}
+                className="p-1.5 rounded-md text-gray-600 hover:text-black hover:bg-gray-50 transition-colors"
+              >
+                <PanelRight className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Toggle Assistant Chat</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </header>
   );

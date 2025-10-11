@@ -12,7 +12,7 @@ interface ProjectPageProps {
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const { userId, orgId } = await auth();
 
-  if (!userId || !orgId) {
+  if (!userId) {
     redirect('/');
   }
 

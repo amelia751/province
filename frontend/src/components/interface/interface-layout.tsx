@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import Sidebar from '@/components/ui/sidebar';
+import Header from '@/components/interface/header';
 import ExplorerPanel from '@/components/explorer-panel/explorer-panel';
 import MainEditor from '@/components/main-editor/main-editor';
 import Chat from '@/components/chat/chat';
@@ -368,15 +369,53 @@ export default function InterfaceLayout({ organizationName }: InterfaceLayoutPro
     setSidebarWidth(width);
   }, []);
 
+  // Toggle explorer panel
+  const handleToggleExplorer = useCallback(() => {
+    if (explorerWidth === 0) {
+      // Show explorer with default width
+      setExplorerWidth(280);
+      // If there's not enough space, hide chat
+      const availableWidth = getAvailableWidth();
+      if (280 + 400 + 400 > availableWidth) {
+        setChatWidth(0);
+      }
+    } else {
+      // Hide explorer
+      setExplorerWidth(0);
+    }
+  }, [explorerWidth, chatWidth]);
 
+  // Toggle chat panel
+  const handleToggleChat = useCallback(() => {
+    if (chatWidth === 0) {
+      // Show chat with default width
+      setChatWidth(400);
+      // If there's not enough space, hide explorer
+      const availableWidth = getAvailableWidth();
+      if (280 + 400 + 400 > availableWidth) {
+        setExplorerWidth(0);
+      }
+    } else {
+      // Hide chat
+      setChatWidth(0);
+    }
+  }, [explorerWidth, chatWidth]);
 
   return (
-    <div className="flex overflow-hidden" style={{ height: 'calc(100vh - 60px)' }}>
-      {/* Sidebar */}
-      <Sidebar
-        organizationName={organizationName}
-        onWidthChange={handleSidebarWidthChange}
+    <div className="flex flex-col h-screen">
+      {/* Header */}
+      <Header
+        onToggleExplorer={handleToggleExplorer}
+        onToggleChat={handleToggleChat}
       />
+
+      {/* Main Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <Sidebar
+          organizationName={organizationName}
+          onWidthChange={handleSidebarWidthChange}
+        />
 
       {/* Main Content Area - Flex container for the three panels */}
       <div className="flex flex-1 h-full relative min-h-0">
@@ -419,6 +458,7 @@ export default function InterfaceLayout({ organizationName }: InterfaceLayoutPro
             <Chat />
           </div>
         )}
+      </div>
       </div>
     </div>
   );

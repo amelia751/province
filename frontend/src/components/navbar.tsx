@@ -44,9 +44,7 @@ export function Navbar() {
       <div className="container flex h-16 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-md flex items-center justify-center">
-              <div className="w-4 h-4 bg-white rounded-sm"></div>
-            </div>
+            <div className="w-8 h-8 bg-black rounded-md"></div>
             <span className="hidden font-bold sm:inline-block">
               Province
             </span>

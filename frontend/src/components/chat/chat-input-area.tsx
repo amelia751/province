@@ -78,10 +78,14 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
 
     const isInputDisabled = !isConnected;
 
-    // Keep focus on input
+    // Keep focus on input only when switching to text mode
     useEffect(() => {
         if (inputRef.current && inputMode === 'text') {
-            inputRef.current?.focus();
+            // Only focus when explicitly switching to text mode, not on every render
+            const timer = setTimeout(() => {
+                inputRef.current?.focus();
+            }, 100);
+            return () => clearTimeout(timer);
         }
     }, [inputMode]);
 
@@ -111,9 +115,17 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
                 return;
             }
 
-            if (inputRef.current && inputMode === 'text') {
-                inputRef.current.focus();
+            // ignore if user has text selected (they might be trying to copy)
+            const selection = window.getSelection();
+            if (selection && selection.toString().length > 0) {
+                return;
             }
+
+            // Don't auto-focus - let users explicitly click into the input
+            // This prevents interference with text selection in chat messages
+            // if (inputRef.current && inputMode === 'text') {
+            //     inputRef.current.focus();
+            // }
         };
 
         window.addEventListener("keydown", handleKeyDown);
@@ -220,19 +232,19 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
                             </DropdownMenu>
 
                             {/* Right: Action buttons */}
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-0.5">
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-8 w-8 p-0"
+                                    className="h-6 w-6 p-0"
                                     title="Attach image"
                                 >
-                                    <Image className="h-4 w-4" />
+                                    <Image className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-8 w-8 p-0"
+                                    className="h-6 w-6 p-0"
                                     onClick={() => {
                                         setInputMode('voice');
                                         triggerMute();
@@ -240,7 +252,7 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
                                     disabled={isInputDisabled}
                                     title="Switch to voice input"
                                 >
-                                    <Mic className="h-4 w-4" />
+                                    <Mic className="h-3.5 w-3.5" />
                                 </Button>
                             </div>
                         </div>

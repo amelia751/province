@@ -319,15 +319,29 @@ const TaxChatInterface: React.FC<ChatProps> = ({
           ) : (
             <div className="space-y-4 max-w-4xl mx-auto px-4">
               {displayMessages.map((message, idx) => (
-                <div key={message.id} className="w-full">
-                  <div className={cn("flex", message.type === 'user' ? "justify-end" : "justify-start")}>
-                    <div className={cn(
-                      "max-w-[80%] rounded-lg px-3 py-2",
-                      message.type === 'user'
-                        ? "bg-black text-white"
-                        : "bg-gray-100 text-black"
-                    )}>
-                      <div className="text-sm whitespace-pre-wrap select-text">{message.content}</div>
+                <div key={message.id} className="w-full" style={{ userSelect: 'text' }}>
+                  <div className={cn("flex", message.type === 'user' ? "justify-end" : "justify-start")} style={{ userSelect: 'text' }}>
+                    <div
+                      className={cn(
+                        "max-w-[80%] rounded-lg px-3 py-2",
+                        message.type === 'user'
+                          ? "bg-black text-white"
+                          : "bg-gray-100 text-black"
+                      )}
+                      style={{ userSelect: 'text' }}
+                    >
+                      <div
+                        className="text-sm whitespace-pre-wrap cursor-text"
+                        style={{
+                          userSelect: 'text',
+                          WebkitUserSelect: 'text',
+                          MozUserSelect: 'text',
+                          msUserSelect: 'text',
+                          WebkitTouchCallout: 'default'
+                        }}
+                      >
+                        {message.content}
+                      </div>
 
                       {message.citations && message.citations.length > 0 && (
                         <div className="mt-2 space-y-1">
@@ -349,11 +363,8 @@ const TaxChatInterface: React.FC<ChatProps> = ({
                       )}
 
                       <div className="flex items-center justify-between mt-1">
-                        <div className={cn("text-xs", message.type === 'user' ? "text-gray-300" : "text-gray-500")}>
+                        <div className={cn("text-[10px]", message.type === 'user' ? "text-gray-300" : "text-gray-500")}>
                           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          {message.agent && (
-                            <span className="ml-2 capitalize">• Tax Assistant</span>
-                          )}
                         </div>
                         {message.status === 'processing' && (
                           <Loader2 className="h-3 w-3 text-gray-400 animate-spin" />

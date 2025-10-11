@@ -162,7 +162,7 @@ const EnhancedExplorerPanel: React.FC<EnhancedExplorerPanelProps> = ({
   onBackToProjects
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['folder-returns', 'folder-documents', 'folder-forms-to-fill', 'folder-w2', 'folder-1099-forms']));
   const [ingestDialogOpen, setIngestDialogOpen] = useState(false);
   const [selectedIngestFolder, setSelectedIngestFolder] = useState<{ id: string; name: string } | null>(null);
 
@@ -198,9 +198,16 @@ const EnhancedExplorerPanel: React.FC<EnhancedExplorerPanelProps> = ({
     !searchQuery || folder.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredDocuments = selectedProject.structure.documents.filter(document =>
-    !searchQuery || document.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredDocuments = selectedProject.structure.documents.filter(document => {
+    // Apply search filter
+    if (searchQuery && !document.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+    
+    // Only show documents that are at the root level (not in any folder)
+    const pathParts = document.path.split('/').filter(part => part);
+    return pathParts.length === 2; // Only /project/file.ext (no folders)
+  });
 
   const handleOpenIngestDialog = (folderId: string, folderName: string) => {
     setSelectedIngestFolder({ id: folderId, name: folderName });
@@ -217,41 +224,41 @@ const EnhancedExplorerPanel: React.FC<EnhancedExplorerPanelProps> = ({
       {/* min-h-0 lets the inner scroll region actually shrink & scroll */}
       <div className="flex flex-col h-full flex-1 min-h-0">
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b">
-          <div className="flex items-center space-x-2 min-w-0">
+        <div className="flex items-center justify-between px-2 py-1.5 border-b">
+          <div className="flex items-center space-x-1.5 min-w-0">
             {onBackToProjects && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onBackToProjects}
-                className="h-8 w-8 p-0 flex-shrink-0"
+                className="h-6 w-6 p-0 flex-shrink-0"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="h-3.5 w-3.5" />
               </Button>
             )}
-            <PracticeIcon className="h-4 w-4 flex-shrink-0" />
+            <PracticeIcon className="h-3.5 w-3.5 flex-shrink-0" />
             <div className="min-w-0">
-              <h3 className="text-sm font-medium truncate">{selectedProject.name}</h3>
-              <p className="text-xs text-muted-foreground truncate">{selectedProject.client}</p>
+              <h3 className="text-xs font-medium truncate">{selectedProject.name}</h3>
+              <p className="text-[10px] text-muted-foreground truncate">{selectedProject.client}</p>
             </div>
           </div>
-          <div className="flex items-center space-x-1">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <Plus className="h-4 w-4" />
+          <div className="flex items-center space-x-0.5">
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+              <Plus className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <MoreHorizontal className="h-4 w-4" />
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+              <MoreHorizontal className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
 
         {/* Search Bar */}
-        <div className="p-3 border-b">
+        <div className="px-2 py-1.5 border-b">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Search files and folders..."
-              className="pl-10"
+              className="pl-7 h-7 text-xs"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -273,6 +280,10 @@ const EnhancedExplorerPanel: React.FC<EnhancedExplorerPanelProps> = ({
                   onOpenIngest={handleOpenIngestDialog}
                   matterId={selectedProject.id}
                   depth={0}
+                  parentPath=""
+                  allDocuments={selectedProject.structure.documents}
+                  expandedFolders={expandedFolders}
+                  onToggleFolder={toggleFolder}
                 />
               ))}
 
@@ -297,15 +308,15 @@ const EnhancedExplorerPanel: React.FC<EnhancedExplorerPanelProps> = ({
         </div>
 
         {/* Status Bar (fixed at bottom, outside scroll region) */}
-        <div className="p-3 border-t">
+        <div className="px-2 py-1.5 border-t">
           {selectedProject.progress && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[10px]">
                 <span>Progress</span>
                 <span>{selectedProject.progress.percentage}%</span>
               </div>
               <Progress value={selectedProject.progress.percentage} className="h-1" />
-              <div className="text-xs text-muted-foreground">
+              <div className="text-[10px] text-muted-foreground">
                 {selectedProject.progress.completedTasks}/{selectedProject.progress.totalTasks} tasks completed
               </div>
             </div>
@@ -336,7 +347,11 @@ const ProjectFolderNode: React.FC<{
   onOpenIngest: (folderId: string, folderName: string) => void;
   matterId: string;
   depth: number;
-}> = ({ folder, isExpanded, onToggle, onDocumentSelect, onOpenIngest, matterId, depth }) => {
+  parentPath?: string;
+  allDocuments: AIDocument[];
+  expandedFolders: Set<string>;
+  onToggleFolder: (folderId: string) => void;
+}> = ({ folder, isExpanded, onToggle, onDocumentSelect, onOpenIngest, matterId, depth, parentPath = '', allDocuments, expandedFolders, onToggleFolder }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -385,16 +400,66 @@ const ProjectFolderNode: React.FC<{
             <ProjectFolderNode
               key={child.id}
               folder={child}
-              isExpanded={false} // Child folders start collapsed
-              onToggle={() => { /* Implement nested folder expansion if needed */ }}
+              isExpanded={expandedFolders.has(child.id)}
+              onToggle={() => onToggleFolder(child.id)}
               onDocumentSelect={onDocumentSelect}
               onOpenIngest={onOpenIngest}
               matterId={matterId}
               depth={depth + 1}
+              parentPath={parentPath ? `${parentPath}/${folder.name}` : folder.name}
+              allDocuments={allDocuments}
+              expandedFolders={expandedFolders}
+              onToggleFolder={onToggleFolder}
             />
           ))}
 
-          {/* NOTE: We REMOVED folder.documents mapping to match AIFolder type */}
+          {/* Documents in this folder */}
+          {(() => {
+            const fullFolderPath = parentPath ? `${parentPath}/${folder.name}` : folder.name;
+            
+            const documentsInFolder = allDocuments.filter(doc => {
+              const pathParts = doc.path.split('/').filter(part => part); // Remove empty parts
+              if (pathParts.length < 2) return false;
+              
+              // Remove project name from path
+              const docPathWithoutProject = pathParts.slice(1).join('/');
+              
+              // Check if document is directly in this folder (not in subfolders)
+              const folderPathParts = fullFolderPath.split('/').filter(part => part);
+              const docPathParts = docPathWithoutProject.split('/');
+              
+              // Debug logging
+              console.log(`[${folder.name}] Checking document: ${doc.name}`);
+              console.log(`[${folder.name}] Document path: ${doc.path}`);
+              console.log(`[${folder.name}] Document path without project: ${docPathWithoutProject}`);
+              console.log(`[${folder.name}] Full folder path: ${fullFolderPath}`);
+              console.log(`[${folder.name}] Folder path parts:`, folderPathParts);
+              console.log(`[${folder.name}] Doc path parts:`, docPathParts);
+              
+              // Document should be in this exact folder
+              if (docPathParts.length !== folderPathParts.length + 1) return false;
+              
+              // Check if all folder path parts match
+              for (let i = 0; i < folderPathParts.length; i++) {
+                if (docPathParts[i] !== folderPathParts[i]) return false;
+              }
+              
+              return true;
+            });
+            
+            // Debug logging for results
+            console.log(`[${folder.name}] Found ${documentsInFolder.length} documents:`, documentsInFolder.map(d => d.name));
+            
+            return documentsInFolder.map(document => (
+              <ProjectDocumentNode
+                key={document.id}
+                document={document}
+                matterId={matterId}
+                onSelect={onDocumentSelect}
+                depth={depth + 1}
+              />
+            ));
+          })()}
         </div>
       )}
     </div>

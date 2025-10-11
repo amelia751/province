@@ -237,6 +237,17 @@ const taxReturnFolders: AIFolder[] = [
         expanded: false,
         aiGenerated: false,
         createdAt: new Date('2025-01-10T09:00:00')
+      },
+      {
+        id: 'folder-1099-forms',
+        name: '1099_Forms',
+        purpose: '1099 information returns from financial institutions',
+        requiredDocuments: [],
+        suggestedTemplates: [],
+        children: [],
+        expanded: false,
+        aiGenerated: false,
+        createdAt: new Date('2025-10-11T17:49:00')
       }
     ],
     expanded: true,
@@ -260,7 +271,19 @@ const taxReturnFolders: AIFolder[] = [
     purpose: 'Draft and final tax returns',
     requiredDocuments: ['1040 Draft', '1040 Final'],
     suggestedTemplates: [],
-    children: [],
+    children: [
+      {
+        id: 'folder-forms-to-fill',
+        name: 'Forms_To_Fill',
+        purpose: 'Blank tax forms and schedules to complete',
+        requiredDocuments: [],
+        suggestedTemplates: [],
+        children: [],
+        expanded: true,
+        aiGenerated: false,
+        createdAt: new Date('2025-10-11T17:48:00')
+      }
+    ],
     expanded: true,
     aiGenerated: false,
     createdAt: new Date('2025-01-10T09:00:00')
@@ -372,6 +395,283 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: true,
     collaborators: ['tax.preparer@firm.com'],
     size: 1200
+  },
+  
+  // IRS Tax Forms and Templates (from S3 templates bucket)
+  // Core Forms
+  {
+    id: 'form-1040',
+    name: 'Form 1040 - U.S. Individual Income Tax Return',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/f1040.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:48:40'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 163287,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f1040.pdf'
+  },
+  {
+    id: 'form-1040s1',
+    name: 'Schedule 1 - Additional Income and Adjustments',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/f1040s1.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:48:40'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 90905,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f1040s1.pdf'
+  },
+  {
+    id: 'form-1040s2',
+    name: 'Schedule 2 - Additional Taxes',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/f1040s2.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:48:40'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 234638,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f1040s2.pdf'
+  },
+  {
+    id: 'form-1040s3',
+    name: 'Schedule 3 - Additional Credits and Payments',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/f1040s3.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:48:41'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 69979,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f1040s3.pdf'
+  },
+  
+  // Itemized Deductions and Income Schedules
+  {
+    id: 'form-1040sa',
+    name: 'Schedule A - Itemized Deductions',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/f1040sa.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:48:41'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 78925,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f1040sa.pdf'
+  },
+  {
+    id: 'form-1040sb',
+    name: 'Schedule B - Interest and Ordinary Dividends',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/f1040sb.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:48:41'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 76237,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f1040sb.pdf'
+  },
+  {
+    id: 'form-1040sc',
+    name: 'Schedule C - Profit or Loss From Business',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/f1040sc.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:48:41'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 122304,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f1040sc.pdf'
+  },
+  {
+    id: 'form-1040sd',
+    name: 'Schedule D - Capital Gains and Losses',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/f1040sd.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:48:42'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 97168,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f1040sd.pdf'
+  },
+  {
+    id: 'form-1040se',
+    name: 'Schedule E - Supplemental Income and Loss',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/f1040se.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:48:43'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 148158,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f1040se.pdf'
+  },
+  
+  // Tax Credits and Special Forms
+  {
+    id: 'form-8812',
+    name: 'Form 8812 - Credits for Qualifying Children and Other Dependents',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/f8812.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:49:22'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 115238,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f8812.pdf'
+  },
+  {
+    id: 'form-2441',
+    name: 'Form 2441 - Child and Dependent Care Expenses',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/f2441.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:49:23'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 121249,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f2441.pdf'
+  },
+  {
+    id: 'form-8863',
+    name: 'Form 8863 - Education Credits',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/f8863.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:49:23'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 118839,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f8863.pdf'
+  },
+  {
+    id: 'form-8880',
+    name: 'Form 8880 - Credit for Qualified Retirement Savings Contributions',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/f8880.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:49:23'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 95617,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f8880.pdf'
+  },
+  {
+    id: 'form-8962',
+    name: 'Form 8962 - Premium Tax Credit',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/f8962.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:49:23'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 117814,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f8962.pdf'
+  },
+  {
+    id: 'form-8867',
+    name: 'Form 8867 - Paid Preparers Due Diligence Checklist',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/f8867.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:49:23'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 134641,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f8867.pdf'
+  },
+  
+  // Information Returns (1099 Forms) - moved to Documents folder since these are received documents
+  {
+    id: 'form-1099int',
+    name: 'Form 1099-INT - Interest Income (Template)',
+    type: 'tax-organizer',
+    path: '/Doe_John_1040_2025/Documents/1099_Forms/f1099int.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:49:24'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 538774,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f1099int.pdf'
+  },
+  {
+    id: 'form-1099div',
+    name: 'Form 1099-DIV - Dividends and Distributions (Template)',
+    type: 'tax-organizer',
+    path: '/Doe_John_1040_2025/Documents/1099_Forms/f1099div.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:49:24'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 539778,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f1099div.pdf'
+  },
+  {
+    id: 'form-1099r',
+    name: 'Form 1099-R - Retirement Distributions (Template)',
+    type: 'tax-organizer',
+    path: '/Doe_John_1040_2025/Documents/1099_Forms/f1099r.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:49:24'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 601017,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f1099r.pdf'
+  },
+  {
+    id: 'form-1099g',
+    name: 'Form 1099-G - Government Payments (Template)',
+    type: 'tax-organizer',
+    path: '/Doe_John_1040_2025/Documents/1099_Forms/f1099g.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:49:25'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 523268,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/f1099g.pdf'
+  },
+  
+  // W-2 Template (moved to Documents/W2 folder where it belongs)
+  {
+    id: 'form-w2-template',
+    name: 'Form W-2 - Wage and Tax Statement (Template)',
+    type: 'w2-form',
+    path: '/Doe_John_1040_2025/Documents/W2/fw2.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:48:44'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 1343180,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/fw2.pdf'
+  },
+  
+  // Instructions and Reference Materials
+  {
+    id: 'form-1040-instructions',
+    name: 'Form 1040 Instructions - General Instructions',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/i1040gi.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:48:44'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 4375877,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/i1040gi.pdf'
+  },
+  {
+    id: 'form-tax-tables',
+    name: 'Tax Tables for 2024',
+    type: 'tax-return',
+    path: '/Doe_John_1040_2025/Returns/Forms_To_Fill/i1040tt.pdf',
+    status: 'final',
+    lastModified: new Date('2025-10-11T17:49:25'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 2967636,
+    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/tax_forms/2024/i1040tt.pdf'
   }
 ];
 
