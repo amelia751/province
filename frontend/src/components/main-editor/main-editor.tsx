@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   X,
   Circle,
@@ -58,6 +59,14 @@ const mockTabs: EditorTab[] = [
     isActive: true
   },
   {
+    id: "ingest-w2",
+    name: "Ingest W-2",
+    path: "tools/ingest-w2",
+    isDirty: false,
+    isActive: false,
+    type: "ingest-tool"
+  },
+  {
     id: "1",
     name: "sidebar.tsx",
     path: "src/components/ui/sidebar.tsx",
@@ -77,43 +86,129 @@ const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange, selectedDocument
   const [tabs, setTabs] = useState(mockTabs);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [isHoveringTabArea, setIsHoveringTabArea] = useState(false);
+  const [selectedW2File, setSelectedW2File] = useState<string>('');
+  const [ocrResult, setOcrResult] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
+
+  // Available W2 files for testing
+  const w2Files = [
+    {
+      name: 'W2_XL_input_clean_1000.pdf',
+      url: 'https://province-documents-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/datasets/w2-forms/W2_Clean_DataSet_01_20Sep2019/W2_XL_input_clean_1000.pdf',
+      type: 'pdf'
+    },
+    {
+      name: 'W2_XL_input_clean_1000.jpg',
+      url: 'https://province-documents-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/datasets/w2-forms/W2_Clean_DataSet_01_20Sep2019/W2_XL_input_clean_1000.jpg',
+      type: 'image'
+    }
+  ];
+
+  // Mock Tesseract processing function
+  const processWithTesseract = async (fileUrl: string, fileName: string) => {
+    setIsProcessing(true);
+    setOcrResult('Processing...');
+    
+    try {
+      // Simulate API call to backend Tesseract service
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Mock OCR result based on our terminal testing
+      const mockResult = `=== Tesseract OCR Results for ${fileName} ===
+
+REISSUED Employee's social security number
+STATEMENT 077-49-4905 OMB No. 1645-0008
+
+b Employer identification number
+37-2766773
+
+c Employer's name, address, and ZIP code
+Richardson-Brown PLC
+2936 Howard Radial
+West Raymond NV 44735-6958
+
+d Control number
+4741345
+
+e Employee's first name and initial Last name
+April Hensley
+
+f Employee's address and ZIP code
+31403 David Circles Suite 863
+West Erinfort WY 45881-3334
+
+1 Wages, tips, other compensation: 55151.93
+2 Federal income tax withheld: 16606.17
+3 Social security wages: 67588.01
+4 Social security tax withheld: 5170.48
+5 Medicare wages and tips: 50518.06
+6 Medicare tax withheld: 1465.02
+7 Social security tips: 67588.01
+8 Allocated tips: 50518.06
+9 Advance EIC payment: 238
+10 Dependent care benefits: 
+11 Nonqualified plans: 210
+12a See instructions for box 12: G 8500
+13 Statutory employee: 
+14 Other: D 999, G 381
+15 State: DC
+16 State wages, tips, etc: 28287.19
+17 State income tax: 1608.75
+18 Local wages, tips, etc: 44590.58
+19 Local income tax: 6842.08
+20 Locality name: Rocha Wells
+
+=== Processing Complete ===`;
+      
+      setOcrResult(mockResult);
+    } catch (error) {
+      setOcrResult(`Error processing file: ${error}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   // Handle document selection
   useEffect(() => {
     if (selectedDocument) {
-      // Check if document tab already exists
-      const existingTab = tabs.find(tab => tab.id === selectedDocument.id);
-      
-      if (!existingTab) {
-        // Create new tab for the document
-        const newTab: EditorTab = {
-          id: selectedDocument.id,
-          name: selectedDocument.name,
-          path: selectedDocument.path,
-          isDirty: false,
-          isActive: true,
-          type: selectedDocument.type,
-          url: selectedDocument.url
-        };
+      setTabs(prevTabs => {
+        // Check if document tab already exists
+        const existingTab = prevTabs.find(tab => tab.id === selectedDocument.id);
         
-        // Add new tab and make it active
-        setTabs(prevTabs => [
-          ...prevTabs.map(tab => ({ ...tab, isActive: false })),
-          newTab
-        ]);
-      } else {
-        // Make existing tab active
-        setTabs(prevTabs => 
-          prevTabs.map(tab => ({
-            ...tab,
-            isActive: tab.id === selectedDocument.id
-          }))
-        );
-      }
+        if (!existingTab) {
+          // Create new tab for the document
+          const newTab: EditorTab = {
+            id: selectedDocument.id,
+            name: selectedDocument.name,
+            path: selectedDocument.path,
+            isDirty: false,
+            isActive: true,
+            type: selectedDocument.type,
+            url: selectedDocument.url
+          };
+          
+          // Add new tab and make it active
+          return [
+            ...prevTabs.map(tab => ({ ...tab, isActive: false })),
+            newTab
+          ];
+        } else {
+          // Make existing tab active only if it's not already active
+          if (!existingTab.isActive) {
+            return prevTabs.map(tab => ({
+              ...tab,
+              isActive: tab.id === selectedDocument.id
+            }));
+          }
+          // Return unchanged if already active
+          return prevTabs;
+        }
+      });
     }
-  }, [selectedDocument, tabs]);
+  }, [selectedDocument]);
 
   // Add initial system logs
   useEffect(() => {
@@ -261,42 +356,56 @@ const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange, selectedDocument
   return (
     <div className="main-editor-container flex bg-white h-full w-full">
       <div className="flex flex-col h-full flex-1 min-h-0">
+        {/* Invisible hover area above tabs */}
+        <div 
+          className="absolute top-0 left-0 right-0 h-2 z-20"
+          onMouseEnter={() => setIsHoveringTabArea(true)}
+          onMouseLeave={() => setIsHoveringTabArea(false)}
+        />
         {/* Tab Bar */}
-        <div className="flex items-center border-b border-gray-100 bg-gray-50">
-          <div className="flex flex-1 overflow-x-auto">
-            {tabs.map((tab) => (
-              <div
-                key={tab.id}
-                className={cn(
-                  "flex items-center px-3 py-2 border-r border-gray-200 cursor-pointer group min-w-0",
-                  tab.isActive 
-                    ? "bg-white text-black" 
-                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                )}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                <div className="flex items-center min-w-0 flex-1">
-                  {tab.id === 'logs' && <Terminal className="h-3 w-3 mr-1" />}
-                  <span className="text-sm truncate">{tab.name}</span>
-                  {tab.isDirty && (
-                    <Circle className="h-2 w-2 ml-2 fill-current text-orange-500" />
+        <div 
+          className="flex items-center border-b border-gray-100 bg-gray-50 relative z-10"
+          onMouseEnter={() => setIsHoveringTabArea(true)}
+          onMouseLeave={() => setIsHoveringTabArea(false)}
+        >
+          <ScrollArea className="flex-1 min-w-0">
+            <div className="flex w-max whitespace-nowrap">
+              {tabs.map((tab) => (
+                <div
+                  key={tab.id}
+                  className={cn(
+                    "flex items-center px-3 py-2 border-r border-gray-200 cursor-pointer group flex-shrink-0 min-w-[120px] max-w-[200px]",
+                    tab.isActive 
+                      ? "bg-white text-black" 
+                      : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                  )}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  <div className="flex items-center min-w-0 flex-1">
+                    {tab.id === 'logs' && <Terminal className="h-3 w-3 mr-1" />}
+                    <span className="text-sm truncate">{tab.name}</span>
+                    {tab.isDirty && (
+                      <Circle className="h-2 w-2 ml-2 fill-current text-orange-500" />
+                    )}
+                  </div>
+                  {tab.id !== 'logs' && (
+                    <button
+                      className="ml-2 p-0.5 hover:bg-gray-200 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        closeTab(tab.id);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
                   )}
                 </div>
-                {tab.id !== 'logs' && (
-                  <button
-                    className="ml-2 p-0.5 hover:bg-gray-200 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      closeTab(tab.id);
-                    }}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center px-2 space-x-1">
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+          
+          <div className="flex items-center px-2 space-x-1 border-l border-gray-200 flex-shrink-0">
             {activeTab?.id === 'logs' && (
               <>
                 <button 
@@ -423,18 +532,28 @@ const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange, selectedDocument
                   <div className="flex-1 relative">
                     {activeTab.type === 'w2-form' && activeTab.url ? (
                       // PDF Viewer for W2 forms
-                      <iframe
-                        src={activeTab.url}
-                        className="w-full h-full border-0"
-                        title={`PDF Viewer - ${activeTab.name}`}
-                      />
+                      <div className="relative w-full h-full">
+                        <iframe
+                          src={activeTab.url}
+                          className={cn(
+                            "w-full h-full border-0 transition-all duration-200",
+                            isHoveringTabArea ? "pointer-events-none" : "pointer-events-auto"
+                          )}
+                          title={`PDF Viewer - ${activeTab.name}`}
+                        />
+                      </div>
                     ) : activeTab.type?.includes('pdf') && activeTab.url ? (
                       // Generic PDF viewer
-                      <iframe
-                        src={activeTab.url}
-                        className="w-full h-full border-0"
-                        title={`PDF Viewer - ${activeTab.name}`}
-                      />
+                      <div className="relative w-full h-full">
+                        <iframe
+                          src={activeTab.url}
+                          className={cn(
+                            "w-full h-full border-0 transition-all duration-200",
+                            isHoveringTabArea ? "pointer-events-none" : "pointer-events-auto"
+                          )}
+                          title={`PDF Viewer - ${activeTab.name}`}
+                        />
+                      </div>
                     ) : activeTab.type?.includes('image') && activeTab.url ? (
                       // Image viewer
                       <div className="flex items-center justify-center h-full p-4">
@@ -443,6 +562,62 @@ const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange, selectedDocument
                           alt={activeTab.name}
                           className="max-w-full max-h-full object-contain"
                         />
+                      </div>
+                    ) : activeTab.type === 'ingest-tool' && activeTab.id === 'ingest-w2' ? (
+                      // Ingest W-2 Tool
+                      <div className="h-full flex flex-col p-6">
+                        <div className="mb-6">
+                          <h2 className="text-xl font-semibold text-gray-800 mb-2">W-2 Tesseract OCR Testing</h2>
+                          <p className="text-gray-600">Select a W-2 file to test Tesseract OCR processing</p>
+                        </div>
+
+                        {/* File Selection */}
+                        <div className="mb-6">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Select W-2 File:
+                          </label>
+                          <select
+                            value={selectedW2File}
+                            onChange={(e) => setSelectedW2File(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="">Choose a file...</option>
+                            {w2Files.map((file, index) => (
+                              <option key={index} value={file.url}>
+                                {file.name} ({file.type.toUpperCase()})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Process Button */}
+                        <div className="mb-6">
+                          <button
+                            onClick={() => {
+                              const selectedFile = w2Files.find(f => f.url === selectedW2File);
+                              if (selectedFile) {
+                                processWithTesseract(selectedFile.url, selectedFile.name);
+                              }
+                            }}
+                            disabled={!selectedW2File || isProcessing}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                          >
+                            {isProcessing ? 'Processing...' : 'Process with Tesseract'}
+                          </button>
+                        </div>
+
+                        {/* Results */}
+                        <div className="flex-1 min-h-0">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            OCR Results:
+                          </label>
+                          <textarea
+                            value={ocrResult}
+                            readOnly
+                            className="w-full h-full p-3 border border-gray-300 rounded-md font-mono text-sm resize-none focus:outline-none"
+                            placeholder="OCR results will appear here..."
+                          />
+                        </div>
                       </div>
                     ) : (
                       // Default text/code editor

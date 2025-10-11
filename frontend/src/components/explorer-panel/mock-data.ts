@@ -315,6 +315,18 @@ const taxReturnDocuments: AIDocument[] = [
     url: 'https://province-documents-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/datasets/w2-forms/W2_Clean_DataSet_01_20Sep2019/W2_XL_input_clean_1000.pdf'
   },
   {
+    id: 'doc-w2-2',
+    name: 'W2_XL_input_clean_1000.jpg',
+    type: 'w2-form',
+    path: '/Doe_John_1040_2025/Documents/W2/W2_XL_input_clean_1000.jpg',
+    status: 'final',
+    lastModified: new Date('2025-01-10T09:35:00'),
+    aiGenerated: false,
+    collaborators: ['tax.preparer@firm.com'],
+    size: 350672,
+    url: 'https://province-documents-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/datasets/w2-forms/W2_Clean_DataSet_01_20Sep2019/W2_XL_input_clean_1000.jpg'
+  },
+  {
     id: 'doc-tax-2',
     name: 'W2_Extracts.json',
     type: 'tax-workpaper',

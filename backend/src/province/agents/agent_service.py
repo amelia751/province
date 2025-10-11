@@ -197,130 +197,32 @@ def register_tax_agents():
         Always be thorough but friendly in collecting this information.""",
         foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
         knowledge_bases=["tax_code"],
-        action_groups=["save_document", "get_signed_url"]
+        action_groups=["save_document", "get_signed_url", "ingest_w2_pdf", "calc_1040"]
     )
     agent_service.register_agent(tax_intake_agent)
-    
-    # W2IngestAgent
-    w2_ingest_agent = LegalAgentConfig(
-        agent_id="XLGLV9KLZ6",  # Updated agent ID
-        agent_alias_id="TSTALIASID",
-        name="W2IngestAgent",
-        description="AI agent specialized in processing W-2 documents",
-        instruction="""You are the W-2 Ingest Agent. You process W-2 forms and extract tax information.
-
-        Your responsibilities:
-        - Process uploaded W-2 PDFs using OCR
-        - Extract and validate W-2 data
-        - Handle multiple W-2s from different employers
-        - Flag any anomalies or inconsistencies
-        - Create structured JSON data with proper citations""",
-        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-        knowledge_bases=["tax_code"],
-        action_groups=["save_document", "get_signed_url", "ingest_w2_pdf"]
-    )
-    agent_service.register_agent(w2_ingest_agent)
-    
-    # Calc1040Agent
-    calc_1040_agent = LegalAgentConfig(
-        agent_id="SX3FV20GED",  # Updated agent ID
-        agent_alias_id="TSTALIASID",
-        name="Calc1040Agent",
-        description="AI agent specialized in tax calculations",
-        instruction="""You are the 1040 Calculation Agent. You perform tax calculations for simple W-2 returns.
-
-        Your responsibilities:
-        - Calculate adjusted gross income from W-2 data
-        - Apply standard deductions
-        - Calculate tax using current IRS tax tables
-        - Compute Child Tax Credit when applicable
-        - Determine refund or amount due
-        - Generate detailed calculation workpapers""",
-        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-        knowledge_bases=["tax_code"],
-        action_groups=["save_document", "calc_1040"]
-    )
-    agent_service.register_agent(calc_1040_agent)
     
     # ReviewAgent
     review_agent = LegalAgentConfig(
         agent_id="Q5CLGMRDN4",  # Updated agent ID
         agent_alias_id="TSTALIASID",
         name="ReviewAgent",
-        description="AI agent specialized in reviewing tax calculations and explanations",
-        instruction="""You are the Review Agent. You create plain-English summaries of tax calculations.
+        description="AI agent specialized in reviewing tax calculations, generating PDFs, and final compliance",
+        instruction="""You are the Review Agent. You create plain-English summaries of tax calculations and handle final processing.
 
         Your responsibilities:
         - Generate clear, understandable summaries
         - Explain how refund/amount due was calculated
         - Include proper citations to source documents
         - Create checklists for missing information
+        - Generate PDF tax returns using render_1040_draft tool
+        - Create tax filing deadlines and calendar events
+        - Perform final compliance checks and PII scanning
         - Ensure accuracy and completeness""",
         foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
         knowledge_bases=["tax_code"],
-        action_groups=["save_document"]
+        action_groups=["save_document", "render_1040_draft", "create_deadline", "pii_scan"]
     )
     agent_service.register_agent(review_agent)
-    
-    # ReturnRenderAgent
-    return_render_agent = LegalAgentConfig(
-        agent_id="0JQ5T0ZKYR",  # Updated agent ID
-        agent_alias_id="TSTALIASID",
-        name="ReturnRenderAgent",
-        description="AI agent specialized in generating tax return PDFs",
-        instruction="""You are the Return Render Agent. You generate draft 1040 PDF forms.
-
-        Your responsibilities:
-        - Create properly formatted 1040 PDF
-        - Include all calculated values
-        - Embed provenance information
-        - Ensure professional presentation
-        - Save to appropriate folder structure""",
-        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-        knowledge_bases=["tax_code"],
-        action_groups=["save_document", "render_1040_draft"]
-    )
-    agent_service.register_agent(return_render_agent)
-    
-    # DeadlinesAgent
-    deadlines_agent = LegalAgentConfig(
-        agent_id="HKGOFHHYJB",  # Updated agent ID
-        agent_alias_id="TSTALIASID",
-        name="DeadlinesAgent",
-        description="AI agent specialized in tax deadline management",
-        instruction="""You are the Deadlines Agent. You manage tax filing deadlines and reminders.
-
-        Your responsibilities:
-        - Create filing deadline calendar events
-        - Set up automatic reminders
-        - Handle extension deadlines
-        - Provide deadline-related guidance
-        - Generate .ics calendar files""",
-        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-        knowledge_bases=["tax_code"],
-        action_groups=["save_document", "create_deadline"]
-    )
-    agent_service.register_agent(deadlines_agent)
-    
-    # ComplianceAgent
-    compliance_agent = LegalAgentConfig(
-        agent_id="3KPZH7DQMU",  # Updated agent ID
-        agent_alias_id="TSTALIASID",
-        name="ComplianceAgent",
-        description="AI agent specialized in compliance and PII protection",
-        instruction="""You are the Compliance Agent. You ensure privacy and compliance requirements.
-
-        Your responsibilities:
-        - Scan documents for PII
-        - Redact sensitive information
-        - Ensure privacy compliance
-        - Provide approval gates for document release
-        - Maintain audit trails""",
-        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-        knowledge_bases=["tax_code"],
-        action_groups=["save_document", "pii_scan"]
-    )
-    agent_service.register_agent(compliance_agent)
 
 
 def register_legal_agents():
