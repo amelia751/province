@@ -53,3 +53,26 @@ out/
 # Build outputs
 dist/
 build/
+
+# Large dataset files (should be stored in S3)
+*.ZIP
+*.zip
+**/W2_*.ZIP
+**/W2_*.zip
+**/W2_*.xlsx
+**/*DataSet*.ZIP
+**/*DataSet*.zip
+
+# Python virtual environments
+venv/
+env/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Test results and temporary files
+*_test_results.json
+test_*.json
+temp_*.json
