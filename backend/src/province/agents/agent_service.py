@@ -11,9 +11,7 @@ from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
 from .bedrock_agent_client import BedrockAgentClient, AgentSession, AgentResponse
-from .knowledge_bases import knowledge_base_manager
 from .models import model_registry
-from .action_groups import action_group_registry
 
 logger = logging.getLogger(__name__)
 
