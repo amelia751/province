@@ -56,7 +56,8 @@ Thumbs.db
 *.temp
 
 # Secrets
-# .env (temporarily commented for testing)
+.env (temporarily commented for testing)
+.env.local
 *.key
 *.pem
 secrets.json

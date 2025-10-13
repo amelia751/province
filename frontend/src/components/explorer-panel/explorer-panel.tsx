@@ -428,13 +428,6 @@ const ProjectFolderNode: React.FC<{
               const folderPathParts = fullFolderPath.split('/').filter(part => part);
               const docPathParts = docPathWithoutProject.split('/');
               
-              // Debug logging
-              console.log(`[${folder.name}] Checking document: ${doc.name}`);
-              console.log(`[${folder.name}] Document path: ${doc.path}`);
-              console.log(`[${folder.name}] Document path without project: ${docPathWithoutProject}`);
-              console.log(`[${folder.name}] Full folder path: ${fullFolderPath}`);
-              console.log(`[${folder.name}] Folder path parts:`, folderPathParts);
-              console.log(`[${folder.name}] Doc path parts:`, docPathParts);
               
               // Document should be in this exact folder
               if (docPathParts.length !== folderPathParts.length + 1) return false;
@@ -447,8 +440,6 @@ const ProjectFolderNode: React.FC<{
               return true;
             });
             
-            // Debug logging for results
-            console.log(`[${folder.name}] Found ${documentsInFolder.length} documents:`, documentsInFolder.map(d => d.name));
             
             return documentsInFolder.map(document => (
               <ProjectDocumentNode

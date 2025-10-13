@@ -209,7 +209,7 @@ python scripts/check_bedrock_permissions.py
 |------|---------|------------|
 | `save_document` | Save to S3 | `engagement_id, path, content_b64, mime` |
 | `get_signed_url` | Upload/download URLs | `engagement_id, path, mode, mime?` |
-| `ingest_w2_pdf` | OCR W-2 processing | `s3_key, taxpayer_name, tax_year` |
+| `ingest_w2` | OCR W-2 processing | `s3_key, taxpayer_name, tax_year` |
 | `calc_1040` | Tax calculations | `engagement_id, filing_status, dependents_count` |
 | `render_1040_draft` | Generate PDF | `engagement_id` |
 | `create_deadline` | Calendar events | `engagement_id, title, due_at_iso, reminders[]` |

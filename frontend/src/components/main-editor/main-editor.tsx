@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { PdfViewer, PdfAnnotation } from "@/components/pdf-viewer";
+import "@/components/pdf-viewer/pdf-viewer.css";
 import {
   X,
   Circle,
@@ -97,78 +99,135 @@ const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange, selectedDocument
   const w2Files = [
     {
       name: 'W2_XL_input_clean_1000.pdf',
-      url: 'https://province-documents-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/datasets/w2-forms/W2_Clean_DataSet_01_20Sep2019/W2_XL_input_clean_1000.pdf',
+      url: 'https://province-documents-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/datasets/w2-forms/W2_Clean_DataSet_01_20Sep2019/W2_XL_input_clean_1000.pdf',
       type: 'pdf'
     },
     {
       name: 'W2_XL_input_clean_1000.jpg',
-      url: 'https://province-documents-[REDACTED-ACCOUNT-ID]-us-east-2.s3.us-east-2.amazonaws.com/datasets/w2-forms/W2_Clean_DataSet_01_20Sep2019/W2_XL_input_clean_1000.jpg',
+      url: 'https://province-documents-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/datasets/w2-forms/W2_Clean_DataSet_01_20Sep2019/W2_XL_input_clean_1000.jpg',
       type: 'image'
     }
   ];
 
-  // Mock Tesseract processing function
-  const processWithTesseract = async (fileUrl: string, fileName: string) => {
+  // Bedrock Data Automation W2 processing function
+  const processWithBedrockDataAutomation = async (fileUrl: string, fileName: string) => {
     setIsProcessing(true);
-    setOcrResult('Processing...');
+    setOcrResult('Processing with AWS Bedrock Data Automation...');
     
     try {
-      // Simulate API call to backend Tesseract service
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Extract S3 key from the URL
+      const s3Key = fileUrl.split('.amazonaws.com/')[1];
       
-      // Mock OCR result based on our terminal testing
-      const mockResult = `=== Tesseract OCR Results for ${fileName} ===
-
-REISSUED Employee's social security number
-STATEMENT 077-49-4905 OMB No. 1645-0008
-
-b Employer identification number
-37-2766773
-
-c Employer's name, address, and ZIP code
-Richardson-Brown PLC
-2936 Howard Radial
-West Raymond NV 44735-6958
-
-d Control number
-4741345
-
-e Employee's first name and initial Last name
-April Hensley
-
-f Employee's address and ZIP code
-31403 David Circles Suite 863
-West Erinfort WY 45881-3334
-
-1 Wages, tips, other compensation: 55151.93
-2 Federal income tax withheld: 16606.17
-3 Social security wages: 67588.01
-4 Social security tax withheld: 5170.48
-5 Medicare wages and tips: 50518.06
-6 Medicare tax withheld: 1465.02
-7 Social security tips: 67588.01
-8 Allocated tips: 50518.06
-9 Advance EIC payment: 238
-10 Dependent care benefits: 
-11 Nonqualified plans: 210
-12a See instructions for box 12: G 8500
-13 Statutory employee: 
-14 Other: D 999, G 381
-15 State: DC
-16 State wages, tips, etc: 28287.19
-17 State income tax: 1608.75
-18 Local wages, tips, etc: 44590.58
-19 Local income tax: 6842.08
-20 Locality name: Rocha Wells
-
-=== Processing Complete ===`;
+      // Call the backend ingest_w2 API
+      const response = await fetch('/api/v1/tax/ingest-w2', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          s3_key: s3Key,
+          taxpayer_name: 'Test User',
+          tax_year: 2024
+        })
+      });
       
-      setOcrResult(mockResult);
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Format the structured W2 data for display
+        const formattedResult = formatW2Results(result, fileName);
+        setOcrResult(formattedResult);
+      } else {
+        setOcrResult(`❌ Processing failed: ${result.error}`);
+      }
     } catch (error) {
-      setOcrResult(`Error processing file: ${error}`);
+      console.error('W2 processing error:', error);
+      setOcrResult(`❌ Error processing file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Format W2 results for display
+  const formatW2Results = (result: any, fileName: string) => {
+    const w2Extract = result.w2_extract;
+    const validation = result.validation_results;
+    
+    let output = `🎯 AWS Bedrock Data Automation Results for ${fileName}\n`;
+    output += `📊 Processing Method: ${result.processing_method}\n`;
+    output += `📋 Forms Processed: ${result.forms_count}\n`;
+    output += `💰 Total Wages: $${result.total_wages.toLocaleString()}\n`;
+    output += `💸 Total Withholding: $${result.total_withholding.toLocaleString()}\n\n`;
+    
+    // Display each W2 form
+    w2Extract.forms.forEach((form: any, index: number) => {
+      output += `📄 W-2 Form ${index + 1}:\n`;
+      output += `${'='.repeat(50)}\n\n`;
+      
+      // Employer Information
+      output += `🏢 EMPLOYER INFORMATION:\n`;
+      output += `   Company: ${form.employer.name || 'Not found'}\n`;
+      output += `   EIN: ${form.employer.EIN || 'Not found'}\n`;
+      output += `   Address: ${form.employer.address || 'Not found'}\n\n`;
+      
+      // Employee Information
+      output += `👤 EMPLOYEE INFORMATION:\n`;
+      output += `   Name: ${form.employee.name || 'Not found'}\n`;
+      output += `   SSN: ${form.employee.SSN || 'Not found'}\n`;
+      output += `   Address: ${form.employee.address || 'Not found'}\n\n`;
+      
+      // W2 Boxes
+      output += `📊 W-2 TAX BOXES:\n`;
+      const boxes = form.boxes;
+      
+      if (boxes['1']) output += `   Box 1 - Wages, tips, other compensation: $${parseFloat(boxes['1']).toLocaleString()}\n`;
+      if (boxes['2']) output += `   Box 2 - Federal income tax withheld: $${parseFloat(boxes['2']).toLocaleString()}\n`;
+      if (boxes['3']) output += `   Box 3 - Social security wages: $${parseFloat(boxes['3']).toLocaleString()}\n`;
+      if (boxes['4']) output += `   Box 4 - Social security tax withheld: $${parseFloat(boxes['4']).toLocaleString()}\n`;
+      if (boxes['5']) output += `   Box 5 - Medicare wages and tips: $${parseFloat(boxes['5']).toLocaleString()}\n`;
+      if (boxes['6']) output += `   Box 6 - Medicare tax withheld: $${parseFloat(boxes['6']).toLocaleString()}\n`;
+      if (boxes['7']) output += `   Box 7 - Social security tips: $${parseFloat(boxes['7']).toLocaleString()}\n`;
+      if (boxes['8']) output += `   Box 8 - Allocated tips: $${parseFloat(boxes['8']).toLocaleString()}\n`;
+      if (boxes['10']) output += `   Box 10 - Dependent care benefits: $${parseFloat(boxes['10']).toLocaleString()}\n`;
+      if (boxes['11']) output += `   Box 11 - Nonqualified plans: $${parseFloat(boxes['11']).toLocaleString()}\n`;
+      if (boxes['12']) output += `   Box 12 - Codes: ${boxes['12']}\n`;
+      if (boxes['13']) output += `   Box 13 - Checkboxes: ${boxes['13']}\n`;
+      if (boxes['14']) output += `   Box 14 - Other: ${boxes['14']}\n`;
+      if (boxes['15']) output += `   Box 15 - State: ${boxes['15']}\n`;
+      if (boxes['16']) output += `   Box 16 - State wages: $${parseFloat(boxes['16']).toLocaleString()}\n`;
+      if (boxes['17']) output += `   Box 17 - State income tax: $${parseFloat(boxes['17']).toLocaleString()}\n`;
+      if (boxes['18']) output += `   Box 18 - Local wages: $${parseFloat(boxes['18']).toLocaleString()}\n`;
+      if (boxes['19']) output += `   Box 19 - Local income tax: $${parseFloat(boxes['19']).toLocaleString()}\n`;
+      if (boxes['20']) output += `   Box 20 - Locality name: ${boxes['20']}\n`;
+      
+      output += `\n`;
+    });
+    
+    // Validation Results
+    output += `✅ VALIDATION RESULTS:\n`;
+    output += `   Status: ${validation.is_valid ? '✅ Valid' : '❌ Invalid'}\n`;
+    if (validation.warnings.length > 0) {
+      output += `   Warnings:\n`;
+      validation.warnings.forEach((warning: string) => {
+        output += `     ⚠️  ${warning}\n`;
+      });
+    }
+    if (validation.errors.length > 0) {
+      output += `   Errors:\n`;
+      validation.errors.forEach((error: string) => {
+        output += `     ❌ ${error}\n`;
+      });
+    }
+    
+    output += `\n📋 RAW JSON DATA:\n`;
+    output += `${'='.repeat(50)}\n`;
+    output += JSON.stringify(result, null, 2);
+    
+    return output;
   };
 
   // Handle document selection
@@ -363,20 +422,20 @@ West Erinfort WY 45881-3334
           onMouseLeave={() => setIsHoveringTabArea(false)}
         />
         {/* Tab Bar */}
-        <div 
+        <div
           className="flex items-center border-b border-gray-100 bg-gray-50 relative z-10"
           onMouseEnter={() => setIsHoveringTabArea(true)}
           onMouseLeave={() => setIsHoveringTabArea(false)}
         >
-          <ScrollArea className="flex-1 min-w-0">
-            <div className="flex w-max whitespace-nowrap">
+          <div className="flex-1 min-w-0 overflow-x-auto overflow-y-hidden scrollbar-thin">
+            <div className="inline-flex">
               {tabs.map((tab) => (
                 <div
                   key={tab.id}
                   className={cn(
                     "flex items-center px-3 py-2 border-r border-gray-200 cursor-pointer group flex-shrink-0 min-w-[120px] max-w-[200px]",
-                    tab.isActive 
-                      ? "bg-white text-black" 
+                    tab.isActive
+                      ? "bg-white text-black"
                       : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                   )}
                   onClick={() => setActiveTab(tab.id)}
@@ -402,9 +461,8 @@ West Erinfort WY 45881-3334
                 </div>
               ))}
             </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-          
+          </div>
+
           <div className="flex items-center px-2 space-x-1 border-l border-gray-200 flex-shrink-0">
             {activeTab?.id === 'logs' && (
               <>
@@ -530,30 +588,15 @@ West Erinfort WY 45881-3334
 
                   {/* Document Content */}
                   <div className="flex-1 relative">
-                    {activeTab.type === 'w2-form' && activeTab.url ? (
-                      // PDF Viewer for W2 forms
-                      <div className="relative w-full h-full">
-                        <iframe
-                          src={activeTab.url}
-                          className={cn(
-                            "w-full h-full border-0 transition-all duration-200",
-                            isHoveringTabArea ? "pointer-events-none" : "pointer-events-auto"
-                          )}
-                          title={`PDF Viewer - ${activeTab.name}`}
-                        />
-                      </div>
-                    ) : activeTab.type?.includes('pdf') && activeTab.url ? (
-                      // Generic PDF viewer
-                      <div className="relative w-full h-full">
-                        <iframe
-                          src={activeTab.url}
-                          className={cn(
-                            "w-full h-full border-0 transition-all duration-200",
-                            isHoveringTabArea ? "pointer-events-none" : "pointer-events-auto"
-                          )}
-                          title={`PDF Viewer - ${activeTab.name}`}
-                        />
-                      </div>
+                    {(activeTab.type === 'w2-form' ||
+                      activeTab.type === 'tax-return' ||
+                      activeTab.type?.includes('pdf') ||
+                      activeTab.name?.toLowerCase().endsWith('.pdf')) && activeTab.url ? (
+                      // PDF Viewer with overlay support
+                      <PdfViewer
+                        url={activeTab.url}
+                        className="w-full h-full"
+                      />
                     ) : activeTab.type?.includes('image') && activeTab.url ? (
                       // Image viewer
                       <div className="flex items-center justify-center h-full p-4">
@@ -567,8 +610,8 @@ West Erinfort WY 45881-3334
                       // Ingest W-2 Tool
                       <div className="h-full flex flex-col p-6">
                         <div className="mb-6">
-                          <h2 className="text-xl font-semibold text-gray-800 mb-2">W-2 Tesseract OCR Testing</h2>
-                          <p className="text-gray-600">Select a W-2 file to test Tesseract OCR processing</p>
+                          <h2 className="text-xl font-semibold text-gray-800 mb-2">W-2 Bedrock Data Automation</h2>
+                          <p className="text-gray-600">Select a W-2 file to process with AWS Bedrock Data Automation for superior accuracy</p>
                         </div>
 
                         {/* File Selection */}
@@ -596,26 +639,26 @@ West Erinfort WY 45881-3334
                             onClick={() => {
                               const selectedFile = w2Files.find(f => f.url === selectedW2File);
                               if (selectedFile) {
-                                processWithTesseract(selectedFile.url, selectedFile.name);
+                                processWithBedrockDataAutomation(selectedFile.url, selectedFile.name);
                               }
                             }}
                             disabled={!selectedW2File || isProcessing}
                             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                           >
-                            {isProcessing ? 'Processing...' : 'Process with Tesseract'}
+                            {isProcessing ? 'Processing...' : 'Process with Bedrock Data Automation'}
                           </button>
                         </div>
 
                         {/* Results */}
                         <div className="flex-1 min-h-0">
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            OCR Results:
+                            Bedrock Data Automation Results:
                           </label>
                           <textarea
                             value={ocrResult}
                             readOnly
                             className="w-full h-full p-3 border border-gray-300 rounded-md font-mono text-sm resize-none focus:outline-none"
-                            placeholder="OCR results will appear here..."
+                            placeholder="Structured W2 data will appear here..."
                           />
                         </div>
                       </div>

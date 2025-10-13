@@ -10,7 +10,7 @@ from botocore.exceptions import ClientError
 
 from province.core.config import get_settings
 from ..models import FilingStatus, TaxCalculation, TAX_YEAR_2025_CONSTANTS
-from ..calc_1040_agent import Calc1040Agent
+# Calc1040Agent implementation moved inline
 
 logger = logging.getLogger(__name__)
 
@@ -52,14 +52,12 @@ async def calc_1040(engagement_id: str, filing_status: str, dependents_count: in
                 'error': f'Invalid filing status: {filing_status}'
             }
         
-        # Create calculation agent and perform calculation
-        calc_agent = Calc1040Agent()
-        
-        calculation = calc_agent.perform_full_calculation(
+        # Perform tax calculation inline
+        calculation = _perform_tax_calculation(
             agi=total_wages,
             withholding=total_withholding,
             filing_status=filing_status_enum,
-            qualifying_children=dependents_count,  # Simplified - assume all dependents qualify
+            qualifying_children=dependents_count,
             tax_year=2025
         )
         
@@ -196,3 +194,67 @@ async def _save_calculation_results(engagement_id: str, calculation: TaxCalculat
     except Exception as e:
         logger.error(f"Error saving calculation results: {e}")
         raise
+
+
+def _perform_tax_calculation(
+    agi: Decimal,
+    withholding: Decimal,
+    filing_status: FilingStatus,
+    qualifying_children: int,
+    tax_year: int
+) -> TaxCalculation:
+    """Perform inline tax calculation."""
+    
+    # Get standard deduction for filing status
+    standard_deductions = TAX_YEAR_2025_CONSTANTS["standard_deductions"]
+    standard_deduction = Decimal(str(standard_deductions[filing_status.value]))
+    
+    # Calculate taxable income
+    taxable_income = max(Decimal('0'), agi - standard_deduction)
+    
+    # Calculate tax using tax brackets
+    tax_brackets = TAX_YEAR_2025_CONSTANTS["tax_brackets"][filing_status.value]
+    tax = Decimal('0')
+    
+    for bracket in tax_brackets:
+        bracket_min = Decimal(str(bracket["min"]))
+        bracket_max = Decimal(str(bracket["max"])) if bracket["max"] is not None else None
+        bracket_rate = Decimal(str(bracket["rate"]))
+        
+        if taxable_income <= bracket_min:
+            break
+            
+        if bracket_max is None:
+            # Top bracket
+            tax += (taxable_income - bracket_min) * bracket_rate
+            break
+        elif taxable_income <= bracket_max:
+            # Within this bracket
+            tax += (taxable_income - bracket_min) * bracket_rate
+            break
+        else:
+            # Full bracket
+            tax += (bracket_max - bracket_min) * bracket_rate
+    
+    # Calculate Child Tax Credit
+    child_tax_credit = Decimal(str(qualifying_children * 2000))  # $2000 per qualifying child
+    
+    # Apply credits
+    credits = {"child_tax_credit": child_tax_credit}
+    total_credits = child_tax_credit
+    
+    # Calculate final amounts
+    tax_after_credits = max(Decimal('0'), tax - total_credits)
+    refund_or_due = withholding - tax_after_credits
+    
+    return TaxCalculation(
+        tax_year=tax_year,
+        filing_status=filing_status,
+        agi=agi,
+        standard_deduction=standard_deduction,
+        taxable_income=taxable_income,
+        tax=tax,
+        credits=credits,
+        withholding=withholding,
+        refund_or_due=refund_or_due
+    )

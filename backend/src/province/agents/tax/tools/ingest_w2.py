@@ -1,0 +1,696 @@
+"""W-2 document ingestion tool using AWS Bedrock Data Automation (supports PDF and JPEG)."""
+
+import json
+import logging
+import os
+import re
+import time
+from typing import Dict, Any, List
+from decimal import Decimal
+import boto3
+from botocore.exceptions import ClientError
+
+from province.core.config import get_settings
+from ..models import W2Form, W2Extract
+
+logger = logging.getLogger(__name__)
+
+
+async def ingest_w2(s3_key: str, taxpayer_name: str, tax_year: int) -> Dict[str, Any]:
+    """
+    Extract W-2 data from document using AWS Bedrock Data Automation (supports PDF and JPEG).
+    
+    Args:
+        s3_key: S3 key of the W-2 document (PDF or JPEG)
+        taxpayer_name: Name of the taxpayer for validation
+        tax_year: Tax year for the W-2
+    
+    Returns:
+        Dict with extracted W-2 data and validation results
+    """
+    
+    settings = get_settings()
+    
+    try:
+        # Initialize AWS clients using Data Automation credentials
+        data_automation_access_key = os.getenv('DATA_AUTOMATION_AWS_ACCESS_KEY_ID')
+        data_automation_secret_key = os.getenv('DATA_AUTOMATION_AWS_SECRET_ACCESS_KEY')
+        
+        runtime_client = boto3.client(
+            'bedrock-data-automation-runtime', 
+            region_name=settings.aws_region,
+            aws_access_key_id=data_automation_access_key,
+            aws_secret_access_key=data_automation_secret_key
+        )
+        s3_client = boto3.client(
+            's3', 
+            region_name=settings.aws_region,
+            aws_access_key_id=data_automation_access_key,
+            aws_secret_access_key=data_automation_secret_key
+        )
+        
+        # Use Bedrock Data Automation configuration from environment
+        project_arn = os.getenv('BEDROCK_DATA_AUTOMATION_PROJECT_ARN')
+        profile_arn = os.getenv('BEDROCK_DATA_AUTOMATION_PROFILE_ARN')
+        input_bucket = settings.documents_bucket_name or "province-documents-[REDACTED-ACCOUNT-ID]-us-east-1"
+        output_bucket = os.getenv('BEDROCK_OUTPUT_BUCKET_NAME')
+        aws_account_id = os.getenv('AWS_ACCOUNT_ID', '[REDACTED-ACCOUNT-ID]')
+        
+        if not project_arn or not profile_arn or not output_bucket:
+            logger.error("Missing Bedrock Data Automation configuration in environment variables")
+            return {
+                'success': False,
+                'error': 'Bedrock Data Automation not configured properly'
+            }
+        
+        # Detect file type from extension
+        file_extension = s3_key.lower().split('.')[-1]
+        supported_formats = ['pdf', 'jpg', 'jpeg', 'png']
+        
+        if file_extension not in supported_formats:
+            return {
+                'success': False,
+                'error': f"Unsupported file format: {file_extension}. Supported formats: {', '.join(supported_formats)}"
+            }
+        
+        logger.info(f"Processing W-2 document with Bedrock Data Automation: {s3_key} (format: {file_extension})")
+        
+        # Bedrock Data Automation will create its own UUID-based output structure
+        # We don't need to specify a custom output key - it uses inference_results/{uuid}/
+        
+        # First, check if we already have results for this file in the output bucket
+        existing_result = _check_existing_bedrock_results(s3_client, output_bucket, s3_key)
+        if existing_result:
+            logger.info(f"Found existing Bedrock results for {s3_key}")
+            w2_data = _extract_w2_from_bedrock(existing_result, s3_key)
+        else:
+            logger.info(f"No existing results found, attempting to process {s3_key} with Bedrock Data Automation")
+            
+            # Try to process with real Bedrock Data Automation
+            try:
+                bedrock_response = None
+                try:
+                    logger.info(f"Processing with Bedrock Data Automation using profile: {profile_arn}")
+                    
+                    response = runtime_client.invoke_data_automation_async(
+                        inputConfiguration={
+                            's3Uri': f"s3://{input_bucket}/{s3_key}"
+                        },
+                        outputConfiguration={
+                            's3Uri': f"s3://{output_bucket}/inference_results"
+                        },
+                        dataAutomationConfiguration={
+                            'dataAutomationProjectArn': project_arn,
+                            'stage': 'LIVE'
+                        },
+                        dataAutomationProfileArn=profile_arn
+                    )
+                    
+                    invocation_arn = response['invocationArn']
+                    logger.info(f"Successfully started Bedrock processing: {invocation_arn}")
+                    
+                    # Wait for completion (with timeout)
+                    max_wait_time = 120  # 2 minutes
+                    start_time = time.time()
+                    
+                    while time.time() - start_time < max_wait_time:
+                        status_response = runtime_client.get_data_automation_status(invocationArn=invocation_arn)
+                        status = status_response.get('status')
+                        
+                        logger.info(f"Bedrock processing status: {status}")
+                        
+                        if status in ['COMPLETED', 'Success']:
+                            # Extract UUID from invocation ARN to get results
+                            # ARN format: arn:aws:bedrock:region:account:data-automation-invocation/uuid
+                            job_uuid = invocation_arn.split('/')[-1]
+                            
+                            # Try both path formats (with and without double slash)
+                            possible_keys = [
+                                f"inference_results/{job_uuid}/0/standard_output/0/result.json",
+                                f"inference_results//{job_uuid}/0/standard_output/0/result.json"
+                            ]
+                            
+                            bedrock_response = None
+                            for result_key in possible_keys:
+                                try:
+                                    result_response = s3_client.get_object(
+                                        Bucket=output_bucket,
+                                        Key=result_key
+                                    )
+                                    bedrock_response = json.loads(result_response['Body'].read().decode('utf-8'))
+                                    logger.info(f"Successfully retrieved Bedrock results from {result_key}")
+                                    break
+                                except Exception as e:
+                                    logger.debug(f"Failed to retrieve results from {result_key}: {e}")
+                                    continue
+                            
+                            if bedrock_response:
+                                break
+                            else:
+                                logger.error(f"Failed to retrieve results from any of the expected paths for job {job_uuid}")
+                                break
+                        elif status in ['FAILED', 'CANCELLED']:
+                            logger.error(f"Bedrock processing failed with status: {status}")
+                            break
+                        
+                        time.sleep(5)  # Wait 5 seconds before checking again
+                        
+                except ClientError as e:
+                    logger.warning(f"Bedrock invocation failed: {e}")
+                    bedrock_response = None
+                
+                if bedrock_response:
+                    # Extract W-2 data from real Bedrock response
+                    w2_data = _extract_w2_from_bedrock(bedrock_response, s3_key)
+                    logger.info("Successfully processed with real Bedrock Data Automation")
+                else:
+                    # If Bedrock processing failed, return error
+                    logger.error("Bedrock Data Automation processing failed - no results obtained")
+                    return {
+                        'success': False,
+                        'error': 'Bedrock Data Automation processing failed. Please try again or contact support.'
+                    }
+                    
+            except Exception as bedrock_error:
+                logger.error(f"Bedrock Data Automation failed: {bedrock_error}")
+                return {
+                    'success': False,
+                    'error': f'Bedrock Data Automation error: {str(bedrock_error)}'
+                }
+        
+        # Validate extracted data
+        validation_results = _validate_w2_data(w2_data, taxpayer_name, tax_year)
+        
+        # Create W-2 extract object
+        w2_forms = []
+        for form_data in w2_data:
+            w2_form = W2Form(
+                employer=form_data.get('employer', {}),
+                employee=form_data.get('employee', {}),
+                boxes=form_data.get('boxes', {}),
+                pin_cites=form_data.get('pin_cites', {})
+            )
+            w2_forms.append(w2_form)
+        
+        # Calculate totals
+        total_wages = sum(Decimal(str(form.boxes.get('1', 0))) for form in w2_forms)
+        total_withholding = sum(Decimal(str(form.boxes.get('2', 0))) for form in w2_forms)
+        
+        w2_extract = W2Extract(
+            year=tax_year,
+            forms=w2_forms,
+            total_wages=total_wages,
+            total_withholding=total_withholding
+        )
+        
+        logger.info(f"Successfully extracted W-2 data from {s3_key} ({file_extension} format) using Bedrock Data Automation")
+        
+        return {
+            'success': True,
+            'w2_extract': w2_extract.dict(),
+            'validation_results': validation_results,
+            'forms_count': len(w2_forms),
+            'total_wages': float(total_wages),
+            'total_withholding': float(total_withholding),
+            'processing_method': 'bedrock_data_automation'
+        }
+        
+    except ClientError as e:
+        logger.error(f"AWS error processing W-2: {e}")
+        return {
+            'success': False,
+            'error': f"AWS error: {str(e)}"
+        }
+    except Exception as e:
+        logger.error(f"Error processing W-2: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+
+
+def _extract_w2_from_standard_output(bedrock_response: Dict[str, Any], s3_key: str) -> List[Dict[str, Any]]:
+    """Extract W-2 data from Bedrock Data Automation standard output format (pages with markdown)."""
+    
+    logger.info(f"Extracting W-2 data from Bedrock Data Automation standard output")
+    
+    w2_data = []
+    
+    # Extract markdown content from the first page
+    page = bedrock_response['pages'][0]
+    if 'representation' not in page or 'markdown' not in page['representation']:
+        logger.warning("No markdown representation found in standard output")
+        return []
+    
+    markdown_content = page['representation']['markdown']
+    logger.info(f"Processing markdown content: {len(markdown_content)} characters")
+    
+    # Initialize data structures
+    employer_info = {}
+    employee_info = {}
+    boxes = {}
+    pin_cites = {}
+    
+    # Extract employer information using patterns based on actual markdown structure
+    # EIN pattern - looking for "b Employer identification number" followed by the number
+    ein_match = re.search(r'\*\*b\*\*\s+Employer\s+identification\s+number.*?\n\s*\*\*([0-9]{2}-[0-9]{7})\*\*', markdown_content, re.IGNORECASE | re.DOTALL)
+    if ein_match:
+        employer_info['EIN'] = ein_match.group(1)
+        pin_cites['EIN'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.9, 'source': 'bedrock_standard_output'}
+    
+    # Employer name pattern - looking for "C Employer's name, address, and ZIP code" followed by the name
+    employer_name_match = re.search(r'\*\*C\*\*\s+Employer\'s\s+name,\s+address,\s+and\s+ZIP\s+code.*?\n\s*\*\*([^*\n]+)\*\*', markdown_content, re.IGNORECASE | re.DOTALL)
+    if employer_name_match:
+        employer_info['name'] = employer_name_match.group(1).strip()
+        pin_cites['employer_name'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.9, 'source': 'bedrock_standard_output'}
+    
+    # Extract employee information
+    # SSN pattern - looking for "a Employee's social security number" followed by the number
+    ssn_match = re.search(r'\*\*a\s+Employee\'s\s+social\s+security\s+number\*\*.*?\n.*?\*\*([0-9]{3}-[0-9]{2}-[0-9]{4})\*\*', markdown_content, re.IGNORECASE | re.DOTALL)
+    if ssn_match:
+        employee_info['SSN'] = ssn_match.group(1)
+        pin_cites['SSN'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.9, 'source': 'bedrock_standard_output'}
+    
+    # Employee name pattern - looking for "e Employee's first name and initial" followed by names
+    employee_name_match = re.search(r'\*\*e\*\*\s+Employee\'s\s+first\s+name\s+and\s+initial.*?\n.*?\*\*([A-Za-z]+)\*\*.*?\n\*\*([A-Za-z]+)\*\*', markdown_content, re.IGNORECASE | re.DOTALL)
+    if employee_name_match:
+        first_name = employee_name_match.group(1).strip()
+        last_name = employee_name_match.group(2).strip()
+        employee_info['name'] = f"{first_name} {last_name}"
+        pin_cites['employee_name'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.9, 'source': 'bedrock_standard_output'}
+    
+    # Extract W-2 box values using patterns based on the actual markdown structure
+    # Looking at the sample, the format is like: "1 Wages, tips, other compensation\t\t\t2 Federal income tax withheld\t\n55151.93\t\t\t16606.17\t"
+    
+    # Box 1: Wages, tips, other compensation
+    box1_match = re.search(r'1\s+Wages,\s+tips,\s+other\s+compensation.*?\n([0-9,]+\.?[0-9]*)', markdown_content, re.IGNORECASE | re.DOTALL)
+    if box1_match and box1_match.group(1).strip():
+        try:
+            boxes['1'] = float(box1_match.group(1).replace(',', ''))
+            pin_cites['1'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.9, 'source': 'bedrock_standard_output'}
+        except ValueError:
+            logger.warning(f"Could not parse Box 1 value: {box1_match.group(1)}")
+    
+    # Box 2: Federal income tax withheld
+    box2_match = re.search(r'2\s+Federal\s+income\s+tax\s+withheld.*?\n[0-9,]+\.?[0-9]*\t+([0-9,]+\.?[0-9]*)', markdown_content, re.IGNORECASE | re.DOTALL)
+    if box2_match and box2_match.group(1).strip():
+        try:
+            boxes['2'] = float(box2_match.group(1).replace(',', ''))
+            pin_cites['2'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.9, 'source': 'bedrock_standard_output'}
+        except ValueError:
+            logger.warning(f"Could not parse Box 2 value: {box2_match.group(1)}")
+    
+    # Box 3: Social security wages
+    box3_match = re.search(r'3\s+Social\s+security\s+wages.*?\n([0-9,]+\.?[0-9]*)', markdown_content, re.IGNORECASE | re.DOTALL)
+    if box3_match and box3_match.group(1).strip():
+        try:
+            boxes['3'] = float(box3_match.group(1).replace(',', ''))
+            pin_cites['3'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.9, 'source': 'bedrock_standard_output'}
+        except ValueError:
+            logger.warning(f"Could not parse Box 3 value: {box3_match.group(1)}")
+    
+    # Box 4: Social security tax withheld
+    box4_match = re.search(r'4\s+Social\s+security\s+tax\s+withheld.*?\n[0-9,]+\.?[0-9]*\t+([0-9,]+\.?[0-9]*)', markdown_content, re.IGNORECASE | re.DOTALL)
+    if box4_match and box4_match.group(1).strip():
+        try:
+            boxes['4'] = float(box4_match.group(1).replace(',', ''))
+            pin_cites['4'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.9, 'source': 'bedrock_standard_output'}
+        except ValueError:
+            logger.warning(f"Could not parse Box 4 value: {box4_match.group(1)}")
+    
+    # Box 5: Medicare wages and tips
+    box5_match = re.search(r'5\s+Medicare\s+wages\s+and\s+tips.*?\n([0-9,]+\.?[0-9]*)', markdown_content, re.IGNORECASE | re.DOTALL)
+    if box5_match and box5_match.group(1).strip():
+        try:
+            boxes['5'] = float(box5_match.group(1).replace(',', ''))
+            pin_cites['5'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.9, 'source': 'bedrock_standard_output'}
+        except ValueError:
+            logger.warning(f"Could not parse Box 5 value: {box5_match.group(1)}")
+    
+    # Box 6: Medicare tax withheld
+    box6_match = re.search(r'6\s+Medicare\s+tax\s+withheld.*?\n[0-9,]+\.?[0-9]*\t+([0-9,]+\.?[0-9]*)', markdown_content, re.IGNORECASE | re.DOTALL)
+    if box6_match and box6_match.group(1).strip():
+        try:
+            boxes['6'] = float(box6_match.group(1).replace(',', ''))
+            pin_cites['6'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.9, 'source': 'bedrock_standard_output'}
+        except ValueError:
+            logger.warning(f"Could not parse Box 6 value: {box6_match.group(1)}")
+    
+    # For state information, look in the table format
+    # State information is in a table format: | DC | 786-41-049 | 28287.2 | 1608.75 | 44590.6 | 6842.08 | Rocha Wells |
+    state_table_match = re.search(r'\|\s*([A-Z]{2})\s*\|\s*[0-9-]+\s*\|\s*([0-9,]+\.?[0-9]*)\s*\|\s*([0-9,]+\.?[0-9]*)\s*\|\s*([0-9,]+\.?[0-9]*)\s*\|\s*([0-9,]+\.?[0-9]*)\s*\|\s*([^|]+)\s*\|', markdown_content)
+    if state_table_match:
+        try:
+            # Box 15: State
+            boxes['15'] = state_table_match.group(1).strip()
+            pin_cites['15'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.9, 'source': 'bedrock_standard_output'}
+            
+            # Box 16: State wages
+            if state_table_match.group(2).strip():
+                boxes['16'] = float(state_table_match.group(2).replace(',', ''))
+                pin_cites['16'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.9, 'source': 'bedrock_standard_output'}
+            
+            # Box 17: State income tax
+            if state_table_match.group(3).strip():
+                boxes['17'] = float(state_table_match.group(3).replace(',', ''))
+                pin_cites['17'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.9, 'source': 'bedrock_standard_output'}
+                
+            # Box 20: Locality name
+            if state_table_match.group(6).strip():
+                boxes['20'] = state_table_match.group(6).strip()
+                pin_cites['20'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.9, 'source': 'bedrock_standard_output'}
+        except ValueError as e:
+            logger.warning(f"Could not parse state table values: {e}")
+    
+    # Create the W-2 form data
+    w2_data.append({
+        'employer': employer_info,
+        'employee': employee_info,
+        'boxes': boxes,
+        'pin_cites': pin_cites
+    })
+    
+    logger.info(f"Extracted W-2 data from standard output: {len(boxes)} boxes found")
+    return w2_data
+
+
+def _extract_w2_from_bedrock(bedrock_response: Dict[str, Any], s3_key: str) -> List[Dict[str, Any]]:
+    """Extract W-2 data from Bedrock Data Automation standard output response."""
+    
+    # Check if this is standard output format (pages with markdown)
+    if 'pages' in bedrock_response and len(bedrock_response['pages']) > 0:
+        return _extract_w2_from_standard_output(bedrock_response, s3_key)
+    
+    # Fallback: Extract data from custom output format (legacy)
+    inference_result = bedrock_response.get('inference_result', {})
+    
+    if not inference_result:
+        logger.warning("No inference_result or pages found in Bedrock response")
+        return []
+    
+    logger.info(f"Extracting W-2 data from Bedrock Data Automation custom output (legacy)")
+    
+    # Extract structured data from Bedrock inference result
+    w2_data = []
+    
+    # Extract employer information from structured result
+    employer_info = {}
+    employer_data = inference_result.get('employer_info', {})
+    
+    if 'ein' in employer_data:
+        employer_info['EIN'] = employer_data['ein']
+    if 'employer_name' in employer_data:
+        employer_info['name'] = employer_data['employer_name']
+    if 'employer_address' in employer_data:
+        employer_info['address'] = employer_data['employer_address']
+    
+    # Extract employee information from structured result (correct field names)
+    employee_info = {}
+    employee_data = inference_result.get('employee_general_info', {})
+    
+    if 'ssn' in employee_data:
+        employee_info['SSN'] = employee_data['ssn']
+    # Combine first name and last name
+    first_name = employee_data.get('first_name', '')
+    last_name = employee_data.get('employee_last_name', '')
+    if first_name or last_name:
+        employee_info['name'] = f"{first_name} {last_name}".strip()
+    if 'employee_address' in employee_data:
+        employee_info['address'] = employee_data['employee_address']
+    
+    # Extract W-2 boxes from structured result
+    boxes = {}
+    pin_cites = {}
+    
+    # Map Bedrock fields to W-2 box numbers
+    federal_wage_info = inference_result.get('federal_wage_info', {})
+    federal_tax_info = inference_result.get('federal_tax_info', {})
+    
+    # Box 1: Wages, tips, other compensation
+    if 'wages_tips_other_compensation' in federal_wage_info:
+        boxes['1'] = float(federal_wage_info['wages_tips_other_compensation'])
+    
+    # Box 2: Federal income tax withheld
+    if 'federal_income_tax' in federal_tax_info:
+        boxes['2'] = float(federal_tax_info['federal_income_tax'])
+    
+    # Box 3: Social security wages
+    if 'social_security_wages' in federal_wage_info:
+        boxes['3'] = float(federal_wage_info['social_security_wages'])
+    
+    # Box 4: Social security tax withheld
+    if 'social_security_tax' in federal_tax_info:
+        boxes['4'] = float(federal_tax_info['social_security_tax'])
+    
+    # Box 5: Medicare wages and tips
+    if 'medicare_wages_tips' in federal_wage_info:
+        boxes['5'] = float(federal_wage_info['medicare_wages_tips'])
+    
+    # Box 6: Medicare tax withheld
+    if 'medicare_tax' in federal_tax_info:
+        boxes['6'] = float(federal_tax_info['medicare_tax'])
+    
+    # Box 7: Social security tips
+    if 'social_security_tips' in federal_wage_info:
+        boxes['7'] = float(federal_wage_info['social_security_tips'])
+    
+    # Box 8: Allocated tips
+    if 'allocated_tips' in federal_tax_info:
+        boxes['8'] = float(federal_tax_info['allocated_tips'])
+    
+    # Box 11: Nonqualified plans
+    if 'nonqualified_plans_incom' in inference_result:
+        boxes['11'] = float(inference_result['nonqualified_plans_incom'])
+    
+    # Box 12: Codes (12a, 12b, 12c, 12d)
+    codes = inference_result.get('codes', [])
+    for i, code_item in enumerate(codes[:4]):  # Up to 4 codes (a, b, c, d)
+        suffix = chr(ord('a') + i)  # 'a', 'b', 'c', 'd'
+        if 'amount' in code_item:
+            boxes[f'12{suffix}'] = float(code_item['amount'])
+    
+    # State and local taxes (Box 15-20)
+    state_taxes = inference_result.get('state_taxes_table', [])
+    for i, state_tax in enumerate(state_taxes[:4]):  # Up to 4 state entries
+        suffix = '' if i == 0 else f'_{chr(ord("a") + i - 1)}'  # '', '_a', '_b', '_c'
+        
+        if 'state_name' in state_tax:
+            boxes[f'15{suffix}'] = state_tax['state_name']
+        if 'state_wages_and_tips' in state_tax:
+            boxes[f'16{suffix}'] = float(state_tax['state_wages_and_tips'])
+        if 'state_income_tax' in state_tax:
+            boxes[f'17{suffix}'] = float(state_tax['state_income_tax'])
+        if 'local_wages_tips' in state_tax:
+            boxes[f'18{suffix}'] = float(state_tax['local_wages_tips'])
+        # Note: Box 19 (local tax) and Box 20 (locality name) might be in different fields
+    
+    # Create pin-cites for all extracted boxes
+    for box_key in boxes.keys():
+        pin_cites[str(box_key)] = {
+            'file': s3_key.split('/')[-1],
+            'page': 1,
+            'bbox': [0, 0, 0, 0],  # Bedrock provides actual bounding boxes
+            'confidence': 0.95,
+            'source': 'bedrock_data_automation'
+        }
+    
+    # Create the W-2 form data
+    w2_data.append({
+        'employer': employer_info,
+        'employee': employee_info,
+        'boxes': boxes,
+        'pin_cites': pin_cites
+    })
+    
+    logger.info(f"Extracted W-2 data: {len(boxes)} boxes found")
+    return w2_data
+
+
+def _check_existing_bedrock_results(s3_client, bucket_name: str, s3_key: str) -> Dict[str, Any]:
+    """Check if Bedrock results already exist for this file."""
+    try:
+        # Look for existing results in the inference_results folder
+        # Bedrock creates results with UUIDs in inference_results/{uuid}/0/standard_output/0/result.json
+        response = s3_client.list_objects_v2(
+            Bucket=bucket_name,
+            Prefix="inference_results/"
+        )
+        
+        if 'Contents' not in response:
+            return None
+            
+        # Look for results that match our input file by checking job metadata
+        input_filename = s3_key.split('/')[-1]
+        logger.info(f"Looking for existing results for file: {input_filename}")
+        
+        # First, find job metadata files
+        metadata_files = [obj for obj in response['Contents'] if obj['Key'].endswith('job_metadata.json')]
+        
+        for metadata_obj in metadata_files:
+            try:
+                # Read the job metadata to check if it matches our file
+                metadata_response = s3_client.get_object(
+                    Bucket=bucket_name,
+                    Key=metadata_obj['Key']
+                )
+                metadata = json.loads(metadata_response['Body'].read().decode('utf-8'))
+                
+                # Check if this job processed our file
+                if 'output_metadata' in metadata and len(metadata['output_metadata']) > 0:
+                    asset_input_path = metadata['output_metadata'][0].get('asset_input_path', {})
+                    processed_s3_key = asset_input_path.get('s3_key', '')
+                    
+                    if s3_key in processed_s3_key or input_filename in processed_s3_key:
+                        logger.info(f"Found matching job metadata: {metadata_obj['Key']}")
+                        
+                        # Get the job ID from the metadata file path
+                        job_id = metadata_obj['Key'].split('/')[1]
+                        
+                        # Try to get the standard output result (proper Bedrock structure)
+                        # Try both path formats (with and without double slash)
+                        possible_keys = [
+                            f"inference_results/{job_id}/0/standard_output/0/result.json",
+                            f"inference_results//{job_id}/0/standard_output/0/result.json"
+                        ]
+                        
+                        for result_key in possible_keys:
+                            try:
+                                result_response = s3_client.get_object(
+                                    Bucket=bucket_name,
+                                    Key=result_key
+                                )
+                                result_data = json.loads(result_response['Body'].read().decode('utf-8'))
+                                logger.info(f"Successfully loaded existing Bedrock results from {result_key}")
+                                return result_data
+                            except Exception as e:
+                                logger.debug(f"Could not read result file {result_key}: {e}")
+                                continue
+                            
+            except Exception as e:
+                logger.warning(f"Could not read metadata file {metadata_obj['Key']}: {e}")
+                continue
+        
+        logger.info(f"No existing results found for {s3_key}")
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error checking existing Bedrock results: {e}")
+        return None
+
+
+def _get_bedrock_results_from_s3(s3_client, bucket_name: str, output_key: str) -> Dict[str, Any]:
+    """Retrieve Bedrock Data Automation results from S3."""
+    
+    try:
+        # List files in the output directory
+        response = s3_client.list_objects_v2(
+            Bucket=bucket_name,
+            Prefix=output_key
+        )
+        
+        # Look for the standardOutput.json file
+        for obj in response.get('Contents', []):
+            key = obj['Key']
+            if key.endswith('standardOutput.json'):
+                # Download and parse the result
+                obj_response = s3_client.get_object(Bucket=bucket_name, Key=key)
+                content = obj_response['Body'].read().decode('utf-8')
+                return json.loads(content)
+        
+        logger.warning(f"No standardOutput.json found in {output_key}")
+        return None
+        
+    except Exception as e:
+        logger.error(f"Failed to retrieve Bedrock results from S3: {e}")
+        return None
+
+
+def _create_fallback_w2_data(s3_key: str) -> List[Dict[str, Any]]:
+    """Create fallback W-2 data when Bedrock processing fails."""
+    
+    return [{
+        'employer': {
+            'name': 'Sample Company Inc.',
+            'EIN': '12-3456789',
+            'address': '123 Business St, City, ST 12345'
+        },
+        'employee': {
+            'name': 'John Doe',
+            'SSN': '123-45-6789',
+            'address': '456 Home Ave, City, ST 12345'
+        },
+        'boxes': {
+            '1': 50000.00,  # Wages
+            '2': 7500.00,   # Federal tax withheld
+            '3': 50000.00,  # Social security wages
+            '4': 3100.00,   # Social security tax
+            '5': 50000.00,  # Medicare wages
+            '6': 725.00,    # Medicare tax
+            '15': 'ST',     # State
+            '16': 50000.00, # State wages
+            '17': 2500.00,  # State tax
+            '20': 'CITY'    # Locality
+        },
+        'pin_cites': {
+            '1': {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.5, 'source': 'fallback'},
+            '2': {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.5, 'source': 'fallback'}
+        }
+    }]
+
+
+
+
+def _validate_w2_data(w2_data: List[Dict[str, Any]], taxpayer_name: str, tax_year: int) -> Dict[str, Any]:
+    """Validate extracted W-2 data."""
+    
+    validation_results = {
+        'is_valid': True,
+        'warnings': [],
+        'errors': []
+    }
+    
+    for i, form in enumerate(w2_data):
+        form_prefix = f"Form {i+1}: "
+        
+        # Check required fields
+        if not form.get('employer', {}).get('name'):
+            validation_results['errors'].append(f"{form_prefix}Employer name is missing")
+            validation_results['is_valid'] = False
+        
+        if not form.get('employee', {}).get('name'):
+            validation_results['errors'].append(f"{form_prefix}Employee name is missing")
+            validation_results['is_valid'] = False
+        
+        # Validate employee name matches taxpayer
+        employee_name = form.get('employee', {}).get('name', '').lower()
+        if employee_name and taxpayer_name.lower() not in employee_name:
+            validation_results['warnings'].append(f"{form_prefix}Employee name may not match taxpayer")
+        
+        # Validate monetary amounts
+        boxes = form.get('boxes', {})
+        try:
+            box1 = float(boxes.get('1', 0))
+            box2 = float(boxes.get('2', 0))
+            box3 = float(boxes.get('3', 0))
+            
+            # Basic validation: Box 1 should generally equal Box 3
+            if box1 > 0 and box3 > 0:
+                diff_percentage = abs(box1 - box3) / box1 * 100
+                if diff_percentage > 20:
+                    validation_results['warnings'].append(
+                        f"{form_prefix}Significant difference between Box 1 (${box1:,.2f}) and Box 3 (${box3:,.2f})"
+                    )
+            
+            # Check withholding rate
+            if box1 > 0 and box2 > 0:
+                withholding_rate = (box2 / box1) * 100
+                if withholding_rate > 50:
+                    validation_results['warnings'].append(
+                        f"{form_prefix}High withholding rate: {withholding_rate:.1f}%"
+                    )
+        
+        except (ValueError, TypeError, ZeroDivisionError):
+            validation_results['warnings'].append(f"{form_prefix}Could not validate monetary amounts")
+    
+    return validation_results

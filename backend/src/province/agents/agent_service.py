@@ -154,7 +154,7 @@ def register_tax_agents():
     
     # TaxPlannerAgent
     tax_planner_agent = LegalAgentConfig(
-        agent_id="DM6OT8QW8S",  # From our deployment
+        agent_id="YLNFZM0YEM",  # us-east-1 agent ID
         agent_alias_id="TSTALIASID",  # Test alias that should work
         name="TaxPlannerAgent",
         description="AI agent specialized in tax planning and filing coordination",
@@ -173,15 +173,15 @@ def register_tax_agents():
         - Complex tax situations
 
         Always maintain a helpful, professional tone and explain what you're doing at each step.""",
-        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        foundation_model="arn:aws:bedrock:us-east-1:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
         knowledge_bases=["tax_code"],
-        action_groups=["save_document", "get_signed_url", "ingest_w2_pdf", "calc_1040", "render_1040_draft", "create_deadline", "pii_scan"]
+        action_groups=["save_document", "get_signed_url", "ingest_w2", "calc_1040", "render_1040_draft", "create_deadline", "pii_scan"]
     )
     agent_service.register_agent(tax_planner_agent)
     
     # TaxIntakeAgent
     tax_intake_agent = LegalAgentConfig(
-        agent_id="BXETK7XKYI",  # Updated agent ID
+        agent_id="ZHQN5UJYEV",  # us-east-1 agent ID
         agent_alias_id="TSTALIASID",
         name="TaxIntakeAgent",
         description="AI agent specialized in collecting tax filing information",
@@ -195,15 +195,15 @@ def register_tax_agents():
         - State information
 
         Always be thorough but friendly in collecting this information.""",
-        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        foundation_model="arn:aws:bedrock:us-east-1:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
         knowledge_bases=["tax_code"],
-        action_groups=["save_document", "get_signed_url", "ingest_w2_pdf", "calc_1040"]
+        action_groups=["save_document", "get_signed_url", "ingest_w2", "calc_1040"]
     )
     agent_service.register_agent(tax_intake_agent)
     
     # ReviewAgent
     review_agent = LegalAgentConfig(
-        agent_id="Q5CLGMRDN4",  # Updated agent ID
+        agent_id="66F6XWZQ9C",  # us-east-1 agent ID
         agent_alias_id="TSTALIASID",
         name="ReviewAgent",
         description="AI agent specialized in reviewing tax calculations, generating PDFs, and final compliance",
@@ -218,7 +218,7 @@ def register_tax_agents():
         - Create tax filing deadlines and calendar events
         - Perform final compliance checks and PII scanning
         - Ensure accuracy and completeness""",
-        foundation_model="arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        foundation_model="arn:aws:bedrock:us-east-1:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
         knowledge_bases=["tax_code"],
         action_groups=["save_document", "render_1040_draft", "create_deadline", "pii_scan"]
     )

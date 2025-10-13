@@ -88,11 +88,11 @@ def create_comprehensive_function_definitions():
             }
         },
         {
-            "name": "ingest_w2_pdf",
-            "description": "Extract W-2 data from PDF using AWS Textract OCR. Produces structured W-2 JSON with pin-cites (filename + page + bbox). Aggregates multi-employer W-2s automatically. Validates totals and flags anomalies.",
+            "name": "ingest_w2",
+            "description": "Extract W-2 data from document using AWS Textract OCR (supports PDF and JPEG). Produces structured W-2 JSON with pin-cites (filename + page + bbox). Aggregates multi-employer W-2s automatically. Validates totals and flags anomalies.",
             "parameters": {
                 "s3_key": {
-                    "description": "S3 key of the W-2 PDF document to process",
+                    "description": "S3 key of the W-2 document to process (PDF or JPEG)",
                     "type": "string",
                     "required": True
                 },

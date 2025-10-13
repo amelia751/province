@@ -7,7 +7,7 @@ from datetime import datetime
 import boto3
 
 from province.core.config import get_settings
-from ..deadlines_agent import DeadlinesAgent
+# DeadlinesAgent implementation moved inline
 
 logger = logging.getLogger(__name__)
 
@@ -30,15 +30,9 @@ async def create_deadline(engagement_id: str, title: str, due_at_iso: str, remin
         # Parse due date
         due_date = datetime.fromisoformat(due_at_iso.replace('Z', '+00:00'))
         
-        # Create deadlines agent and generate calendar events
-        deadlines_agent = DeadlinesAgent()
-        
-        # For tax year 2025, create standard tax deadlines
+        # Generate simple ICS content for tax deadline
         tax_year = 2025
-        events = deadlines_agent.create_deadline_events(tax_year)
-        
-        # Generate ICS content
-        ics_content = deadlines_agent.generate_ics_content(events, tax_year)
+        ics_content = _generate_simple_ics_content(title, due_date, reminders)
         
         # Save ICS file
         from .save_document import save_document
@@ -65,7 +59,7 @@ async def create_deadline(engagement_id: str, title: str, due_at_iso: str, remin
             'due_date': due_at_iso,
             'ics_path': '/Deadlines/Federal.ics',
             's3_key': result['s3_key'],
-            'events_count': len(events)
+            'events_count': 1
         }
         
     except Exception as e:
@@ -111,3 +105,31 @@ async def _save_deadline_info(engagement_id: str, title: str, due_date: datetime
     except Exception as e:
         logger.error(f"Error saving deadline info: {e}")
         raise
+
+
+def _generate_simple_ics_content(title: str, due_date: datetime, reminders: List[int]) -> str:
+    """Generate simple ICS calendar content."""
+    
+    ics_content = """BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Province Tax//Tax Deadlines//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:{uid}@province-tax.com
+DTSTART:{start_date}
+DTEND:{end_date}
+SUMMARY:{title}
+DESCRIPTION:Tax filing deadline for 2025 tax year
+LOCATION:Online
+STATUS:CONFIRMED
+TRANSP:OPAQUE
+END:VEVENT
+END:VCALENDAR""".format(
+        uid=f"tax-deadline-{due_date.strftime('%Y%m%d')}",
+        start_date=due_date.strftime('%Y%m%dT%H%M%SZ'),
+        end_date=due_date.strftime('%Y%m%dT%H%M%SZ'),
+        title=title
+    )
+    
+    return ics_content

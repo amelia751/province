@@ -1,16 +1,21 @@
 """FastAPI application entry point."""
 
+import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 
 from province.api.routes import api_router
 from province.core.config import get_settings
 from province.core.logging import setup_logging
 from province.agents.agent_service import register_tax_agents
+
+# Load environment variables from .env.local
+load_dotenv('.env.local')
 
 logger = structlog.get_logger()
 
