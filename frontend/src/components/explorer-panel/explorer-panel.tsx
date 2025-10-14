@@ -220,7 +220,7 @@ const EnhancedExplorerPanel: React.FC<EnhancedExplorerPanelProps> = ({
   };
 
   return (
-    <div className="explorer-panel-container flex bg-background h-full w-full border-r">
+    <div className="explorer-panel-container flex bg-background h-full w-full">
       {/* min-h-0 lets the inner scroll region actually shrink & scroll */}
       <div className="flex flex-col h-full flex-1 min-h-0">
         {/* Header */}

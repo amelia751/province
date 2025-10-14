@@ -179,61 +179,7 @@ export default function StartScreenClient() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Top Header Bar */}
-      <div className="border-b bg-white sticky top-0 z-10">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* Left: Title */}
-            <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-semibold">Your Tax Workspace</h1>
-            </div>
-
-            {/* Right: Tax Year Switcher, Profile, Chat */}
-            <div className="flex items-center space-x-4">
-              <Select value={selectedYear.toString()} onValueChange={(val) => setSelectedYear(parseInt(val))}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2025">2025</SelectItem>
-                  <SelectItem value="2024">2024</SelectItem>
-                  <SelectItem value="2023">2023</SelectItem>
-                  <SelectItem value="2022">2022</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Help / Chat Icon */}
-              <Button variant="ghost" size="icon" onClick={handleOpenChat}>
-                <MessageSquare className="h-5 w-5" />
-              </Button>
-
-              {/* Profile Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-2">
-                    <div className="h-8 w-8 rounded-full bg-black text-white flex items-center justify-center text-sm font-medium">
-                      {user?.firstName?.[0] || user?.emailAddresses[0]?.emailAddress[0].toUpperCase() || 'U'}
-                    </div>
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem>
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>Sign out</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-auto">
+    <div className="h-full bg-background overflow-auto">
         <div className="max-w-7xl mx-auto px-6 py-8">
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -418,7 +364,6 @@ export default function StartScreenClient() {
               )}
             </div>
           </div>
-        </div>
         </div>
       </div>
     </div>

@@ -7,11 +7,10 @@ import { useClerk } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import {
   Home,
-  FileText,
-  BarChart3,
-  Search,
-  Bell,
-  Settings,
+  FolderDot,
+  UserPen,
+  HandCoins,
+  SlidersHorizontal,
   LogOut
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -26,46 +25,48 @@ interface NavItem {
 
 export function SidebarNavItems({ items, pathname }: { items: NavItem[]; pathname: string }) {
   return items?.length ? (
-    <div className="space-y-2">
+    <div className="space-y-1">
       {items.map((item, index) => {
         const isActive = pathname === item.href;
 
         const itemContent = (
           <div className={cn(
-            "flex items-center justify-center p-3 rounded-md transition-colors mx-1",
+            "flex items-center justify-center p-3 rounded-md transition-all duration-200 group",
             isActive
               ? "bg-black text-white"
               : "text-gray-600 hover:text-black hover:bg-gray-50"
           )}>
-            <div className="h-5 w-5 flex-shrink-0">
+            <div className="h-5 w-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110">
               {item.icon}
             </div>
           </div>
         );
 
         return (
-          <TooltipProvider key={index}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {!item.disabled && item.href ? (
-                  <Link
-                    href={item.href}
-                    target={item.external ? "_blank" : ""}
-                    rel={item.external ? "noreferrer" : ""}
-                  >
-                    {itemContent}
-                  </Link>
-                ) : (
-                  <span className="cursor-not-allowed opacity-60">
-                    {itemContent}
-                  </span>
-                )}
-              </TooltipTrigger>
-              <TooltipContent side="right" className="bg-gray-900 text-white border-gray-700">
-                <p>{item.title}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div key={index}>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {!item.disabled && item.href ? (
+                    <Link
+                      href={item.href}
+                      target={item.external ? "_blank" : ""}
+                      rel={item.external ? "noreferrer" : ""}
+                    >
+                      {itemContent}
+                    </Link>
+                  ) : (
+                    <span className="cursor-not-allowed opacity-60">
+                      {itemContent}
+                    </span>
+                  )}
+                </TooltipTrigger>
+                <TooltipContent side="right" className="bg-gray-900 text-white border-gray-700">
+                  <p>{item.title}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         );
       })}
     </div>
@@ -84,12 +85,11 @@ const Sidebar = ({ organizationName, isPersonalAccount, onWidthChange }: Sidebar
   const { signOut } = useClerk();
 
   const workNavItems: NavItem[] = [
-    { title: "Dashboard", href: "/app", icon: <Home className="h-5 w-5" /> },
-    { title: "Leads", href: "/app/leads", icon: <FileText className="h-5 w-5" /> },
-    { title: "Analytics", href: "/app/analytics", icon: <BarChart3 className="h-5 w-5" /> },
-    { title: "Sources", href: "/app/sources", icon: <Search className="h-5 w-5" /> },
-    { title: "Alerts", href: "/app/alerts", icon: <Bell className="h-5 w-5" /> },
-    { title: "Settings", href: "/app/settings", icon: <Settings className="h-5 w-5" /> },
+    { title: "Home", href: "/app", icon: <Home className="h-5 w-5" /> },
+    { title: "Vault", href: "/app/vault", icon: <FolderDot className="h-5 w-5" /> },
+    { title: "Profile", href: "/app/profile", icon: <UserPen className="h-5 w-5" /> },
+    { title: "Credits", href: "/app/credits", icon: <HandCoins className="h-5 w-5" /> },
+    { title: "Preferences", href: "/app/preferences", icon: <SlidersHorizontal className="h-5 w-5" /> },
   ];
 
   // Notify parent component of width changes
@@ -103,7 +103,7 @@ const Sidebar = ({ organizationName, isPersonalAccount, onWidthChange }: Sidebar
       style={{ width: `${sidebarWidth}px` }}
     >
       {/* Navigation */}
-      <nav className="flex-1 p-3">
+      <nav className="flex-1 px-2 py-3">
         <div className="space-y-1">
           <SidebarNavItems
             items={workNavItems}
@@ -113,15 +113,15 @@ const Sidebar = ({ organizationName, isPersonalAccount, onWidthChange }: Sidebar
       </nav>
 
       {/* Sign Out Button at Bottom */}
-      <div className="p-3">
+      <div className="px-2 pb-3">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={() => signOut()}
-                className="flex items-center justify-center p-3 rounded-md transition-colors mx-1 w-full text-gray-600 hover:text-black hover:bg-gray-50"
+                className="flex items-center justify-center p-3 rounded-md transition-all duration-200 w-full text-gray-600 hover:text-black hover:bg-gray-50 group"
               >
-                <LogOut className="h-5 w-5" />
+                <LogOut className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="right" className="bg-gray-900 text-white border-gray-700">

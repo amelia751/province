@@ -56,14 +56,9 @@ function ExplorerResizeHandle({ onResize }: ExplorerResizeHandleProps) {
 
   return (
     <div
-      className="absolute top-0 right-0 w-3 h-full cursor-col-resize group z-50 flex items-center justify-center hover:bg-gray-50"
+      className="absolute top-0 right-0 w-3 h-full cursor-col-resize group z-50 flex items-center justify-center hover:bg-gray-100/50"
       onMouseDown={handleResizeStart}
-    >
-      <div className={cn(
-        "w-0.5 h-full bg-gray-300 group-hover:bg-gray-500 transition-all duration-200",
-        isResizing && "bg-gray-600"
-      )} />
-    </div>
+    />
   );
 }
 
@@ -110,14 +105,9 @@ function MainEditorLeftResizeHandle({ onResize }: MainEditorLeftResizeHandleProp
 
   return (
     <div
-      className="absolute top-0 left-0 w-3 h-full cursor-col-resize group z-50 flex items-center justify-center hover:bg-gray-50"
+      className="absolute top-0 left-0 w-3 h-full cursor-col-resize group z-50 flex items-center justify-center hover:bg-gray-100/50"
       onMouseDown={handleResizeStart}
-    >
-      <div className={cn(
-        "w-0.5 h-full bg-gray-300 group-hover:bg-gray-500 transition-all duration-200",
-        isResizing && "bg-gray-600"
-      )} />
-    </div>
+    />
   );
 }
 
@@ -163,14 +153,9 @@ function MainEditorRightResizeHandle({ onResize }: MainEditorRightResizeHandlePr
 
   return (
     <div
-      className="absolute top-0 right-0 w-3 h-full cursor-col-resize group z-50 flex items-center justify-center hover:bg-gray-50"
+      className="absolute top-0 right-0 w-3 h-full cursor-col-resize group z-50 flex items-center justify-center hover:bg-gray-100/50"
       onMouseDown={handleResizeStart}
-    >
-      <div className={cn(
-        "w-0.5 h-full bg-gray-300 group-hover:bg-gray-500 transition-all duration-200",
-        isResizing && "bg-gray-600"
-      )} />
-    </div>
+    />
   );
 }
 
@@ -216,14 +201,9 @@ function ChatResizeHandle({ onResize }: ChatResizeHandleProps) {
 
   return (
     <div
-      className="absolute top-0 left-0 w-3 h-full cursor-col-resize group z-50 flex items-center justify-center hover:bg-gray-50"
+      className="absolute top-0 left-0 w-3 h-full cursor-col-resize group z-50 flex items-center justify-center hover:bg-gray-100/50"
       onMouseDown={handleResizeStart}
-    >
-      <div className={cn(
-        "w-0.5 h-full bg-gray-300 group-hover:bg-gray-500 transition-all duration-200",
-        isResizing && "bg-gray-600"
-      )} />
-    </div>
+    />
   );
 }
 
@@ -402,31 +382,23 @@ export default function InterfaceLayout({ organizationName }: InterfaceLayoutPro
   }, [explorerWidth, chatWidth]);
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-full">
       {/* Header */}
       <Header
         onToggleExplorer={handleToggleExplorer}
         onToggleChat={handleToggleChat}
       />
 
-      {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar
-          organizationName={organizationName}
-          onWidthChange={handleSidebarWidthChange}
-        />
-
       {/* Main Content Area - Flex container for the three panels */}
-      <div className="flex flex-1 h-full relative min-h-0">
+      <div className="flex flex-1 h-full relative min-h-0 overflow-hidden">
         {/* Explorer Panel - only render if width > 0 */}
         {explorerWidth > 0 && (
           <div
-            className="flex-shrink-0 relative border-r border-gray-200 h-full"
+            className="flex-shrink-0 relative h-full border-r border-gray-200"
             style={{ width: `${explorerWidth}px` }}
           >
-            <ExplorerPanel 
-              selectedProject={selectedProject} 
+            <ExplorerPanel
+              selectedProject={selectedProject}
               onDocumentSelect={handleDocumentSelect}
             />
             {/* Explorer Resize Handle */}
@@ -435,7 +407,10 @@ export default function InterfaceLayout({ organizationName }: InterfaceLayoutPro
         )}
 
         {/* Main Editor Area - Takes remaining space */}
-        <div className="flex-1 min-w-0 relative h-full">
+        <div className={cn(
+          "flex-1 min-w-0 relative h-full",
+          chatWidth === 0 && "border-r-0"
+        )}>
           <MainEditor selectedDocument={selectedDocument} />
           {/* Main Editor Left Resize Handle - only show if explorer is visible */}
           {explorerWidth > 0 && (
@@ -450,7 +425,7 @@ export default function InterfaceLayout({ organizationName }: InterfaceLayoutPro
         {/* Chat Panel - only render if width > 0 */}
         {chatWidth > 0 && (
           <div
-            className="flex-shrink-0 relative border-l border-gray-200 h-full"
+            className="flex-shrink-0 relative h-full"
             style={{ width: `${chatWidth}px` }}
           >
             {/* Chat Resize Handle */}
@@ -458,7 +433,6 @@ export default function InterfaceLayout({ organizationName }: InterfaceLayoutPro
             <Chat />
           </div>
         )}
-      </div>
       </div>
     </div>
   );

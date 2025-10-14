@@ -1,16 +1,33 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { ClerkProvider } from '@clerk/nextjs';
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const fkGrotesk = localFont({
+  src: [
+    {
+      path: "../../public/fonts/FKGrotesk-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/FKGrotesk-Medium.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/FKGrotesk-SemiBold.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/FKGrotesk-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-fk-grotesk",
+  fallback: ["system-ui", "arial"],
 });
 
 export const metadata: Metadata = {
@@ -24,7 +41,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       afterSignInUrl="/app"
       afterSignUpUrl="/app"
     >
-      <html lang="en"><body>{children}</body></html>
+      <html lang="en">
+        <body className={fkGrotesk.variable}>{children}</body>
+      </html>
     </ClerkProvider>
   );
 }

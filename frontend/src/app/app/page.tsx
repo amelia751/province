@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import { getUserOrganization, getOrganizationName, getUserPersonalAccount, createPersonalAccount, getPersonalAccountName, createOrganization } from '@/lib/organization';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import StartScreenClient from '@/app/app/start-screen-client';
-import Sidebar from '@/components/ui/sidebar';
 
 export default async function AppPage() {
   const { userId, orgId } = await auth();
@@ -88,15 +87,5 @@ export default async function AppPage() {
     isPersonalAccount = true;
   }
 
-  return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
-      <Sidebar organizationName={accountName} isPersonalAccount={isPersonalAccount} />
-      
-      {/* Main content - Start Screen */}
-      <div className="flex-1 overflow-auto">
-        <StartScreenClient />
-      </div>
-    </div>
-  );
+  return <StartScreenClient />;
 }

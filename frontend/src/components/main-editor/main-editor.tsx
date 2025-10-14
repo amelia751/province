@@ -2,16 +2,14 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { PdfViewer, PdfAnnotation } from "@/components/pdf-viewer";
+import { PdfViewer } from "@/components/pdf-viewer";
+import { TaxFormFiller } from '@/components/tax-form-filler';
 import "@/components/pdf-viewer/pdf-viewer.css";
 import {
   X,
   Circle,
   MoreHorizontal,
   Split,
-  Play,
-  Bug,
   Terminal,
   Copy,
   Trash2,
@@ -23,7 +21,6 @@ import {
 } from "lucide-react";
 
 interface MainEditorProps {
-  onWidthChange?: (width: number) => void;
   selectedDocument?: {
     id: string;
     name: string;
@@ -41,6 +38,8 @@ interface EditorTab {
   isActive: boolean;
   type?: string;
   url?: string;
+  w2Data?: any;
+  hasChanges?: boolean;
 }
 
 interface LogEntry {
@@ -84,11 +83,10 @@ const mockTabs: EditorTab[] = [
   }
 ];
 
-const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange, selectedDocument }) => {
+const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument }) => {
   const [tabs, setTabs] = useState(mockTabs);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
-  const [isHoveringTabArea, setIsHoveringTabArea] = useState(false);
   const [selectedW2File, setSelectedW2File] = useState<string>('');
   const [ocrResult, setOcrResult] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -141,8 +139,28 @@ const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange, selectedDocument
         // Format the structured W2 data for display
         const formattedResult = formatW2Results(result, fileName);
         setOcrResult(formattedResult);
+        
+        // Create a new tab for tax form filling
+        const newTab: EditorTab = {
+          id: `tax-form-filler-${Date.now()}`,
+          name: `Fill 1040 Form`,
+          path: 'tax/form-filler',
+          isDirty: false,
+          type: 'tax-form-filler',
+          url: undefined,
+          w2Data: result, // Pass the W2 extraction result
+          isActive: false,
+          hasChanges: false
+        };
+        
+        setTabs(prevTabs => [...prevTabs, newTab]);
+        
+        // Add success log
+        addLog('success', 'system', `W2 processed successfully. Tax form filler ready.`, 
+               `Extracted data from ${result.forms_count} W2 form(s). Total wages: $${result.total_wages.toLocaleString()}`);
       } else {
         setOcrResult(`❌ Processing failed: ${result.error}`);
+        addLog('error', 'system', 'W2 processing failed', result.error);
       }
     } catch (error) {
       console.error('W2 processing error:', error);
@@ -153,7 +171,14 @@ const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange, selectedDocument
   };
 
   // Format W2 results for display
-  const formatW2Results = (result: any, fileName: string) => {
+  const formatW2Results = (result: {
+    w2_extract: { forms: Array<{ employer: { name?: string; EIN?: string; address?: string }; employee: { name?: string; SSN?: string; address?: string }; boxes: Record<string, string> }> };
+    validation_results: { is_valid: boolean; warnings: string[]; errors: string[] };
+    processing_method: string;
+    forms_count: number;
+    total_wages: number;
+    total_withholding: number;
+  }, fileName: string) => {
     const w2Extract = result.w2_extract;
     const validation = result.validation_results;
     
@@ -164,7 +189,7 @@ const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange, selectedDocument
     output += `💸 Total Withholding: $${result.total_withholding.toLocaleString()}\n\n`;
     
     // Display each W2 form
-    w2Extract.forms.forEach((form: any, index: number) => {
+    w2Extract.forms.forEach((form, index: number) => {
       output += `📄 W-2 Form ${index + 1}:\n`;
       output += `${'='.repeat(50)}\n\n`;
       
@@ -415,20 +440,10 @@ const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange, selectedDocument
   return (
     <div className="main-editor-container flex bg-white h-full w-full">
       <div className="flex flex-col h-full flex-1 min-h-0">
-        {/* Invisible hover area above tabs */}
-        <div 
-          className="absolute top-0 left-0 right-0 h-2 z-20"
-          onMouseEnter={() => setIsHoveringTabArea(true)}
-          onMouseLeave={() => setIsHoveringTabArea(false)}
-        />
         {/* Tab Bar */}
-        <div
-          className="flex items-center border-b border-gray-100 bg-gray-50 relative z-10"
-          onMouseEnter={() => setIsHoveringTabArea(true)}
-          onMouseLeave={() => setIsHoveringTabArea(false)}
-        >
-          <div className="flex-1 min-w-0 overflow-x-auto overflow-y-hidden scrollbar-thin">
-            <div className="inline-flex">
+        <div className="flex items-center border-b border-gray-100 bg-gray-50 relative z-10">
+          <div className="flex-1 min-w-0 overflow-x-auto overflow-y-hidden hover:scrollbar-thin scrollbar-none">
+            <div className="inline-flex min-w-full">
               {tabs.map((tab) => (
                 <div
                   key={tab.id}
@@ -600,10 +615,37 @@ const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange, selectedDocument
                     ) : activeTab.type?.includes('image') && activeTab.url ? (
                       // Image viewer
                       <div className="flex items-center justify-center h-full p-4">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={activeTab.url}
                           alt={activeTab.name}
                           className="max-w-full max-h-full object-contain"
+                        />
+                      </div>
+                    ) : activeTab.type === 'tax-form-filler' ? (
+                      // Tax Form Filler
+                      <div className="h-full overflow-auto">
+                        <TaxFormFiller
+                          w2Data={activeTab.w2Data}
+                          onFormFilled={(result) => {
+                            addLog('success', 'system', 'Tax form generated successfully', 
+                                   `Form URL: ${result.filled_form_url}`);
+                            
+                            // Optionally create a new tab with the filled form
+                            if (result.filled_form_url) {
+                              const filledFormTab: EditorTab = {
+                                id: `filled-1040-${Date.now()}`,
+                                name: 'Filled 1040 Form',
+                                path: 'tax/filled-1040',
+                                isDirty: false,
+                                type: 'pdf',
+                                url: result.filled_form_url,
+                                isActive: false,
+                                hasChanges: false
+                              };
+                              setTabs(prevTabs => [...prevTabs, filledFormTab]);
+                            }
+                          }}
                         />
                       </div>
                     ) : activeTab.type === 'ingest-tool' && activeTab.id === 'ingest-w2' ? (
@@ -701,23 +743,26 @@ const MainEditor: React.FC<MainEditorProps> = ({ onWidthChange, selectedDocument
                 <span>Logs: {logs.length} entries</span>
                 <span>Last: {logs[logs.length - 1]?.timestamp.toLocaleTimeString() || 'None'}</span>
               </>
-            ) : (
+            ) : activeTab ? (
               <>
-                <span>Ln 1, Col 1</span>
-                <span>UTF-8</span>
-                <span>TypeScript React</span>
+                <span>{activeTab.name}</span>
+                {activeTab.type && (
+                  <span className="text-gray-500">
+                    {activeTab.type === 'w2-form' ? 'W-2 Form' :
+                     activeTab.type === 'tax-return' ? 'Tax Return' :
+                     activeTab.type === 'tax-form-filler' ? '1040 Form' :
+                     activeTab.type === 'ingest-tool' ? 'Tax Tool' :
+                     activeTab.type?.includes('pdf') ? 'PDF Document' :
+                     activeTab.type?.includes('image') ? 'Image' :
+                     activeTab.type}
+                  </span>
+                )}
+                <span className="text-gray-500">Last edited: Just now</span>
               </>
-            )}
+            ) : null}
           </div>
           <div className="flex items-center space-x-2">
-            <button className="flex items-center space-x-1 hover:text-black">
-              <Play className="h-3 w-3" />
-              <span>Run</span>
-            </button>
-            <button className="flex items-center space-x-1 hover:text-black">
-              <Bug className="h-3 w-3" />
-              <span>Debug</span>
-            </button>
+            {/* Empty right side - removed Run/Debug buttons */}
           </div>
         </div>
       </div>
