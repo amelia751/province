@@ -218,15 +218,25 @@ async def fill_form_tool(
         result = await fill_tax_form(form_type, form_data)
         
         if result.get('success'):
-            # Store filled form info in conversation state
+            # Store filled form info in conversation state with versioning
             conversation_state[session_id]['filled_form'] = {
                 'form_type': form_type,
-                'form_url': result.get('form_url'),
+                'form_url': result.get('filled_form_url'),
                 'form_data': form_data,
-                'filled_at': datetime.now().isoformat()
+                'filled_at': datetime.now().isoformat(),
+                'versioning': result.get('versioning', {})
             }
             
-            return f"Successfully filled {form_type} form! The form has been prepared with your information. Ready to save it to your documents."
+            # Add versioning information to response
+            versioning = result.get('versioning', {})
+            version_info = ""
+            if versioning:
+                if versioning.get('is_new_document'):
+                    version_info = f" (New document - Version {versioning.get('version', 'v1')})"
+                else:
+                    version_info = f" (Updated to Version {versioning.get('version', 'v1')} - Total versions: {versioning.get('total_versions', 1)})"
+            
+            return f"Successfully filled {form_type} form{version_info}! The form has been prepared with your information and is available at: {result.get('filled_form_url')}. Ready to save it to your documents."
         else:
             return f"Failed to fill form: {result.get('error', 'Unknown error')}"
     except Exception as e:
@@ -349,6 +359,58 @@ async def manage_state_tool(
         return f"Error managing state: {str(e)}"
 
 
+@tool
+async def list_version_history_tool(document_id: str = None) -> str:
+    """
+    List version history for a tax document.
+    
+    Args:
+        document_id: Document ID to get history for (optional, uses current session if not provided)
+    
+    Returns:
+        String describing the version history
+    """
+    try:
+        session_id = conversation_state.get('current_session_id', 'default')
+        session_data = conversation_state.get(session_id, {})
+        
+        # If no document_id provided, try to get from current session
+        if not document_id:
+            filled_form = session_data.get('filled_form', {})
+            versioning = filled_form.get('versioning', {})
+            document_id = versioning.get('document_id')
+        
+        if not document_id:
+            return "No document ID available. Please fill a form first or provide a document ID."
+        
+        # Get version history from form filler
+        from ..agents.tax.tools.form_filler import TaxFormFiller
+        filler = TaxFormFiller()
+        versions = await filler.get_version_history(document_id)
+        
+        if not versions:
+            return f"No version history found for document {document_id}"
+        
+        # Format version history
+        history = f"📋 Version History for {document_id}:\n"
+        history += f"{'='*50}\n\n"
+        
+        for i, version in enumerate(versions):
+            history += f"Version {version['version']}:\n"
+            history += f"  📅 Created: {version['last_modified']}\n"
+            history += f"  📁 Size: {version['size']:,} bytes\n"
+            history += f"  🔗 S3 Key: {version['s3_key']}\n"
+            if i < len(versions) - 1:
+                history += "\n"
+        
+        history += f"\n📊 Total Versions: {len(versions)}"
+        return history
+        
+    except Exception as e:
+        logger.error(f"Error listing version history: {e}")
+        return f"Error getting version history: {str(e)}"
+
+
 def _generate_tax_document_content(form_data: Dict[str, Any]) -> str:
     """Generate tax document content for saving."""
     return f"""
@@ -410,7 +472,8 @@ class TaxService:
                 calc_1040_tool,
                 fill_form_tool,
                 save_document_tool,
-                manage_state_tool
+                manage_state_tool,
+                list_version_history_tool
             ],
             name="TaxFilingAgent",
             description="AI agent that guides users through tax filing process step by step"
@@ -503,7 +566,13 @@ Just let me know which one applies to you."""
             # Get response from Strands agent
             response = await self.agent.invoke_async(user_message)
             
-            return response
+            # Extract text from AgentResult object
+            if hasattr(response, 'text'):
+                return response.text
+            elif hasattr(response, 'content'):
+                return response.content
+            else:
+                return str(response)
             
         except Exception as e:
             logger.error(f"Error in conversation: {e}")

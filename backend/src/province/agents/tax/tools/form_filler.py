@@ -53,8 +53,8 @@ class TaxFormFiller:
             # Fill the form using PyMuPDF
             filled_pdf_bytes = self._fill_pdf_with_pymupdf(template_data, form_data)
             
-            # Upload the filled form
-            upload_url = await self._upload_filled_pdf(
+            # Upload the filled form with versioning
+            upload_result = await self._upload_filled_pdf_with_versioning(
                 file_content=filled_pdf_bytes,
                 form_type='1040',
                 tax_year=2024,
@@ -63,20 +63,29 @@ class TaxFormFiller:
                     'tax_year': '2024',
                     'filled_by': 'tax_form_filler_tool',
                     'filling_method': 'pymupdf_production',
-                    'fields_filled': str(len(form_data))
-                }
+                    'fields_filled': str(len(form_data)),
+                    'taxpayer_name': form_data.get('taxpayer_name', 'Test User')
+                },
+                taxpayer_id=form_data.get('taxpayer_name', 'Test_User').replace(' ', '_')
             )
             
             logger.info("Successfully filled 1040 form")
             
             return {
                 'success': True,
-                'filled_form_url': upload_url,
+                'filled_form_url': upload_result['download_url'],
                 'form_type': '1040',
                 'tax_year': 2024,
                 'fields_filled': len(form_data),
                 'file_size': len(filled_pdf_bytes),
-                'message': 'Form filled successfully with PyMuPDF'
+                'message': 'Form filled successfully with PyMuPDF',
+                'versioning': {
+                    'document_id': upload_result['document_id'],
+                    'version': upload_result['version'],
+                    'is_new_document': upload_result['is_new_document'],
+                    'total_versions': upload_result['total_versions'],
+                    'previous_versions': upload_result['previous_versions']
+                }
             }
             
         except Exception as e:
@@ -124,26 +133,77 @@ class TaxFormFiller:
             
             filled_count = 0
             
-            # Fill text fields
+            # Log all field names for debugging
+            logger.info("Available text field names:")
+            for widget in text_fields[:10]:  # Log first 10 for debugging
+                logger.info(f"  - {widget.field_name}")
+            
+            # Create field mapping for 1040 form
+            field_mapping = {
+                'taxpayer_name': ['f1_01', 'f1_02', 'f1_03'],  # First, Middle, Last name
+                'ssn': ['f1_04'],
+                'spouse_name': ['f1_05', 'f1_06', 'f1_07'],  # Spouse names
+                'spouse_ssn': ['f1_08'],
+                'address': ['f1_09'],
+                'city': ['f1_10'],
+                'state': ['f1_11'],
+                'zip': ['f1_12'],
+                'wages': ['f1_13'],
+                'federal_withholding': ['f1_44'],
+                'standard_deduction': ['f1_29'],
+                'taxable_income': ['f1_34'],
+                'tax_liability': ['f1_35'],
+                'refund_or_due': ['f1_50', 'f1_51']
+            }
+            
+            # Fill text fields using mapping
             for widget in text_fields:
                 field_name = widget.field_name
                 if field_name:
-                    # Try to match field name to our data
+                    # Try to match using field mapping
                     for data_key, value in form_data.items():
-                        # Clean up field names for matching
-                        clean_data_key = data_key.replace('[0]', '')
+                        mapped_fields = field_mapping.get(data_key, [])
                         
-                        if (clean_data_key in field_name or 
-                            field_name.endswith(clean_data_key) or
-                            field_name.endswith(f"{clean_data_key}[0]")):
+                        # Extract the simple field name from the full path
+                        # e.g., "topmostSubform[0].Page1[0].f1_01[0]" -> "f1_01"
+                        simple_field_name = field_name.split('.')[-1].split('[')[0] if '.' in field_name else field_name
+                        
+                        # Check if this widget matches any mapped field
+                        if simple_field_name in mapped_fields:
                             try:
-                                # Format the value appropriately
-                                formatted_value = self._format_field_value(clean_data_key, value)
+                                # Special handling for taxpayer_name - split into parts
+                                if data_key == 'taxpayer_name' and isinstance(value, str):
+                                    name_parts = value.split()
+                                    if simple_field_name == 'f1_01' and len(name_parts) > 0:  # First name
+                                        formatted_value = name_parts[0]
+                                    elif simple_field_name == 'f1_02' and len(name_parts) > 2:  # Middle initial
+                                        formatted_value = name_parts[1][0] if name_parts[1] else ''
+                                    elif simple_field_name == 'f1_03' and len(name_parts) > 1:  # Last name
+                                        formatted_value = name_parts[-1]
+                                    else:
+                                        formatted_value = self._format_field_value(data_key, value)
+                                else:
+                                    # Format the value appropriately
+                                    formatted_value = self._format_field_value(data_key, value)
                                 
                                 widget.field_value = formatted_value
                                 widget.update()
                                 filled_count += 1
-                                logger.info(f"✅ Filled text field {field_name}: {formatted_value}")
+                                logger.info(f"✅ Filled text field {field_name} ({data_key}): {formatted_value}")
+                                break
+                            except Exception as e:
+                                logger.warning(f"Could not fill text field {field_name}: {e}")
+                        
+                        # Also try direct matching as fallback
+                        elif (data_key in field_name or 
+                              field_name.endswith(data_key) or
+                              field_name.endswith(f"{data_key}[0]")):
+                            try:
+                                formatted_value = self._format_field_value(data_key, value)
+                                widget.field_value = formatted_value
+                                widget.update()
+                                filled_count += 1
+                                logger.info(f"✅ Filled text field {field_name} (direct match): {formatted_value}")
                                 break
                             except Exception as e:
                                 logger.warning(f"Could not fill text field {field_name}: {e}")
@@ -252,18 +312,43 @@ class TaxFormFiller:
             logger.error(f"Failed to download template {template_key}: {e}")
             raise
 
-    async def _upload_filled_pdf(self, file_content: bytes, form_type: str, 
-                                tax_year: int, metadata: Dict[str, str]) -> str:
-        """Upload filled PDF to S3 and return presigned URL."""
+    async def _upload_filled_pdf_with_versioning(self, file_content: bytes, form_type: str, 
+                                               tax_year: int, metadata: Dict[str, str], 
+                                               taxpayer_id: str = None) -> Dict[str, Any]:
+        """Upload filled PDF with versioning support."""
         try:
-            # Generate unique filename
+            # Generate taxpayer ID if not provided
+            if not taxpayer_id:
+                taxpayer_id = metadata.get('taxpayer_name', 'TAXPAYER').replace(' ', '_')
+            
+            # Create base document ID for versioning
+            document_id = f"tax_form_{taxpayer_id}_{form_type}_{tax_year}"
+            base_key = f"filled_forms/{taxpayer_id}/{form_type.lower()}/{tax_year}"
+            
+            # Check for existing versions
+            existing_versions = await self._list_existing_versions(base_key)
+            version_num = len(existing_versions) + 1
+            
+            # Create versioned S3 key
             timestamp = int(time.time())
-            taxpayer_name = metadata.get('taxpayer_name', 'TAXPAYER')
-            safe_name = ''.join(c for c in taxpayer_name if c.isalnum() or c in (' ', '-', '_')).replace(' ', '_')
+            output_key = f"{base_key}/v{version_num:03d}_{form_type}_{timestamp}.pdf"
             
-            output_key = f"filled_forms/{form_type.lower()}/{form_type.upper()}_{tax_year}_{safe_name}_{timestamp}.pdf"
+            logger.info(f"Uploading filled form version {version_num} to: {output_key}")
             
-            logger.info(f"Uploading filled form to: {output_key}")
+            # Enhanced metadata with versioning info
+            enhanced_metadata = {
+                **metadata,
+                'document_id': document_id,
+                'version': f"v{version_num}",
+                'taxpayer_id': taxpayer_id,
+                'created_at': datetime.now().isoformat(),
+                'file_size': str(len(file_content)),
+                'content_hash': self._calculate_content_hash(file_content)
+            }
+            
+            # Add previous version reference if exists
+            if existing_versions:
+                enhanced_metadata['previous_version'] = existing_versions[-1]['version']
             
             # Upload to S3
             self.s3_client.put_object(
@@ -271,7 +356,7 @@ class TaxFormFiller:
                 Key=output_key,
                 Body=file_content,
                 ContentType='application/pdf',
-                Metadata=metadata
+                Metadata=enhanced_metadata
             )
             
             # Generate presigned URL
@@ -284,9 +369,40 @@ class TaxFormFiller:
                 ExpiresIn=3600
             )
             
-            logger.info(f"Successfully uploaded filled form: {output_key}")
-            return download_url
+            # Store version info in DynamoDB if table exists
+            await self._store_version_metadata(document_id, {
+                'version': f"v{version_num}",
+                's3_key': output_key,
+                'size': len(file_content),
+                'created_at': datetime.now().isoformat(),
+                'metadata': enhanced_metadata,
+                'download_url': download_url
+            })
             
+            logger.info(f"Successfully uploaded filled form version {version_num}: {output_key}")
+            
+            return {
+                'download_url': download_url,
+                'document_id': document_id,
+                'version': f"v{version_num}",
+                's3_key': output_key,
+                'is_new_document': version_num == 1,
+                'previous_versions': [v['version'] for v in existing_versions],
+                'total_versions': version_num
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to upload filled PDF with versioning: {e}")
+            raise
+
+    async def _upload_filled_pdf(self, file_content: bytes, form_type: str, 
+                                tax_year: int, metadata: Dict[str, str]) -> str:
+        """Legacy upload method - now uses versioning internally."""
+        try:
+            result = await self._upload_filled_pdf_with_versioning(
+                file_content, form_type, tax_year, metadata
+            )
+            return result['download_url']
         except Exception as e:
             logger.error(f"Failed to upload filled PDF: {e}")
             raise
@@ -356,6 +472,101 @@ class TaxFormFiller:
             }
         
         return {}
+
+    async def _list_existing_versions(self, base_key: str) -> List[Dict[str, Any]]:
+        """List existing versions of a document in S3."""
+        try:
+            response = self.s3_client.list_objects_v2(
+                Bucket=self.documents_bucket,
+                Prefix=base_key
+            )
+            
+            versions = []
+            if 'Contents' in response:
+                for obj in response['Contents']:
+                    key = obj['Key']
+                    if key.endswith('.pdf'):
+                        # Extract version from filename
+                        filename = key.split('/')[-1]
+                        if filename.startswith('v'):
+                            version = filename.split('_')[0]  # e.g., 'v001'
+                            versions.append({
+                                'version': version,
+                                's3_key': key,
+                                'size': obj['Size'],
+                                'last_modified': obj['LastModified'].isoformat()
+                            })
+            
+            # Sort by version number
+            versions.sort(key=lambda x: int(x['version'][1:]))
+            return versions
+            
+        except Exception as e:
+            logger.warning(f"Could not list existing versions for {base_key}: {e}")
+            return []
+
+    def _calculate_content_hash(self, content: bytes) -> str:
+        """Calculate SHA256 hash of content."""
+        import hashlib
+        return hashlib.sha256(content).hexdigest()
+
+    async def _store_version_metadata(self, document_id: str, version_info: Dict[str, Any]):
+        """Store version metadata in DynamoDB if available."""
+        try:
+            import boto3
+            from botocore.exceptions import ClientError
+            
+            # Try to store in tax documents table if it exists
+            dynamodb = boto3.resource('dynamodb', region_name=self.settings.aws_region)
+            
+            # Use the tax documents table name from settings
+            table_name = getattr(self.settings, 'tax_documents_table_name', None)
+            if not table_name:
+                logger.info("No tax documents table configured, skipping metadata storage")
+                return
+            
+            table = dynamodb.Table(table_name)
+            
+            # Store version metadata
+            table.put_item(
+                Item={
+                    'document_id': document_id,
+                    'version': version_info['version'],
+                    's3_key': version_info['s3_key'],
+                    'size': version_info['size'],
+                    'created_at': version_info['created_at'],
+                    'metadata': version_info['metadata'],
+                    'download_url': version_info['download_url']
+                }
+            )
+            
+            logger.info(f"Stored version metadata for {document_id} {version_info['version']}")
+            
+        except Exception as e:
+            logger.warning(f"Could not store version metadata: {e}")
+            # Don't fail the upload if metadata storage fails
+
+    async def get_version_history(self, document_id: str) -> List[Dict[str, Any]]:
+        """Get version history for a document."""
+        try:
+            # Extract base info from document_id
+            # Format: tax_form_John_Doe_1040_2024
+            parts = document_id.split('_')
+            if len(parts) >= 4:
+                # Skip 'tax' and 'form' parts
+                taxpayer_id = '_'.join(parts[2:-2]) if len(parts) > 4 else parts[2]
+                form_type = parts[-2]
+                tax_year = parts[-1]
+                
+                base_key = f"filled_forms/{taxpayer_id}/{form_type.lower()}/{tax_year}/"
+                logger.info(f"Looking for versions with base key: {base_key}")
+                return await self._list_existing_versions(base_key)
+            
+            return []
+            
+        except Exception as e:
+            logger.error(f"Error getting version history for {document_id}: {e}")
+            return []
 
 
 # Tool function for agent integration

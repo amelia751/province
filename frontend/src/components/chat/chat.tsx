@@ -238,38 +238,9 @@ const TaxChatInterface: React.FC<ChatProps> = ({
       {/* Connection Loading Overlay */}
       {!hasReceivedFirstResponse && !connectionError && (
         <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex items-center justify-center z-50 rounded-3xl">
-          <div className="text-center p-6 sm:p-8 max-w-sm mx-4">
-            {/* Main Loading Animation */}
-            <div className="relative mb-8">
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto">
-                <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-                <div className="absolute inset-0 border-4 border-transparent border-t-black border-r-black rounded-full animate-spin"></div>
-                <div className="absolute inset-3 bg-black rounded-full flex items-center justify-center animate-pulse">
-                  <Bot className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <h3 className="text-xl sm:text-2xl font-bold text-black tracking-tight">
-                  {!isConnected ? 'Connecting to Tax Assistant' : 'Tax Assistant Ready'}
-                </h3>
-                <p className="text-sm sm:text-base text-gray-600 leading-relaxed px-2">
-                  {!isConnected
-                    ? 'Initializing your tax filing session...'
-                    : 'Analyzing tax requirements and preparing responses...'
-                  }
-                </p>
-              </div>
-
-              <div className="flex items-center justify-center space-x-2 text-sm">
-                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-black' : 'bg-gray-400'} animate-pulse`}></div>
-                <span className="text-gray-500 font-medium">
-                  {!isConnected ? 'Establishing connection...' : 'Connected'}
-                </span>
-              </div>
-            </div>
+          <div className="flex flex-col items-center space-y-3">
+            <Loader2 className="h-8 w-8 text-black animate-spin" />
+            <p className="text-sm text-gray-600">Initializing session...</p>
           </div>
         </div>
       )}
