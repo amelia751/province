@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "province-development",
+  "private_key_id": "2790e1e2bdd40807d1fbb2bb70b5912d42e972d0",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCn5oJu3lMjht6j\nl0r3h08NEHZfi0bjcDzI8yGRJvl4Mjrf3u2QduRJQ+m7pxduF+ZA54HWIPB8mq7k\nsILlp3MzUyTBFkpOmPEf5izw9rIJe5oa6hUqI2t6Z1IlQoAae1RhLVqixKXC3qDY\nPxnJma3LxC4XkZbjcbE65r0ygKiB+o5iMMGK8zrgYB+liJnTUN+yJZgYTSiQtN26\n2YkLTNYz0NkkA5Af+7h740EDhrxdvPnHbcVjEH6/wxvOfh5kHWfKAOKWVYcFbKLs\ncehzWA6JKm4hPMqNZX1vM0VmbIfQApBqU1WQMySCGbqJ/FTvUgZLecfju36hLpv9\nIh3G6qW5AgMBAAECggEADppu0o4JgOPqgiPG8FHPWzlo9E0wupgw30D/VMjFJrJG\nuuFAvCGNID61Cf5h3DBdtVw1Z56IkCvjhY5BKlCWxVpoTld+Gck1YrMCSmiIimja\n2dethNNdFiG9rDI1ImiC6atYUGMmcDUtG/XcDDPuwPP0ltXxv+FL+w2l28pDLb/N\nEdmyMySRrr2qee+ExlgihSKXhfgn7cyEYbMxZtjLXXdOqmwe92c2y0dBVfPeaEsK\n6nYqPKhjYlph8Yy/Z9jf7++LSy+ef8lvevGPMvbDWjpjLjMz1FTMP0hasw3Z/dpY\nsF1p7gJm8rlvtkKpoIA2IodEL2vu424ngClgyw9ngQKBgQDjYfF0khRzNs1zWU/f\nxwjtib/nZGwuqox5RIccP+JPErbeSMA9rXGYB1965zBXY5VJgACPrVqdb8em+faC\nlkT2xRyJzK8VEmc+r6FrEKTDJJ5NXRbPdYTN69WQvLZUjseD3RlpIEfexDRa3xaw\nzviYwFsgM6NwzfqEGDoEjo8tOQKBgQC9CBslE2DW87YhyWgMVlUlDAlM87CQ/QDS\nta1fE/kFmVre7Z5rG7ZZlShNII45uGbKcfzWo/tShHGJjG7Rz697F+bKMIpONEH1\nk3DfcsTisZZpQqVy8XNKFT6d3nO/DIMXKefrTn7os80/etM7iCb2xqYDgZU/RdrA\nQ37KBwe8gQKBgQCHxeskvTmC1n11XCYqrDFzjWZOqBNFBkec/cNjpe3fY4BYWL6Z\n1aBXtEdaHwQpmmgBHHK5WD0cdyuTU/zTWyFQ7MAutE7zWSrXLo5HXQfVEl+IOIav\nWC/1udWreFOzSBJwdax/rmvb4/KTNFTbPKsKowmGv+7fI89r4v95yxpJWQKBgDMd\n0AlUlilKOgQk7If5iIi+Gn2+oA50/BX+nuVJB1vmPlZuNxqLoeHTndRNa2hcXx97\nd32rVjjYK8OgQA9oc/F7YyNlwOCo7PU1a55g8LDEiQHpzcepVx2/ZPFXyEDvZzuK\nT3aoAVV32ZbC5gABL1goG5hzICK+BwtatRx4jjUBAoGBAJqLng/mx2aSTm/86pMg\nGhSBoqj8cJy3j1qL1yfDd1EDICEC+4PcLOlcbYJUc1ez0BmwtAQW8YWe9rjmcyaS\nLJDM3iUNBg4fPHLOmMiCXUCz1Fvj3PEz45re9QAdkWSVvbct/en3UpYVL5CrL42n\nE5qMhTuLhNYRv0SU+MAG0RHA\n-----END PRIVATE KEY-----\n",
+  "client_email": "anh-lam@province-development.iam.gserviceaccount.com",
+  "client_id": "103118691170612849496",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/anh-lam%40province-development.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

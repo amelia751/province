@@ -1,10 +1,9 @@
-"""Main connector implementation for IRS Tax Rules."""
+"""Direct IRS Tax Rules connector - no Fivetran dependencies."""
 
 import logging
-from typing import Dict, Any, Iterator, Optional
+from typing import Dict, Any, List, Optional
 from datetime import datetime, date
-
-from fivetran_connector_sdk import Connector, Operations
+import json
 
 from .streams import (
     NewsroomReleasesStream,
@@ -18,18 +17,13 @@ from .http_client import IRSHttpClient
 logger = logging.getLogger(__name__)
 
 
-class TaxRulesConnector(Connector):
-    """Fivetran connector for IRS tax rules and regulations."""
+class TaxRulesConnector:
+    """Direct connector for IRS tax rules and regulations."""
     
     def __init__(self):
-        # Fivetran SDK requires an update function
-        super().__init__(update=self._update)
         self.http_client: Optional[IRSHttpClient] = None
         self.streams = {}
-    
-    def _update(self, configuration: Dict[str, Any], state: Dict[str, Any]) -> Iterator[Operations]:
-        """Update method required by Fivetran SDK - delegates to sync."""
-        return self.sync(configuration, state)
+        self.configuration = {}
     
     def configure(self, configuration: Dict[str, Any]) -> None:
         """Configure the connector with user settings."""
@@ -50,6 +44,8 @@ class TaxRulesConnector(Connector):
         base_urls = configuration.get('base_urls', {})
         jurisdiction_level = configuration.get('jurisdiction_level', 'federal')
         jurisdiction_code = configuration.get('jurisdiction_code', 'US')
+        
+        self.streams = {}
         
         if 'newsroom_releases' in enabled_streams:
             self.streams['newsroom_releases'] = NewsroomReleasesStream(
@@ -92,86 +88,108 @@ class TaxRulesConnector(Connector):
         
         logger.info(f"Configured connector with {len(self.streams)} streams for {jurisdiction_level} {jurisdiction_code}")
     
-    def schema(self, configuration: Dict[str, Any]) -> Dict[str, Any]:
-        """Return the schema for all streams."""
-        self.configure(configuration)
-        
-        schema = {
-            "streams": {}
-        }
-        
-        for stream_name, stream in self.streams.items():
-            schema["streams"][stream_name] = stream.get_schema()
-        
-        return schema
-    
-    def test(self, configuration: Dict[str, Any]) -> None:
+    def test(self, configuration: Dict[str, Any]) -> bool:
         """Test the connector configuration."""
-        self.configure(configuration)
-        
-        logger.info("Testing connector configuration...")
-        
-        # Test HTTP client
-        if not self.http_client:
-            raise Exception("HTTP client not initialized")
-        
-        # Test each enabled stream
-        for stream_name, stream in self.streams.items():
-            try:
+        try:
+            self.configure(configuration)
+            
+            logger.info("Testing connector configuration...")
+            
+            # Test HTTP client
+            if not self.http_client:
+                raise Exception("HTTP client not initialized")
+            
+            # Test each enabled stream
+            for stream_name, stream in self.streams.items():
                 logger.info(f"Testing stream: {stream_name}")
                 result = stream.test_connection()
                 if not result:
                     raise Exception(f"Stream {stream_name} connection test returned False")
-                logger.info(f"Stream {stream_name} test passed")
-            except Exception as e:
-                logger.error(f"Stream {stream_name} test failed: {e}")
-                raise Exception(f"Stream {stream_name} test failed: {e}")
-        
-        logger.info("All tests passed")
+                logger.info(f"✅ Stream {stream_name} test passed")
+            
+            logger.info("✅ All tests passed")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Test failed: {e}")
+            return False
     
-    def sync(self, configuration: Dict[str, Any], state: Dict[str, Any]) -> Iterator[Operations]:
-        """Sync data from all enabled streams."""
+    def extract_data(self, configuration: Dict[str, Any], limit_per_stream: int = 10) -> Dict[str, List[Dict[str, Any]]]:
+        """Extract data from all enabled streams."""
         self.configure(configuration)
         
-        logger.info("Starting sync operation...")
+        logger.info("Starting data extraction...")
+        
+        all_data = {}
         
         for stream_name, stream in self.streams.items():
-            logger.info(f"Syncing stream: {stream_name}")
+            logger.info(f"Extracting from stream: {stream_name}")
             
             try:
-                # Get cursor from state
-                stream_state = state.get(stream_name, {})
-                cursor = stream_state.get('cursor')
+                # Extract data from stream
+                data = []
+                count = 0
                 
-                # Sync the stream
-                for operation in stream.sync(cursor):
-                    yield operation
+                for record in stream.read_records():
+                    data.append(record)
+                    count += 1
+                    if count >= limit_per_stream:
+                        break
                 
-                # Update state with new cursor
-                new_cursor = stream.get_cursor()
-                if new_cursor:
-                    state[stream_name] = {'cursor': new_cursor}
-                    yield Operations.checkpoint(state)
-                
-                logger.info(f"Completed sync for stream: {stream_name}")
+                all_data[stream_name] = data
+                logger.info(f"✅ Extracted {len(data)} records from {stream_name}")
                 
             except Exception as e:
-                logger.error(f"Error syncing stream {stream_name}: {e}")
-                raise
+                logger.error(f"❌ Error extracting from stream {stream_name}: {e}")
+                all_data[stream_name] = []
         
-        logger.info("Sync operation completed")
+        logger.info(f"✅ Data extraction completed. Total streams: {len(all_data)}")
+        return all_data
+
+
+def get_default_configuration() -> Dict[str, Any]:
+    """Get default configuration for the connector."""
+    return {
+        'jurisdiction_level': 'federal',
+        'jurisdiction_code': 'US',
+        'enabled_streams': ['newsroom_releases', 'irb_bulletins'],  # Start with working streams
+        'base_urls': {
+            'newsroom': 'https://www.irs.gov/newsroom',
+            'irb': 'https://www.irs.gov/irb',
+            'draft_forms': 'https://www.irs.gov/forms-pubs/draft-tax-forms',
+            'mef': 'https://www.irs.gov/modernized-e-file-mf-business-rules-and-schemas'
+        },
+        'request_timeout': 30,
+        'max_retries': 3
+    }
 
 
 def main():
-    """Main entry point for the connector."""
+    """Main entry point for testing the connector."""
     # Set up basic logging
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
+    # Test the connector
     connector = TaxRulesConnector()
-    connector.main()
+    config = get_default_configuration()
+    
+    # Test connection
+    if connector.test(config):
+        print("🎉 Connector test successful!")
+        
+        # Extract sample data
+        data = connector.extract_data(config, limit_per_stream=5)
+        
+        print(f"\n📊 Sample data extracted:")
+        for stream_name, records in data.items():
+            print(f"  {stream_name}: {len(records)} records")
+            if records:
+                print(f"    Sample: {list(records[0].keys())}")
+    else:
+        print("❌ Connector test failed!")
 
 
 if __name__ == "__main__":

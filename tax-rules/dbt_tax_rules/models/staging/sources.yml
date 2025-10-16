@@ -1,0 +1,69 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Raw data from IRS sources via Fivetran
+    database: province-development
+    schema: raw
+    tables:
+      - name: newsroom_releases
+        description: IRS newsroom releases and announcements
+        columns:
+          - name: release_id
+            description: Unique identifier for the release
+            tests:
+              - unique
+              - not_null
+          - name: published_date
+            description: Date the release was published
+            tests:
+              - not_null
+      
+      - name: revproc_items
+        description: Structured tax data from revenue procedures
+        columns:
+          - name: tax_year
+            description: Tax year the item applies to
+            tests:
+              - not_null
+          - name: section
+            description: Section identifier
+            tests:
+              - not_null
+          - name: key
+            description: Item key within section
+            tests:
+              - not_null
+      
+      - name: irb_bulletins
+        description: Internal Revenue Bulletin documents
+        columns:
+          - name: bulletin_no
+            description: IRB bulletin number
+            tests:
+              - not_null
+          - name: doc_number
+            description: Document number within bulletin
+            tests:
+              - not_null
+      
+      - name: draft_forms
+        description: IRS draft and final tax forms
+        columns:
+          - name: form_number
+            description: Form number
+            tests:
+              - not_null
+          - name: revision
+            description: Form revision identifier
+            tests:
+              - not_null
+      
+      - name: mef_summaries
+        description: Modernized e-File schema versions
+        columns:
+          - name: schema_version
+            description: Schema version identifier
+            tests:
+              - unique
+              - not_null

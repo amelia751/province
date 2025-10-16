@@ -1,0 +1,487 @@
+# Fivetran Connector SDK Manifest for IRS Tax Rules Connector
+# This manifest defines all streams, their schemas, and sync behavior
+
+name: tax_rules_connector
+display_name: "IRS Tax Rules Connector"
+description: "Comprehensive connector for IRS tax rules, regulations, and forms"
+version: "1.0.0"
+documentation_url: "https://github.com/your-org/tax-rules-connector"
+
+# Connector configuration schema
+configuration_schema:
+  type: object
+  properties:
+    jurisdiction_level:
+      type: string
+      enum: ["federal", "state", "city"]
+      default: "federal"
+      title: "Jurisdiction Level"
+      description: "Level of tax jurisdiction to sync"
+    
+    jurisdiction_code:
+      type: string
+      default: "US"
+      title: "Jurisdiction Code"
+      description: "Code for the jurisdiction (US for federal, CA/NY/etc for states)"
+    
+    enabled_streams:
+      type: array
+      items:
+        type: string
+        enum: ["newsroom_releases", "revproc_items", "irb_bulletins", "draft_forms", "mef_summaries"]
+      default: ["newsroom_releases", "revproc_items", "irb_bulletins", "draft_forms", "mef_summaries"]
+      title: "Enabled Streams"
+      description: "Which data streams to sync"
+    
+    start_date:
+      type: string
+      format: date
+      default: "2019-01-01"
+      title: "Start Date"
+      description: "Date to start syncing data from (YYYY-MM-DD)"
+    
+    base_urls:
+      type: object
+      properties:
+        newsroom:
+          type: string
+          default: "https://www.irs.gov/newsroom"
+        irb:
+          type: string
+          default: "https://www.irs.gov/irb"
+        draft_forms:
+          type: string
+          default: "https://www.irs.gov/forms-pubs/draft-tax-forms"
+        mef:
+          type: string
+          default: "https://www.irs.gov/modernized-e-file-mf-business-rules-and-schemas"
+      title: "Base URLs"
+      description: "Base URLs for IRS sources (advanced users only)"
+    
+    request_timeout:
+      type: integer
+      minimum: 5
+      maximum: 300
+      default: 30
+      title: "Request Timeout"
+      description: "HTTP request timeout in seconds"
+    
+    max_retries:
+      type: integer
+      minimum: 0
+      maximum: 10
+      default: 3
+      title: "Max Retries"
+      description: "Maximum number of retry attempts for failed requests"
+    
+    respect_robots:
+      type: boolean
+      default: false
+      title: "Respect robots.txt"
+      description: "Whether to respect robots.txt (government sites typically allow crawling)"
+
+  required: ["jurisdiction_level", "jurisdiction_code"]
+
+# Stream definitions
+streams:
+  newsroom_releases:
+    display_name: "IRS Newsroom Releases"
+    description: "IRS newsroom announcements and press releases, focusing on tax rule changes"
+    
+    # Sync configuration
+    supports_incremental: true
+    cursor_field: "published_date"
+    primary_key: ["release_id"]
+    
+    # Schema definition
+    schema:
+      type: object
+      properties:
+        release_id:
+          type: string
+          description: "Unique identifier for the release"
+        title:
+          type: string
+          description: "Title of the news release"
+        url:
+          type: string
+          format: uri
+          description: "URL to the full release"
+        published_date:
+          type: string
+          format: date
+          description: "Date the release was published"
+        linked_revproc_url:
+          type: string
+          format: uri
+          description: "URL to linked revenue procedure if any"
+        content_summary:
+          type: string
+          description: "Summary of the release content"
+        content_full_text:
+          type: string
+          description: "Full text content of the release"
+        content_type:
+          type: string
+          description: "Type of content (newsroom_release, announcement, etc.)"
+        keywords_matched:
+          type: string
+          description: "JSON array of matched tax-related keywords"
+        tax_topics:
+          type: string
+          description: "JSON array of identified tax topics"
+        relevance_score:
+          type: number
+          description: "AI-determined relevance score (0-1)"
+        is_inflation_related:
+          type: boolean
+          description: "Whether this release relates to inflation adjustments"
+        is_tax_year_update:
+          type: boolean
+          description: "Whether this release contains tax year updates"
+        content_sha256:
+          type: string
+          description: "SHA256 hash of content for change detection"
+        jurisdiction_level:
+          type: string
+          description: "Jurisdiction level (federal, state, city)"
+        jurisdiction_code:
+          type: string
+          description: "Jurisdiction code (US, CA, NY, etc.)"
+        _fivetran_synced:
+          type: string
+          format: date-time
+          description: "Fivetran sync timestamp"
+      
+      required: ["release_id", "title", "published_date"]
+
+  irb_bulletins:
+    display_name: "Internal Revenue Bulletins"
+    description: "Official IRS bulletin documents including revenue rulings and procedures"
+    
+    # Sync configuration
+    supports_incremental: true
+    cursor_field: "published_date"
+    primary_key: ["bulletin_no", "doc_number"]
+    
+    # Schema definition
+    schema:
+      type: object
+      properties:
+        bulletin_no:
+          type: string
+          description: "IRB bulletin number (e.g., 2024-44)"
+        doc_number:
+          type: string
+          description: "Document number within the bulletin"
+        published_date:
+          type: string
+          format: date
+          description: "Date the bulletin was published"
+        doc_type:
+          type: string
+          description: "Type of document (revenue_ruling, revenue_procedure, etc.)"
+        title:
+          type: string
+          description: "Title of the document"
+        url_html:
+          type: string
+          format: uri
+          description: "URL to HTML version"
+        url_pdf:
+          type: string
+          format: uri
+          description: "URL to PDF version"
+        sha256:
+          type: string
+          description: "SHA256 hash of document content"
+        content_length:
+          type: integer
+          description: "Length of document content in characters"
+        tax_year:
+          type: integer
+          description: "Tax year this document applies to"
+        effective_date:
+          type: string
+          format: date
+          description: "Date the ruling/procedure becomes effective"
+        gcs_pdf_uri:
+          type: string
+          description: "GCS URI for archived PDF"
+        gcs_text_uri:
+          type: string
+          description: "GCS URI for extracted text"
+        jurisdiction_level:
+          type: string
+          description: "Jurisdiction level"
+        jurisdiction_code:
+          type: string
+          description: "Jurisdiction code"
+        _fivetran_synced:
+          type: string
+          format: date-time
+          description: "Fivetran sync timestamp"
+      
+      required: ["bulletin_no", "doc_number", "published_date"]
+
+  revproc_items:
+    display_name: "Revenue Procedure Items"
+    description: "Structured tax data extracted from revenue procedures (brackets, thresholds, etc.)"
+    
+    # Sync configuration
+    supports_incremental: true
+    cursor_field: "published_date"
+    primary_key: ["tax_year", "section", "key"]
+    
+    # Schema definition
+    schema:
+      type: object
+      properties:
+        tax_year:
+          type: integer
+          description: "Tax year this item applies to"
+        section:
+          type: string
+          description: "Section identifier (standard_deduction, brackets_S, etc.)"
+        key:
+          type: string
+          description: "Specific item key within the section"
+        value:
+          type: string
+          description: "Item value (stored as string to handle various types)"
+        value_numeric:
+          type: number
+          description: "Numeric value when applicable"
+        units:
+          type: string
+          description: "Units for the value (dollars, percentage, etc.)"
+        data_type:
+          type: string
+          description: "Type of data (amount, percentage, threshold, etc.)"
+        filing_status:
+          type: string
+          description: "Filing status for tax brackets (S, MFJ, MFS, HOH)"
+        income_range_min:
+          type: integer
+          description: "Minimum income for tax bracket"
+        income_range_max:
+          type: integer
+          description: "Maximum income for tax bracket"
+        tax_rate:
+          type: number
+          description: "Tax rate for bracket"
+        source_url:
+          type: string
+          format: uri
+          description: "URL to source revenue procedure"
+        revproc_number:
+          type: string
+          description: "Revenue procedure number"
+        published_date:
+          type: string
+          format: date
+          description: "Date the revenue procedure was published"
+        description:
+          type: string
+          description: "Human-readable description of the item"
+        extraction_method:
+          type: string
+          description: "Method used to extract this data"
+        confidence_score:
+          type: number
+          description: "Confidence score for extracted data (0-1)"
+        jurisdiction_level:
+          type: string
+          description: "Jurisdiction level"
+        jurisdiction_code:
+          type: string
+          description: "Jurisdiction code"
+        _fivetran_synced:
+          type: string
+          format: date-time
+          description: "Fivetran sync timestamp"
+      
+      required: ["tax_year", "section", "key", "published_date"]
+
+  draft_forms:
+    display_name: "Draft Tax Forms"
+    description: "IRS draft and final tax forms, focusing on Form 1040 series"
+    
+    # Sync configuration
+    supports_incremental: true
+    cursor_field: "published_date"
+    primary_key: ["form_number", "revision"]
+    
+    # Schema definition
+    schema:
+      type: object
+      properties:
+        form_number:
+          type: string
+          description: "Form number (1040, 1040-EZ, etc.)"
+        revision:
+          type: string
+          description: "Revision identifier"
+        status:
+          type: string
+          description: "Form status (draft, final, revised)"
+        published_date:
+          type: string
+          format: date
+          description: "Date the form was published"
+        tax_year:
+          type: integer
+          description: "Tax year the form applies to"
+        form_title:
+          type: string
+          description: "Full title of the form"
+        form_series:
+          type: string
+          description: "Form series (1040, 1120, etc.)"
+        url_pdf:
+          type: string
+          format: uri
+          description: "URL to PDF version of form"
+        url_instructions:
+          type: string
+          format: uri
+          description: "URL to form instructions"
+        pdf_sha256:
+          type: string
+          description: "SHA256 hash of PDF file"
+        instructions_sha256:
+          type: string
+          description: "SHA256 hash of instructions PDF"
+        changes_summary:
+          type: string
+          description: "Summary of changes from previous version"
+        major_changes:
+          type: string
+          description: "JSON array of major changes"
+        total_lines:
+          type: integer
+          description: "Total number of lines on the form"
+        has_schedules:
+          type: boolean
+          description: "Whether the form has associated schedules"
+        gcs_pdf_uri:
+          type: string
+          description: "GCS URI for archived PDF"
+        jurisdiction_level:
+          type: string
+          description: "Jurisdiction level"
+        jurisdiction_code:
+          type: string
+          description: "Jurisdiction code"
+        _fivetran_synced:
+          type: string
+          format: date-time
+          description: "Fivetran sync timestamp"
+      
+      required: ["form_number", "revision", "published_date"]
+
+  mef_summaries:
+    display_name: "MeF Schema Summaries"
+    description: "IRS Modernized e-File schema versions and business rules"
+    
+    # Sync configuration
+    supports_incremental: true
+    cursor_field: "published_date"
+    primary_key: ["schema_version"]
+    
+    # Schema definition
+    schema:
+      type: object
+      properties:
+        schema_version:
+          type: string
+          description: "Schema version identifier"
+        published_date:
+          type: string
+          format: date
+          description: "Date the schema was published"
+        tax_year:
+          type: integer
+          description: "Tax year the schema applies to"
+        url:
+          type: string
+          format: uri
+          description: "URL to schema documentation"
+        schema_url:
+          type: string
+          format: uri
+          description: "URL to schema file"
+        business_rules_url:
+          type: string
+          format: uri
+          description: "URL to business rules"
+        version_major:
+          type: integer
+          description: "Major version number"
+        version_minor:
+          type: integer
+          description: "Minor version number"
+        version_patch:
+          type: integer
+          description: "Patch version number"
+        schema_type:
+          type: string
+          description: "Type of schema (business_rules, schema, both)"
+        form_types:
+          type: string
+          description: "JSON array of applicable form types"
+        notes:
+          type: string
+          description: "Release notes or description"
+        changes_summary:
+          type: string
+          description: "Summary of changes in this version"
+        mandatory_date:
+          type: string
+          format: date
+          description: "Date this version becomes mandatory"
+        file_sha256:
+          type: string
+          description: "SHA256 hash of schema file"
+        gcs_schema_uri:
+          type: string
+          description: "GCS URI for archived schema"
+        jurisdiction_level:
+          type: string
+          description: "Jurisdiction level"
+        jurisdiction_code:
+          type: string
+          description: "Jurisdiction code"
+        _fivetran_synced:
+          type: string
+          format: date-time
+          description: "Fivetran sync timestamp"
+      
+      required: ["schema_version", "published_date"]
+
+# Connection test configuration
+connection_test:
+  endpoints:
+    - url: "https://www.irs.gov/newsroom"
+      method: "GET"
+      expected_status: 200
+      timeout: 30
+    - url: "https://www.irs.gov/irb"
+      method: "GET"
+      expected_status: 200
+      timeout: 30
+
+# Rate limiting configuration
+rate_limits:
+  requests_per_minute: 60
+  requests_per_hour: 1000
+  backoff_strategy: "exponential"
+  max_backoff_seconds: 300
+
+# Error handling configuration
+error_handling:
+  max_retries: 3
+  retry_delay_seconds: 5
+  retry_backoff_multiplier: 2
+  fatal_error_codes: [401, 403, 404]
+  retryable_error_codes: [429, 500, 502, 503, 504]
