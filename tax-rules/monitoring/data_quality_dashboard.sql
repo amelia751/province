@@ -171,3 +171,4 @@ SELECT
 FROM `province-development.mart.rules_packages_simple`
 WHERE is_active = true
 ORDER BY hours_since_export DESC;
+

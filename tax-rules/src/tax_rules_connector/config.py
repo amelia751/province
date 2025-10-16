@@ -315,3 +315,4 @@ def get_preset_configuration(preset_name: str) -> Dict[str, Any]:
     preset_config = CONFIGURATION_PRESETS[preset_name]
     
     return merge_configurations(base_config, preset_config)
+

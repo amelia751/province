@@ -108,3 +108,4 @@ Since the GCS file connector is having configuration issues, we have several opt
 4. 🔧 **Fivetran**: Connector visible in dashboard, final config in progress
 
 The system is **production-ready** with or without the Fivetran connector fully configured! 🚀
+

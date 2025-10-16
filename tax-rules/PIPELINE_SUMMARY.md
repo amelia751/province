@@ -166,3 +166,4 @@ IRS Sources → Fivetran Connector → BigQuery (raw) → dbt → BigQuery (mart
 - **Modularity**: Extensible design for adding new jurisdictions
 
 The pipeline is now ready for production use and can handle the complete tax rules extraction, transformation, and export workflow from IRS sources to AWS consumption! 🏛️📊
+

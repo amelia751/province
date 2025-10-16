@@ -10,3 +10,4 @@ QUALIFY ROW_NUMBER() OVER (
   PARTITION BY jurisdiction_level, jurisdiction_code, tax_year 
   ORDER BY last_updated DESC
 ) = 1
+

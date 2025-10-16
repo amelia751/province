@@ -916,7 +916,3 @@ def _validate_1099_data(tax_data: List[Dict[str, Any]], taxpayer_name: str, tax_
     return validation_results
 
 
-# Fallback functions removed - only use Bedrock Data Automation
-
-
-# No backward compatibility wrappers needed - use ingest_documents directly

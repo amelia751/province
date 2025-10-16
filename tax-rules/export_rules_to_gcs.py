@@ -227,3 +227,4 @@ if __name__ == "__main__":
     print("3. Set up S3 bucket and DynamoDB table")
     print("4. Add error handling and notifications")
     print("5. Test the end-to-end pipeline")
+

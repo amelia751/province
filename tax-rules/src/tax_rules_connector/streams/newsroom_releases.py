@@ -34,7 +34,12 @@ class NewsroomReleasesStream(BaseStream):
                 "published_date": {"type": "DATE"},
                 "linked_revproc_url": {"type": "STRING"},
                 "content_summary": {"type": "STRING"},
+                "full_content": {"type": "STRING"},  # Enhanced content
+                "tax_amounts_json": {"type": "STRING"},  # JSON array of tax amounts
+                "effective_dates": {"type": "STRING"},  # JSON array of dates
                 "keywords_matched": {"type": "STRING"},  # JSON array as string
+                "is_inflation_related": {"type": "BOOLEAN"},
+                "is_tax_year_update": {"type": "BOOLEAN"},
                 "jurisdiction_level": {"type": "STRING"},
                 "jurisdiction_code": {"type": "STRING"},
                 "_extracted_at": {"type": "TIMESTAMP"}
@@ -187,6 +192,9 @@ class NewsroomReleasesStream(BaseStream):
             else:
                 published_date = date.today()
             
+            # Extract detailed content from the page
+            page_content = self._extract_page_content(href)
+            
             # Create release record
             release = {
                 'release_id': self.generate_id(href, text),
@@ -194,6 +202,9 @@ class NewsroomReleasesStream(BaseStream):
                 'url': href,
                 'published_date': published_date,
                 'content_summary': self._extract_summary(text),
+                'full_content': page_content['content'],
+                'tax_amounts_json': json.dumps(page_content['tax_amounts']),
+                'effective_dates': json.dumps(page_content['effective_dates']),
                 'linked_revproc_url': self._find_linked_revproc(text),
                 'keywords_matched': json.dumps(self._find_keywords(text)),
                 'is_inflation_related': self._is_inflation_related(text),
@@ -213,6 +224,83 @@ class NewsroomReleasesStream(BaseStream):
         """Extract a summary from the release text."""
         # For now, just return the cleaned text
         return self.clean_text(text)[:500]
+    
+    def _extract_page_content(self, url: str) -> Dict[str, Any]:
+        """Extract detailed content from an announcement page."""
+        try:
+            soup = self.http_client.get_soup(url)
+            if not soup:
+                return {"content": "", "tax_amounts": [], "effective_dates": []}
+            
+            # Get main content
+            content_areas = soup.find_all(['div', 'article', 'main'], 
+                                        class_=['content', 'main-content', 'article-content', 'field-item'])
+            
+            if not content_areas:
+                # Fallback to all paragraphs
+                content_areas = soup.find_all('p')
+            
+            # Extract text content
+            full_text = ""
+            for area in content_areas:
+                text = area.get_text(separator=' ', strip=True)
+                if len(text) > 50:  # Skip very short content
+                    full_text += text + " "
+            
+            # Extract tax-related amounts
+            tax_amounts = self._extract_tax_amounts(full_text)
+            
+            # Extract dates
+            effective_dates = self._extract_dates(full_text)
+            
+            return {
+                "content": full_text[:2000],  # Limit content size
+                "tax_amounts": tax_amounts,
+                "effective_dates": effective_dates
+            }
+            
+        except Exception as e:
+            logger.error(f"Error extracting content from {url}: {e}")
+            return {"content": "", "tax_amounts": [], "effective_dates": []}
+    
+    def _extract_tax_amounts(self, text: str) -> List[Dict[str, Any]]:
+        """Extract tax amounts from text."""
+        amounts = []
+        
+        # Pattern for dollar amounts
+        dollar_pattern = r'\$([0-9,]+(?:\.[0-9]{2})?)'
+        dollar_matches = re.finditer(dollar_pattern, text)
+        
+        for match in dollar_matches:
+            amount_str = match.group(1).replace(',', '')
+            try:
+                amount = float(amount_str)
+                # Get context around the amount
+                start = max(0, match.start() - 50)
+                end = min(len(text), match.end() + 50)
+                context = text[start:end].strip()
+                
+                amounts.append({
+                    "amount": amount,
+                    "formatted": f"${amount_str}",
+                    "context": context
+                })
+            except ValueError:
+                continue
+        
+        return amounts
+    
+    def _extract_dates(self, text: str) -> List[str]:
+        """Extract dates from text."""
+        # Pattern for years (2023, 2024, etc.)
+        year_pattern = r'\b(20[0-9]{2})\b'
+        years = re.findall(year_pattern, text)
+        
+        # Pattern for full dates
+        date_pattern = r'\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+20[0-9]{2}\b'
+        dates = re.findall(date_pattern, text)
+        
+        return list(set(years + dates))
     
     def _find_linked_revproc(self, text: str) -> Optional[str]:
         """Find linked revenue procedure URL."""

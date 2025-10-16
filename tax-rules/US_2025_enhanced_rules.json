@@ -1,0 +1,42 @@
+{
+  "metadata": {
+    "package_id": "US_2025_enhanced",
+    "version": "2.0",
+    "jurisdiction": {
+      "level": "federal",
+      "code": "US"
+    },
+    "tax_year": "2025",
+    "effective_date": "2024-10-15",
+    "last_updated": "2024-10-15",
+    "checksum_sha256": "cc938a445ccae97616746e76c4d3236ee7639bfeaeea379e84222146ccb088af",
+    "exported_at": "2025-10-16T17:00:13.804434Z",
+    "extraction_method": "enhanced_direct_connector",
+    "total_items": "5"
+  },
+  "rules": {
+    "other": {
+      "unknown": {
+        "amount": 3200,
+        "filing_status": null,
+        "description": "Extracted from: ear. a taxpayer may claim a total credit of up to $3,200, with a general total limit of $1,200, and "
+      }
+    }
+  },
+  "sources": {
+    "revproc_numbers": [
+      "newsroom-2025"
+    ],
+    "source_urls": [
+      "https://www.irs.gov/newsroom/treasury-irs-grant-filing-exception-for-tax-exempt-organizations-from-filing-new-form-4626-alternative-minimum-tax-corporations",
+      "https://www.irs.gov/newsroom/treasury-and-irs-issue-guidance-for-the-energy-efficient-home-improvement-credit"
+    ]
+  },
+  "format_version": "2.0",
+  "enhancements": {
+    "content_extraction": true,
+    "tax_amount_parsing": true,
+    "real_irs_data": true,
+    "comprehensive_analysis": true
+  }
+}
