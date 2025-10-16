@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { cn } from "@/lib/utils";
+import Lottie from 'lottie-react';
+import managingActionsAnimation from '@/../public/animation/managing_actions.json';
 import {
   Upload,
   Plus,
@@ -19,6 +21,9 @@ import {
   Users,
   ChevronRight,
   AlertCircle,
+  FolderOpen,
+  Archive,
+  Send,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -148,15 +153,15 @@ export default function StartScreenClient() {
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'draft':
-        return { label: 'Draft Ready', color: 'bg-yellow-500', icon: Clock };
+        return { label: 'Draft Ready', color: 'bg-yellow-500', textColor: 'text-yellow-500', icon: Clock };
       case 'waiting_approval':
-        return { label: 'Waiting for approval', color: 'bg-yellow-500', icon: Clock };
+        return { label: 'Waiting for approval', color: 'bg-yellow-500', textColor: 'text-yellow-500', icon: Clock };
       case 'filed':
-        return { label: 'Filed', color: 'bg-green-500', icon: CheckCircle2 };
+        return { label: 'Filed', color: 'bg-green-600', textColor: 'text-green-600', icon: Send };
       case 'archived':
-        return { label: 'Archived', color: 'bg-gray-500', icon: FileText };
+        return { label: 'Archived', color: 'bg-gray-500', textColor: 'text-gray-500', icon: Archive };
       default:
-        return { label: status, color: 'bg-gray-500', icon: FileText };
+        return { label: status, color: 'bg-gray-500', textColor: 'text-gray-500', icon: FileText };
     }
   };
 
@@ -185,45 +190,37 @@ export default function StartScreenClient() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Current Year Overview + Past Filings */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Current Year Overview Card */}
-            {currentFiling ? (
-              <Card className="border-2">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-2xl mb-2">
-                        {currentFiling.year} {currentFiling.formType}
-                      </CardTitle>
-                      <div className="flex items-center space-x-3">
-                        <Badge variant="secondary" className="flex items-center space-x-1">
-                          <div className={cn("h-2 w-2 rounded-full", getStatusConfig(currentFiling.status).color)} />
-                          <span>{getStatusConfig(currentFiling.status).label}</span>
-                        </Badge>
-                        {currentFiling.refundAmount && (
-                          <div className="flex items-center space-x-1 text-green-600 font-medium">
-                            <DollarSign className="h-4 w-4" />
-                            <span>Refund estimate: ${currentFiling.refundAmount.toLocaleString()}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex space-x-3">
-                    <Button onClick={() => handleOpenFiling(currentFiling)}>
+            {/* Current Year Row - Split between filing and actions */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Current Year Overview Card */}
+              {currentFiling ? (
+                <Card className="border shadow-none">
+                <CardHeader className="flex flex-col h-full">
+                  <div className="flex items-center justify-between pb-4 border-b">
+                    <CardTitle className="text-2xl">
+                      {currentFiling.year} Return
+                    </CardTitle>
+                    <Button onClick={() => handleOpenFiling(currentFiling)} className="bg-true-turquoise text-white hover:bg-black hover:text-white">
                       <FileText className="h-4 w-4 mr-2" />
                       Open Folder
                     </Button>
-                    <Button variant="outline" onClick={() => handleOpenFiling(currentFiling)}>
-                      Continue Review
-                      <ChevronRight className="h-4 w-4 ml-2" />
-                    </Button>
                   </div>
-                </CardContent>
+                  {currentFiling.refundAmount && (
+                    <div className="flex-1 flex items-center justify-center text-center">
+                      <div>
+                        <div className="text-5xl font-semibold text-gray-700 mb-2">
+                          ${currentFiling.refundAmount.toLocaleString()}
+                        </div>
+                        <div className="text-sm text-muted-foreground tracking-wider uppercase">
+                          Total {currentFiling.year} Tax Refund
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardHeader>
               </Card>
-            ) : (
-              <Card className="border-2 border-dashed">
+              ) : (
+                <Card className="border border-dashed shadow-none">
                 <CardHeader>
                   <CardTitle className="text-2xl">Let's start your {selectedYear} tax return</CardTitle>
                   <CardDescription className="text-base">
@@ -243,14 +240,25 @@ export default function StartScreenClient() {
                   </div>
                 </CardContent>
               </Card>
-            )}
+              )}
+
+              {/* Managing Actions Animation */}
+              <div className="hidden md:flex items-center justify-center overflow-hidden">
+                <Lottie
+                  animationData={managingActionsAnimation}
+                  loop={true}
+                  className="w-72 h-72"
+                  style={{ transform: 'scale(1.2)' }}
+                />
+              </div>
+            </div>
 
             {/* Past Filings Section */}
             {pastFilings.length > 0 && (
               <Collapsible open={isPastFilingsOpen} onOpenChange={setIsPastFilingsOpen}>
-                <Card>
+                <Card className="shadow-none">
                   <CollapsibleTrigger asChild>
-                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <CardHeader className="cursor-pointer transition-colors">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-xl">Past Filings</CardTitle>
                         <ChevronDown className={cn(
@@ -261,39 +269,37 @@ export default function StartScreenClient() {
                     </CardHeader>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <CardContent className="space-y-3 pt-0">
+                    <CardContent className="space-y-3 pt-4">
                       {pastFilings.map((filing) => {
                         const StatusIcon = getStatusConfig(filing.status).icon;
                         return (
                           <div
                             key={filing.year}
-                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-                            onClick={() => handleOpenFiling(filing)}
+                            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
                           >
                             <div className="flex items-center space-x-4">
-                              <StatusIcon className="h-5 w-5 text-muted-foreground" />
-                              <div>
-                                <div className="font-medium">{filing.year} – {getStatusConfig(filing.status).label}</div>
-                                {filing.refundAmount && (
-                                  <div className="text-sm text-green-600">
-                                    Refund: ${filing.refundAmount.toLocaleString()}
-                                  </div>
-                                )}
+                              <StatusIcon className={cn("h-5 w-5", getStatusConfig(filing.status).textColor)} />
+                              <div className="flex flex-col gap-2">
+                                <div className="font-medium text-gray-700">
+                                  {filing.year} – ${filing.refundAmount?.toLocaleString() || 0} Refund
+                                </div>
+                                <Badge variant="secondary" className={cn("flex items-center space-x-1 w-fit", getStatusConfig(filing.status).textColor)}>
+                                  <div className={cn("h-1.5 w-1.5 rounded-full", getStatusConfig(filing.status).color)} />
+                                  <span>{getStatusConfig(filing.status).label}</span>
+                                </Badge>
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <Button variant="ghost" size="sm">
-                                View Summary
-                              </Button>
                               {filing.status === 'filed' && (
-                                <Button variant="ghost" size="sm">
+                                <Button size="sm" className="bg-paper-white text-gray-600 hover:bg-true-turquoise hover:text-white">
                                   <Download className="h-4 w-4 mr-1" />
                                   Download
                                 </Button>
                               )}
                               {filing.status === 'archived' && (
-                                <Button variant="ghost" size="sm">
-                                  Reopen for Amendment
+                                <Button size="sm" className="bg-paper-white text-gray-600 hover:bg-true-turquoise hover:text-white">
+                                  <FolderOpen className="h-4 w-4 mr-1" />
+                                  Reopen
                                 </Button>
                               )}
                             </div>
@@ -311,28 +317,64 @@ export default function StartScreenClient() {
           <div className="space-y-6">
             {/* Tax Calendar & Deadlines */}
             <div className="space-y-4">
-              {/* Mini Calendar */}
-              <div className="flex justify-center">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  className="rounded-md border"
-                  modifiers={{
-                    deadline: deadlineDates,
-                  }}
-                  modifiersClassNames={{
-                    deadline: "bg-red-100 text-red-900 font-bold rounded-md",
-                  }}
-                />
+              {/* Calendar and Deadlines Row */}
+              <div className="flex flex-row justify-between items-end sm:items-start lg:items-end gap-4">
+                {/* Mini Calendar */}
+                <div className="flex justify-start bg-white w-auto">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    className="rounded-md border bg-white"
+                    modifiers={{
+                      deadline: deadlineDates,
+                    }}
+                    modifiersClassNames={{
+                      deadline: "bg-boysenberry text-white font-bold rounded-sm",
+                    }}
+                  />
+                </div>
+                {/* Deadline List on small and medium screens - horizontal next to calendar */}
+                {deadlinesThisMonth.length > 0 && (
+                  <div className="hidden sm:flex lg:hidden flex-col space-y-2 flex-1">
+                    {deadlinesThisMonth.map((deadline, idx) => {
+                      const daysUntil = Math.ceil((deadline.date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                      const priorityColor = deadline.priority === 'high' ? 'text-boysenberry' : deadline.priority === 'medium' ? 'text-terra-cotta' : 'text-gray-600';
+                      const badgeColor = deadline.priority === 'high' ? 'bg-boysenberry text-white' : deadline.priority === 'medium' ? 'bg-terra-cotta text-white' : 'bg-gray-200 text-gray-800';
+
+                      return (
+                        <div key={idx} className="p-3 border rounded-lg space-y-1">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start space-x-2">
+                              <AlertCircle className={cn("h-4 w-4 mt-0.5", priorityColor)} />
+                              <div>
+                                <div className="font-medium text-sm">{deadline.title}</div>
+                                <div className="text-xs text-muted-foreground">{deadline.description}</div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">
+                              {deadline.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                            <Badge className={cn("text-xs", badgeColor)}>
+                              {daysUntil} days
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
-              {/* Deadline List */}
+              {/* Deadline List - default vertical layout on mobile and large screens */}
               {deadlinesThisMonth.length > 0 ? (
-                <div className="space-y-2">
+                <div className="sm:hidden lg:block space-y-2 max-w-[320px]">
                   {deadlinesThisMonth.map((deadline, idx) => {
                     const daysUntil = Math.ceil((deadline.date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                    const priorityColor = deadline.priority === 'high' ? 'text-red-600' : deadline.priority === 'medium' ? 'text-yellow-600' : 'text-gray-600';
+                    const priorityColor = deadline.priority === 'high' ? 'text-boysenberry' : deadline.priority === 'medium' ? 'text-terra-cotta' : 'text-gray-600';
+                    const badgeColor = deadline.priority === 'high' ? 'bg-boysenberry text-white' : deadline.priority === 'medium' ? 'bg-terra-cotta text-white' : 'bg-gray-200 text-gray-800';
 
                     return (
                       <div key={idx} className="p-3 border rounded-lg space-y-1">
@@ -349,7 +391,7 @@ export default function StartScreenClient() {
                           <span className="text-muted-foreground">
                             {deadline.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </span>
-                          <Badge variant={deadline.priority === 'high' ? 'destructive' : 'secondary'} className="text-xs">
+                          <Badge className={cn("text-xs", badgeColor)}>
                             {daysUntil} days
                           </Badge>
                         </div>
@@ -358,7 +400,7 @@ export default function StartScreenClient() {
                   })}
                 </div>
               ) : (
-                <div className="text-center py-6">
+                <div className="text-center py-6 max-w-[320px]">
                   <p className="text-sm text-muted-foreground">No deadlines this month</p>
                 </div>
               )}
@@ -369,4 +411,3 @@ export default function StartScreenClient() {
     </div>
   );
 }
-

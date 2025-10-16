@@ -40,6 +40,9 @@ function TooltipContent({
   children,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+  // Extract background color from className to apply to arrow
+  const hasTurquoiseBg = className?.includes('bg-true-turquoise');
+
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Content
@@ -52,7 +55,10 @@ function TooltipContent({
         {...props}
       >
         {children}
-        <TooltipPrimitive.Arrow className="bg-foreground fill-foreground z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]" />
+        <TooltipPrimitive.Arrow className={cn(
+          "z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]",
+          hasTurquoiseBg ? "fill-true-turquoise bg-true-turquoise" : "bg-foreground fill-foreground"
+        )} />
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Portal>
   )

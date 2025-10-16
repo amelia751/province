@@ -33,8 +33,8 @@ export function SidebarNavItems({ items, pathname }: { items: NavItem[]; pathnam
           <div className={cn(
             "flex items-center justify-center p-3 rounded-md transition-all duration-200 group",
             isActive
-              ? "bg-black text-white"
-              : "text-gray-600 hover:text-black hover:bg-gray-50"
+              ? "bg-true-turquoise text-white"
+              : "text-gray-600 hover:text-black hover:bg-[#E8E5D8]"
           )}>
             <div className="h-5 w-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110">
               {item.icon}
@@ -61,7 +61,7 @@ export function SidebarNavItems({ items, pathname }: { items: NavItem[]; pathnam
                     </span>
                   )}
                 </TooltipTrigger>
-                <TooltipContent side="right" className="bg-gray-900 text-white border-gray-700">
+                <TooltipContent side="right" className="bg-true-turquoise text-white border-true-turquoise">
                   <p>{item.title}</p>
                 </TooltipContent>
               </Tooltip>
@@ -99,7 +99,7 @@ const Sidebar = ({ organizationName, isPersonalAccount, onWidthChange }: Sidebar
 
   return (
     <div
-      className="flex-shrink-0 flex flex-col bg-white border-r border-gray-100"
+      className="flex-shrink-0 flex flex-col bg-paper-white border-r border-gray-100"
       style={{ width: `${sidebarWidth}px` }}
     >
       {/* Navigation */}
@@ -119,12 +119,12 @@ const Sidebar = ({ organizationName, isPersonalAccount, onWidthChange }: Sidebar
             <TooltipTrigger asChild>
               <button
                 onClick={() => signOut()}
-                className="flex items-center justify-center p-3 rounded-md transition-all duration-200 w-full text-gray-600 hover:text-black hover:bg-gray-50 group"
+                className="flex items-center justify-center p-3 rounded-md transition-all duration-200 w-full text-gray-600 hover:text-black hover:bg-[#E8E5D8] group"
               >
                 <LogOut className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right" className="bg-gray-900 text-white border-gray-700">
+            <TooltipContent side="right" className="bg-true-turquoise text-white border-true-turquoise">
               <p>Sign out</p>
             </TooltipContent>
           </Tooltip>
