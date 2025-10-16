@@ -33,52 +33,56 @@ class TaxFormFiller:
         self.templates_bucket = self.settings.templates_bucket_name
         self.documents_bucket = self.settings.documents_bucket_name
 
-    async def fill_1040_form(self, form_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def fill_tax_form(self, form_type: str, form_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Fill a 1040 tax form with provided data.
+        Fill any tax form with provided data using dynamic field mapping.
         
         Args:
+            form_type: Type of form to fill (1040, SCHEDULE_C, STATE_CA, etc.)
             form_data: Dictionary containing form field data
             
         Returns:
             Dictionary with filled form URL and metadata
         """
         try:
-            logger.info("Starting 1040 form filling process")
+            logger.info(f"Starting {form_type} form filling process")
             
-            # Download the 1040 template
-            template_key = 'tax_forms/2024/f1040.pdf'
+            # Add form_type to form_data for mapping purposes
+            form_data_with_type = {**form_data, 'form_type': form_type}
+            
+            # Get template path for the form type
+            template_key = self._get_template_path(form_type)
             template_data = await self._download_pdf_template(template_key)
             
-            # Fill the form using PyMuPDF
-            filled_pdf_bytes = self._fill_pdf_with_pymupdf(template_data, form_data)
+            # Fill the form using PyMuPDF with dynamic mapping
+            filled_pdf_bytes = self._fill_pdf_with_pymupdf(template_data, form_data_with_type)
             
             # Upload the filled form with versioning
             upload_result = await self._upload_filled_pdf_with_versioning(
                 file_content=filled_pdf_bytes,
-                form_type='1040',
-                tax_year=2024,
+                form_type=form_type,
+                tax_year=form_data.get('tax_year', 2024),
                 metadata={
-                    'form_type': '1040',
-                    'tax_year': '2024',
+                    'form_type': form_type,
+                    'tax_year': str(form_data.get('tax_year', 2024)),
                     'filled_by': 'tax_form_filler_tool',
-                    'filling_method': 'pymupdf_production',
+                    'filling_method': 'pymupdf_dynamic_mapping',
                     'fields_filled': str(len(form_data)),
-                    'taxpayer_name': form_data.get('taxpayer_name', 'Test User')
+                    'taxpayer_name': form_data.get('taxpayer_name', 'Unknown')
                 },
-                taxpayer_id=form_data.get('taxpayer_name', 'Test_User').replace(' ', '_')
+                taxpayer_id=form_data.get('taxpayer_name', 'Unknown').replace(' ', '_')
             )
             
-            logger.info("Successfully filled 1040 form")
+            logger.info(f"Successfully filled {form_type} form")
             
             return {
                 'success': True,
                 'filled_form_url': upload_result['download_url'],
-                'form_type': '1040',
-                'tax_year': 2024,
+                'form_type': form_type,
+                'tax_year': form_data.get('tax_year', 2024),
                 'fields_filled': len(form_data),
                 'file_size': len(filled_pdf_bytes),
-                'message': 'Form filled successfully with PyMuPDF',
+                'message': f'Form {form_type} filled successfully with dynamic mapping',
                 'versioning': {
                     'document_id': upload_result['document_id'],
                     'version': upload_result['version'],
@@ -89,12 +93,51 @@ class TaxFormFiller:
             }
             
         except Exception as e:
-            logger.error(f"Error filling 1040 form: {e}")
+            logger.error(f"Error filling {form_type} form: {e}")
             return {
                 'success': False,
                 'error': str(e),
-                'message': 'Failed to fill form'
+                'message': f'Failed to fill {form_type} form'
             }
+
+    async def fill_1040_form(self, form_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Fill a 1040 tax form with provided data (legacy method).
+        
+        Args:
+            form_data: Dictionary containing form field data
+            
+        Returns:
+            Dictionary with filled form URL and metadata
+        """
+        return await self.fill_tax_form('1040', form_data)
+
+    def _get_template_path(self, form_type: str) -> str:
+        """
+        Get S3 template path for different form types.
+        
+        Args:
+            form_type: Type of form (1040, SCHEDULE_C, STATE_CA, etc.)
+            
+        Returns:
+            S3 key path to the template
+        """
+        template_paths = {
+            '1040': 'tax_forms/2024/f1040.pdf',
+            'SCHEDULE_C': 'tax_forms/2024/f1040sc.pdf',
+            'SCHEDULE_D': 'tax_forms/2024/f1040sd.pdf',
+            'SCHEDULE_E': 'tax_forms/2024/f1040se.pdf',
+            'SCHEDULE_A': 'tax_forms/2024/f1040sa.pdf',
+            'SCHEDULE_B': 'tax_forms/2024/f1040sb.pdf',
+            'STATE_CA': 'tax_forms/2024/ca/ca540.pdf',
+            'STATE_NY': 'tax_forms/2024/ny/it201.pdf',
+            'STATE_TX': 'tax_forms/2024/tx/no_state_tax.pdf',
+            'STATE_FL': 'tax_forms/2024/fl/no_state_tax.pdf',
+            'CITY_NYC': 'tax_forms/2024/nyc/nyc_resident.pdf',
+            'CITY_SF': 'tax_forms/2024/ca/sf_payroll.pdf',
+        }
+        
+        return template_paths.get(form_type.upper(), 'tax_forms/2024/f1040.pdf')
 
     def _fill_pdf_with_pymupdf(self, pdf_data: bytes, form_data: Dict[str, Any]) -> bytes:
         """
@@ -138,23 +181,8 @@ class TaxFormFiller:
             for widget in text_fields[:10]:  # Log first 10 for debugging
                 logger.info(f"  - {widget.field_name}")
             
-            # Create field mapping for 1040 form
-            field_mapping = {
-                'taxpayer_name': ['f1_01', 'f1_02', 'f1_03'],  # First, Middle, Last name
-                'ssn': ['f1_04'],
-                'spouse_name': ['f1_05', 'f1_06', 'f1_07'],  # Spouse names
-                'spouse_ssn': ['f1_08'],
-                'address': ['f1_09'],
-                'city': ['f1_10'],
-                'state': ['f1_11'],
-                'zip': ['f1_12'],
-                'wages': ['f1_13'],
-                'federal_withholding': ['f1_44'],
-                'standard_deduction': ['f1_29'],
-                'taxable_income': ['f1_34'],
-                'tax_liability': ['f1_35'],
-                'refund_or_due': ['f1_50', 'f1_51']
-            }
+            # Get dynamic field mapping based on form type
+            field_mapping = self._get_field_mapping_for_form(form_data)
             
             # Fill text fields using mapping
             for widget in text_fields:
@@ -410,11 +438,95 @@ class TaxFormFiller:
     def get_available_forms(self) -> List[Dict[str, Any]]:
         """Get list of available tax forms."""
         return [
+            # Federal Forms
             {
                 'form_type': '1040',
                 'description': 'U.S. Individual Income Tax Return',
+                'category': 'federal',
                 'tax_year': 2024,
                 'template_key': 'tax_forms/2024/f1040.pdf'
+            },
+            {
+                'form_type': 'SCHEDULE_C',
+                'description': 'Profit or Loss From Business (Sole Proprietorship)',
+                'category': 'federal_schedule',
+                'tax_year': 2024,
+                'template_key': 'tax_forms/2024/f1040sc.pdf'
+            },
+            {
+                'form_type': 'SCHEDULE_D',
+                'description': 'Capital Gains and Losses',
+                'category': 'federal_schedule',
+                'tax_year': 2024,
+                'template_key': 'tax_forms/2024/f1040sd.pdf'
+            },
+            {
+                'form_type': 'SCHEDULE_E',
+                'description': 'Supplemental Income and Loss',
+                'category': 'federal_schedule',
+                'tax_year': 2024,
+                'template_key': 'tax_forms/2024/f1040se.pdf'
+            },
+            {
+                'form_type': 'SCHEDULE_A',
+                'description': 'Itemized Deductions',
+                'category': 'federal_schedule',
+                'tax_year': 2024,
+                'template_key': 'tax_forms/2024/f1040sa.pdf'
+            },
+            
+            # State Forms
+            {
+                'form_type': 'STATE_CA',
+                'description': 'California Resident Income Tax Return',
+                'category': 'state',
+                'state': 'CA',
+                'tax_year': 2024,
+                'template_key': 'tax_forms/2024/ca/ca540.pdf'
+            },
+            {
+                'form_type': 'STATE_NY',
+                'description': 'New York Resident Income Tax Return',
+                'category': 'state',
+                'state': 'NY',
+                'tax_year': 2024,
+                'template_key': 'tax_forms/2024/ny/it201.pdf'
+            },
+            {
+                'form_type': 'STATE_TX',
+                'description': 'Texas (No State Income Tax)',
+                'category': 'state',
+                'state': 'TX',
+                'tax_year': 2024,
+                'template_key': 'tax_forms/2024/tx/no_state_tax.pdf'
+            },
+            {
+                'form_type': 'STATE_FL',
+                'description': 'Florida (No State Income Tax)',
+                'category': 'state',
+                'state': 'FL',
+                'tax_year': 2024,
+                'template_key': 'tax_forms/2024/fl/no_state_tax.pdf'
+            },
+            
+            # City Forms
+            {
+                'form_type': 'CITY_NYC',
+                'description': 'New York City Resident Income Tax Return',
+                'category': 'city',
+                'city': 'New York City',
+                'state': 'NY',
+                'tax_year': 2024,
+                'template_key': 'tax_forms/2024/nyc/nyc_resident.pdf'
+            },
+            {
+                'form_type': 'CITY_SF',
+                'description': 'San Francisco Payroll Tax',
+                'category': 'city',
+                'city': 'San Francisco',
+                'state': 'CA',
+                'tax_year': 2024,
+                'template_key': 'tax_forms/2024/ca/sf_payroll.pdf'
             }
         ]
 
@@ -473,6 +585,267 @@ class TaxFormFiller:
         
         return {}
 
+    def _get_field_mapping_for_form(self, form_data: Dict[str, Any]) -> Dict[str, List[str]]:
+        """
+        Get dynamic field mapping based on form type and available data.
+        
+        Args:
+            form_data: Form data containing form_type and other fields
+            
+        Returns:
+            Dictionary mapping data keys to form field names
+        """
+        form_type = form_data.get('form_type', '1040').upper()
+        
+        # Get base mapping for the form type
+        base_mapping = self._get_base_field_mapping(form_type)
+        
+        # Enhance mapping with intelligent field detection
+        enhanced_mapping = self._enhance_mapping_with_field_detection(base_mapping, form_data)
+        
+        logger.info(f"Using field mapping for {form_type}: {len(enhanced_mapping)} data keys mapped")
+        return enhanced_mapping
+
+    def _get_base_field_mapping(self, form_type: str) -> Dict[str, List[str]]:
+        """
+        Get base field mapping for different form types.
+        
+        Args:
+            form_type: Type of tax form (1040, SCHEDULE_C, STATE_CA, etc.)
+            
+        Returns:
+            Base field mapping dictionary
+        """
+        mappings = {
+            '1040': {
+                # Personal Information
+                'taxpayer_name': ['f1_01', 'f1_02', 'f1_03'],  # First, Middle, Last
+                'ssn': ['f1_04'],
+                'spouse_name': ['f1_05', 'f1_06', 'f1_07'],
+                'spouse_ssn': ['f1_08'],
+                'address': ['f1_09'],
+                'city': ['f1_10'],
+                'state': ['f1_11'],
+                'zip': ['f1_12'],
+                
+                # Income
+                'wages': ['f1_13'],
+                'taxable_interest': ['f1_14'],
+                'tax_exempt_interest': ['f1_15'],
+                'ordinary_dividends': ['f1_16'],
+                'qualified_dividends': ['f1_17'],
+                'ira_distributions': ['f1_18'],
+                'pensions_annuities': ['f1_19'],
+                'social_security': ['f1_20'],
+                'capital_gains': ['f1_21'],
+                'other_income': ['f1_22'],
+                'total_income': ['f1_23'],
+                
+                # Adjustments and Deductions
+                'adjusted_gross_income': ['f1_24'],
+                'standard_deduction': ['f1_29'],
+                'itemized_deductions': ['f1_30'],
+                'taxable_income': ['f1_34'],
+                
+                # Tax and Credits
+                'tax_liability': ['f1_35'],
+                'child_tax_credit': ['f1_36'],
+                'education_credits': ['f1_37'],
+                'other_credits': ['f1_38'],
+                'total_tax': ['f1_39'],
+                
+                # Payments
+                'federal_withholding': ['f1_44'],
+                'estimated_tax_payments': ['f1_45'],
+                'earned_income_credit': ['f1_46'],
+                'additional_child_tax_credit': ['f1_47'],
+                'total_payments': ['f1_48'],
+                
+                # Refund or Amount Due
+                'overpayment': ['f1_50'],
+                'refund_or_due': ['f1_50', 'f1_51'],
+                'amount_owed': ['f1_52']
+            },
+            
+            'SCHEDULE_C': {
+                # Business Information
+                'business_name': ['f2_01'],
+                'business_code': ['f2_02'],
+                'business_address': ['f2_03'],
+                'accounting_method': ['f2_04'],
+                'ein': ['f2_05'],
+                
+                # Income
+                'gross_receipts': ['f2_10'],
+                'returns_allowances': ['f2_11'],
+                'other_income': ['f2_12'],
+                'total_income': ['f2_13'],
+                
+                # Expenses
+                'advertising': ['f2_20'],
+                'car_truck_expenses': ['f2_21'],
+                'commissions_fees': ['f2_22'],
+                'contract_labor': ['f2_23'],
+                'depletion': ['f2_24'],
+                'depreciation': ['f2_25'],
+                'employee_benefit_programs': ['f2_26'],
+                'insurance': ['f2_27'],
+                'interest_mortgage': ['f2_28'],
+                'interest_other': ['f2_29'],
+                'legal_professional': ['f2_30'],
+                'office_expense': ['f2_31'],
+                'pension_profit_sharing': ['f2_32'],
+                'rent_lease_vehicles': ['f2_33'],
+                'rent_lease_other': ['f2_34'],
+                'repairs_maintenance': ['f2_35'],
+                'supplies': ['f2_36'],
+                'taxes_licenses': ['f2_37'],
+                'travel': ['f2_38'],
+                'meals': ['f2_39'],
+                'utilities': ['f2_40'],
+                'wages': ['f2_41'],
+                'other_expenses': ['f2_42'],
+                'total_expenses': ['f2_43'],
+                
+                # Net Profit/Loss
+                'net_profit_loss': ['f2_50']
+            },
+            
+            'SCHEDULE_D': {
+                # Short-term Capital Gains/Losses
+                'st_description_1': ['f3_01'],
+                'st_date_acquired_1': ['f3_02'],
+                'st_date_sold_1': ['f3_03'],
+                'st_proceeds_1': ['f3_04'],
+                'st_cost_basis_1': ['f3_05'],
+                'st_gain_loss_1': ['f3_06'],
+                
+                # Long-term Capital Gains/Losses
+                'lt_description_1': ['f3_10'],
+                'lt_date_acquired_1': ['f3_11'],
+                'lt_date_sold_1': ['f3_12'],
+                'lt_proceeds_1': ['f3_13'],
+                'lt_cost_basis_1': ['f3_14'],
+                'lt_gain_loss_1': ['f3_15'],
+                
+                # Totals
+                'total_st_gain_loss': ['f3_20'],
+                'total_lt_gain_loss': ['f3_21'],
+                'net_capital_gain_loss': ['f3_22']
+            },
+            
+            'STATE_CA': {  # California State Tax
+                'ca_taxpayer_name': ['ca_f1_01', 'ca_f1_02', 'ca_f1_03'],
+                'ca_ssn': ['ca_f1_04'],
+                'ca_spouse_name': ['ca_f1_05', 'ca_f1_06', 'ca_f1_07'],
+                'ca_spouse_ssn': ['ca_f1_08'],
+                'ca_address': ['ca_f1_09'],
+                'ca_city': ['ca_f1_10'],
+                'ca_zip': ['ca_f1_11'],
+                'ca_wages': ['ca_f1_20'],
+                'ca_withholding': ['ca_f1_30'],
+                'ca_tax_liability': ['ca_f1_40'],
+                'ca_refund_due': ['ca_f1_50']
+            },
+            
+            'STATE_NY': {  # New York State Tax
+                'ny_taxpayer_name': ['ny_f1_01', 'ny_f1_02', 'ny_f1_03'],
+                'ny_ssn': ['ny_f1_04'],
+                'ny_spouse_name': ['ny_f1_05', 'ny_f1_06', 'ny_f1_07'],
+                'ny_spouse_ssn': ['ny_f1_08'],
+                'ny_address': ['ny_f1_09'],
+                'ny_city': ['ny_f1_10'],
+                'ny_zip': ['ny_f1_11'],
+                'ny_wages': ['ny_f1_20'],
+                'ny_withholding': ['ny_f1_30'],
+                'ny_tax_liability': ['ny_f1_40'],
+                'ny_refund_due': ['ny_f1_50']
+            },
+            
+            'CITY_NYC': {  # NYC City Tax
+                'nyc_taxpayer_name': ['nyc_f1_01', 'nyc_f1_02', 'nyc_f1_03'],
+                'nyc_ssn': ['nyc_f1_04'],
+                'nyc_address': ['nyc_f1_09'],
+                'nyc_wages': ['nyc_f1_20'],
+                'nyc_withholding': ['nyc_f1_30'],
+                'nyc_tax_liability': ['nyc_f1_40'],
+                'nyc_refund_due': ['nyc_f1_50']
+            }
+        }
+        
+        return mappings.get(form_type, {})
+
+    def _enhance_mapping_with_field_detection(self, base_mapping: Dict[str, List[str]], 
+                                            form_data: Dict[str, Any]) -> Dict[str, List[str]]:
+        """
+        Enhance base mapping with intelligent field detection based on available data.
+        
+        Args:
+            base_mapping: Base field mapping for the form type
+            form_data: Available form data
+            
+        Returns:
+            Enhanced field mapping
+        """
+        enhanced_mapping = base_mapping.copy()
+        
+        # Add intelligent mappings for common field patterns
+        for data_key in form_data.keys():
+            if data_key not in enhanced_mapping:
+                # Try to find matching fields using common patterns
+                potential_fields = self._find_potential_field_matches(data_key)
+                if potential_fields:
+                    enhanced_mapping[data_key] = potential_fields
+                    logger.info(f"Auto-detected field mapping: {data_key} -> {potential_fields}")
+        
+        return enhanced_mapping
+
+    def _find_potential_field_matches(self, data_key: str) -> List[str]:
+        """
+        Find potential field matches using common naming patterns.
+        
+        Args:
+            data_key: Data key to find matches for
+            
+        Returns:
+            List of potential field names
+        """
+        potential_fields = []
+        
+        # Common field naming patterns
+        patterns = {
+            'name': ['name', 'nm', 'taxpayer'],
+            'address': ['addr', 'address', 'street'],
+            'city': ['city', 'cty'],
+            'state': ['state', 'st'],
+            'zip': ['zip', 'postal', 'zipcode'],
+            'ssn': ['ssn', 'social', 'tin'],
+            'phone': ['phone', 'tel', 'telephone'],
+            'email': ['email', 'mail'],
+            'income': ['income', 'wages', 'salary'],
+            'tax': ['tax', 'liability'],
+            'withholding': ['withhold', 'withheld', 'wh'],
+            'refund': ['refund', 'overpayment'],
+            'amount_due': ['due', 'owed', 'balance'],
+            'date': ['date', 'dt'],
+            'amount': ['amount', 'amt']
+        }
+        
+        data_key_lower = data_key.lower()
+        
+        # Look for pattern matches
+        for pattern_key, pattern_values in patterns.items():
+            if any(pattern in data_key_lower for pattern in pattern_values):
+                # Generate potential field names based on common form field patterns
+                potential_fields.extend([
+                    f"f1_{pattern_key}",  # Standard pattern
+                    f"{pattern_key}",     # Simple pattern
+                    f"field_{pattern_key}",  # Field prefix pattern
+                    f"txt_{pattern_key}",    # Text field pattern
+                ])
+        
+        return potential_fields[:3]  # Return top 3 matches to avoid too many attempts
+
     async def _list_existing_versions(self, base_key: str) -> List[Dict[str, Any]]:
         """List existing versions of a document in S3."""
         try:
@@ -516,31 +889,46 @@ class TaxFormFiller:
             import boto3
             from botocore.exceptions import ClientError
             
-            # Try to store in tax documents table if it exists
+            # Use the document versions table
             dynamodb = boto3.resource('dynamodb', region_name=self.settings.aws_region)
             
-            # Use the tax documents table name from settings
-            table_name = getattr(self.settings, 'tax_documents_table_name', None)
-            if not table_name:
-                logger.info("No tax documents table configured, skipping metadata storage")
-                return
-            
+            # Use the document versions table name
+            table_name = os.getenv('DOCUMENT_VERSIONS_TABLE_NAME', 'province-document-versions')
             table = dynamodb.Table(table_name)
             
-            # Store version metadata
+            # Extract form type and taxpayer from document_id
+            # Format: tax_form_TaxpayerName_FormType_Year
+            parts = document_id.split('_')
+            if len(parts) >= 4:
+                taxpayer_id = '_'.join(parts[2:-2]) if len(parts) > 4 else parts[2]
+                form_type = parts[-2]
+                tax_year = parts[-1]
+            else:
+                taxpayer_id = 'unknown'
+                form_type = 'unknown'
+                tax_year = '2024'
+            
+            # Store version metadata with proper structure
             table.put_item(
                 Item={
                     'document_id': document_id,
                     'version': version_info['version'],
+                    'taxpayer_id': taxpayer_id,
+                    'form_type': form_type,
+                    'tax_year': tax_year,
                     's3_key': version_info['s3_key'],
                     'size': version_info['size'],
                     'created_at': version_info['created_at'],
-                    'metadata': version_info['metadata'],
-                    'download_url': version_info['download_url']
+                    'content_hash': version_info['metadata'].get('content_hash', ''),
+                    'file_size': version_info['metadata'].get('file_size', ''),
+                    'filling_method': version_info['metadata'].get('filling_method', ''),
+                    'fields_filled': version_info['metadata'].get('fields_filled', ''),
+                    'download_url': version_info['download_url'],
+                    'metadata': version_info['metadata']
                 }
             )
             
-            logger.info(f"Stored version metadata for {document_id} {version_info['version']}")
+            logger.info(f"Stored version metadata for {document_id} {version_info['version']} in {table_name}")
             
         except Exception as e:
             logger.warning(f"Could not store version metadata: {e}")
@@ -572,25 +960,17 @@ class TaxFormFiller:
 # Tool function for agent integration
 async def fill_tax_form(form_type: str, form_data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Fill a tax form with provided data.
+    Fill any tax form with provided data using dynamic field mapping.
     
     Args:
-        form_type: Type of form to fill (e.g., '1040')
+        form_type: Type of form to fill (1040, SCHEDULE_C, STATE_CA, etc.)
         form_data: Dictionary containing form field data
         
     Returns:
         Dictionary with filled form URL and metadata
     """
     filler = TaxFormFiller()
-    
-    if form_type.lower() == '1040':
-        return await filler.fill_1040_form(form_data)
-    else:
-        return {
-            'success': False,
-            'error': f'Unsupported form type: {form_type}',
-            'message': 'Only 1040 forms are currently supported'
-        }
+    return await filler.fill_tax_form(form_type, form_data)
 
 
 # Tool function for getting available forms

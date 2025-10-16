@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from ...agents.tax.tools.ingest_w2 import ingest_w2
+from ...agents.tax.tools.ingest_documents import ingest_documents
 
 logger = logging.getLogger(__name__)
 
@@ -54,11 +54,12 @@ async def ingest_w2_endpoint(request: IngestW2Request) -> IngestW2Response:
     try:
         logger.info(f"Processing W2 ingestion request for {request.s3_key}")
         
-        # Call the ingest_w2 function
-        result = await ingest_w2(
+        # Call the ingest_documents function with W-2 type
+        result = await ingest_documents(
             s3_key=request.s3_key,
             taxpayer_name=request.taxpayer_name,
-            tax_year=request.tax_year
+            tax_year=request.tax_year,
+            document_type='W-2'
         )
         
         # Convert the result to the response model

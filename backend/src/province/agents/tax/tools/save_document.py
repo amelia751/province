@@ -39,7 +39,7 @@ async def save_document(engagement_id: str, path: str, content_b64: str, mime_ty
         # Upload to S3
         s3_client = boto3.client('s3', region_name=settings.aws_region)
         
-        bucket_name = "province-documents-storage"  # As specified by user
+        bucket_name = settings.documents_bucket_name
         
         s3_client.put_object(
             Bucket=bucket_name,

@@ -12,6 +12,7 @@ This service orchestrates the conversational tax filing flow:
 import os
 import json
 import logging
+import base64
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import asyncio
@@ -19,7 +20,7 @@ import asyncio
 from strands import Agent, tool
 
 from ..core.config import get_settings
-from ..agents.tax.tools.ingest_w2 import ingest_w2
+from ..agents.tax.tools.ingest_documents import ingest_documents
 from ..agents.tax.tools.calc_1040 import calc_1040
 from ..agents.tax.tools.form_filler import fill_tax_form
 from ..agents.tax.tools.save_document import save_document
@@ -31,36 +32,45 @@ conversation_state = {}
 
 
 @tool
-async def ingest_w2_tool(s3_key: str, taxpayer_name: str = "Test User", tax_year: int = 2024) -> str:
+async def ingest_documents_tool(s3_key: str, taxpayer_name: str = "Test User", tax_year: int = 2024, document_type: str = None) -> str:
     """
-    Process W2 document from S3 bucket to extract wage and tax information.
+    Process tax documents from S3 bucket to extract tax information.
+    Supports W-2, 1099-INT, 1099-MISC, and other tax documents.
     
     Args:
-        s3_key: S3 key of the W2 document
+        s3_key: S3 key of the tax document
         taxpayer_name: Name of the taxpayer
         tax_year: Tax year
+        document_type: Type of document ('W-2', '1099-INT', '1099-MISC', or None for auto-detection)
     
     Returns:
-        String describing the W2 processing result
+        String describing the document processing result
     """
     try:
-        logger.info(f"Processing W2: {s3_key}")
-        result = await ingest_w2(s3_key, taxpayer_name, tax_year)
+        logger.info(f"Processing tax document: {s3_key} (type: {document_type or 'auto-detect'})")
+        result = await ingest_documents(s3_key, taxpayer_name, tax_year, document_type)
         
         if result.get('success'):
-            # Store W2 data in conversation state
+            # Store document data in conversation state
             session_id = conversation_state.get('current_session_id', 'default')
             if session_id not in conversation_state:
                 conversation_state[session_id] = {}
             
-            conversation_state[session_id]['w2_data'] = result['w2_extract']
+            # Store the extracted data based on document type
+            doc_type = result.get('document_type', 'unknown')
+            if doc_type == 'W-2':
+                conversation_state[session_id]['w2_data'] = result['w2_extract']
+            elif doc_type in ['1099-INT', '1099-MISC']:
+                if 'tax_documents' not in conversation_state[session_id]:
+                    conversation_state[session_id]['tax_documents'] = []
+                conversation_state[session_id]['tax_documents'].append(result)
             
-            return f"Successfully processed W2! Found {result['forms_count']} form(s) with total wages of ${result['total_wages']:,.2f} and federal withholding of ${result['total_withholding']:,.2f}."
+            return f"Successfully processed {doc_type} document! Found {result['forms_count']} form(s) with total wages/income of ${result['total_wages']:,.2f} and federal withholding of ${result['total_withholding']:,.2f}."
         else:
-            return f"Failed to process W2: {result.get('error', 'Unknown error')}"
+            return f"Failed to process tax document: {result.get('error', 'Unknown error')}"
     except Exception as e:
-        logger.error(f"Error in W2 ingestion: {e}")
-        return f"Error processing W2: {str(e)}"
+        logger.error(f"Error in document ingestion: {e}")
+        return f"Error processing tax document: {str(e)}"
 
 
 @tool
@@ -283,11 +293,13 @@ async def save_document_tool(
         
         # Generate document content (simplified for demo)
         content = _generate_tax_document_content(filled_form['form_data'])
+        content_b64 = base64.b64encode(content.encode('utf-8')).decode('utf-8')
         
         result = await save_document(
-            content=content,
-            document_type=document_type,
-            metadata=doc_data
+            engagement_id=session_id,
+            path=f"{document_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+            content_b64=content_b64,
+            mime_type="text/plain"
         )
         
         if result.get('success'):
@@ -468,7 +480,7 @@ class TaxService:
             model=os.getenv('BEDROCK_MODEL_ID', 'us.anthropic.claude-3-5-sonnet-20240620-v1:0'),
             system_prompt=system_prompt,
             tools=[
-                ingest_w2_tool,
+                ingest_documents_tool,
                 calc_1040_tool,
                 fill_form_tool,
                 save_document_tool,
