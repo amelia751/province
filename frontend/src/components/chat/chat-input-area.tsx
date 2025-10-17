@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Mic, Keyboard, FileText, Send, Image, ChevronDown, MessageSquare, Calculator, FileCheck, FileInput, Search, BarChart3 } from 'lucide-react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Mic, Keyboard, FileText, Send, Image, ChevronDown, MessageSquare, Calculator, FileCheck, FileInput, Search, BarChart3, Upload, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +20,7 @@ interface ChatInputAreaProps {
     setInputValue?: (value: string) => void;
     handleSendMessage?: () => void;
     handleKeyPress?: (e: React.KeyboardEvent) => void;
+    engagementId?: string;
 }
 
 const ChatInputArea: React.FC<ChatInputAreaProps> = ({
@@ -30,13 +31,17 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
     inputValue = '',
     setInputValue = () => { },
     handleSendMessage = () => { },
-    handleKeyPress = () => { }
+    handleKeyPress = () => { },
+    engagementId
 }) => {
     const [inputMode, setInputMode] = useState<'voice' | 'text'>('voice');
     const [isConnecting, setIsConnecting] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [selectedMode, setSelectedMode] = useState<'ask' | 'agents'>('agents');
+    const [isDragging, setIsDragging] = useState(false);
+    const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const modes = [
@@ -77,6 +82,71 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
     };
 
     const isInputDisabled = !isConnected;
+
+    // Drag and drop handlers
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    }, []);
+
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    }, []);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length > 0 && engagementId) {
+            handleFileUpload(files);
+        }
+    }, [engagementId]);
+
+    const handleFileUpload = async (files: File[]) => {
+        if (!engagementId) {
+            console.error('No engagement ID available for file upload');
+            return;
+        }
+
+        setUploadingFiles(files);
+        setIsUploading(true);
+
+        try {
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('engagementId', engagementId);
+                formData.append('documentPath', `chat-uploads/${file.name}`);
+
+                const response = await fetch('/api/documents/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Upload failed for ${file.name}`);
+                }
+
+                const result = await response.json();
+                console.log(`Successfully uploaded ${file.name}:`, result);
+                
+                // Add a message to the chat about the uploaded file
+                const uploadMessage = `📎 Uploaded: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                setInputValue(prev => prev ? `${prev}\n${uploadMessage}` : uploadMessage);
+            }
+        } catch (error) {
+            console.error('File upload error:', error);
+            // You could add a toast notification here
+        } finally {
+            setIsUploading(false);
+            setUploadingFiles([]);
+        }
+    };
 
     // Keep focus on input only when switching to text mode
     useEffect(() => {
@@ -258,7 +328,12 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
                         </div>
 
                         {/* Text input area */}
-                        <div className="relative">
+                        <div 
+                            className={`relative ${isDragging ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}`}
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                        >
                             <Textarea
                                 ref={inputRef as any}
                                 value={inputValue}
@@ -270,16 +345,30 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
                                     }
                                 }}
                                 placeholder={
-                                    !isConnected
+                                    isDragging
+                                        ? "Drop files here to upload..."
+                                        : !isConnected
                                         ? "Connect to tax assistant to start chatting..."
                                         : selectedMode === 'ask'
-                                            ? "Ask me anything..."
-                                            : "Ask your tax agents..."
+                                            ? "Ask me anything... (or drag & drop files)"
+                                            : "Ask your tax agents... (or drag & drop files)"
                                 }
-                                className="min-h-[52px] max-h-[200px] pr-12 resize-none"
-                                disabled={isTextSending || isInputDisabled}
+                                className={`min-h-[52px] max-h-[200px] pr-12 resize-none transition-all ${
+                                    isDragging ? 'border-blue-500 bg-blue-50' : ''
+                                }`}
+                                disabled={isTextSending || isInputDisabled || isUploading}
                                 data-tour="chat-input"
                             />
+
+                            {/* Upload indicator */}
+                            {isUploading && (
+                                <div className="absolute inset-0 bg-blue-50 bg-opacity-90 flex items-center justify-center rounded-md">
+                                    <div className="flex items-center space-x-2 text-blue-600">
+                                        <Upload className="h-4 w-4 animate-pulse" />
+                                        <span className="text-sm">Uploading {uploadingFiles.length} file(s)...</span>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Send button - bottom right of textarea */}
                             <Button

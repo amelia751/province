@@ -11,6 +11,8 @@ import { mockAIMatters } from '@/components/explorer-panel/mock-data';
 
 interface InterfaceLayoutProps {
   organizationName?: string | null;
+  projectId?: string;
+  debugInfo?: any;
 }
 
 // Explorer Resize Handle Component
@@ -207,12 +209,15 @@ function ChatResizeHandle({ onResize }: ChatResizeHandleProps) {
   );
 }
 
-export default function InterfaceLayout({ organizationName }: InterfaceLayoutProps) {
+export default function InterfaceLayout({ organizationName, projectId, debugInfo }: InterfaceLayoutProps) {
   const [sidebarWidth, setSidebarWidth] = useState(64);
   const [explorerWidth, setExplorerWidth] = useState(280);
   const [chatWidth, setChatWidth] = useState(400);
-  // Use first mock matter as selected project
-  const [selectedProject] = useState(mockAIMatters[0]);
+  // Use first mock matter as selected project, but override the ID with the real project ID
+  const [selectedProject] = useState(() => {
+    const mockProject = mockAIMatters[0];
+    return projectId ? { ...mockProject, id: projectId } : mockProject;
+  });
   // Selected document state
   const [selectedDocument, setSelectedDocument] = useState<{
     id: string;
@@ -411,7 +416,7 @@ export default function InterfaceLayout({ organizationName }: InterfaceLayoutPro
           "flex-1 min-w-0 relative h-full",
           chatWidth === 0 && "border-r-0"
         )}>
-          <MainEditor selectedDocument={selectedDocument} />
+          <MainEditor selectedDocument={selectedDocument} debugInfo={debugInfo} />
           {/* Main Editor Left Resize Handle - only show if explorer is visible */}
           {explorerWidth > 0 && (
             <MainEditorLeftResizeHandle onResize={handleExplorerWidthChange} />
@@ -430,7 +435,7 @@ export default function InterfaceLayout({ organizationName }: InterfaceLayoutPro
           >
             {/* Chat Resize Handle */}
             <ChatResizeHandle onResize={handleChatWidthChange} />
-            <Chat />
+            <Chat engagementId={projectId} />
           </div>
         )}
       </div>

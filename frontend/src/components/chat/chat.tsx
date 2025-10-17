@@ -31,6 +31,7 @@ interface ChatProps {
   onDocumentCreate?: (document: any) => void;
   onMatterCreate?: (matter: any) => void;
   onDeadlineCreate?: (deadline: any) => void;
+  engagementId?: string;
 }
 
 interface ChatMessage {
@@ -59,7 +60,8 @@ type ChatMode = 'text' | 'voice';
 const TaxChatInterface: React.FC<ChatProps> = ({
   onDocumentCreate,
   onMatterCreate,
-  onDeadlineCreate
+  onDeadlineCreate,
+  engagementId
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [chatMode, setChatMode] = useState<ChatMode>('voice'); // Default to voice for better UX
@@ -374,6 +376,7 @@ const TaxChatInterface: React.FC<ChatProps> = ({
         setInputValue={setInputValue}
         handleSendMessage={sendMessage}
         handleKeyPress={handleKeyPress}
+        engagementId={engagementId}
       />
     </div>
   );

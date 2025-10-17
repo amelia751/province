@@ -28,6 +28,7 @@ interface MainEditorProps {
     url?: string;
     path: string;
   } | null;
+  debugInfo?: any;
 }
 
 interface EditorTab {
@@ -53,11 +54,19 @@ interface LogEntry {
 
 const mockTabs: EditorTab[] = [
   {
+    id: "debug",
+    name: "🐛 Debug Info",
+    path: "system/debug",
+    isDirty: false,
+    isActive: true,
+    type: "debug"
+  },
+  {
     id: "logs",
     name: "Backend Logs",
     path: "system/logs",
     isDirty: false,
-    isActive: true
+    isActive: false
   },
   {
     id: "ingest-w2",
@@ -83,7 +92,7 @@ const mockTabs: EditorTab[] = [
   }
 ];
 
-const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument }) => {
+const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) => {
   const [tabs, setTabs] = useState(mockTabs);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -647,6 +656,25 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument }) => {
                             }
                           }}
                         />
+                      </div>
+                    ) : activeTab.type === 'debug' ? (
+                      // Debug Info Tab
+                      <div className="h-full flex flex-col p-6">
+                        <div className="mb-6">
+                          <h2 className="text-xl font-semibold text-gray-800 mb-2">🐛 Project Debug Information</h2>
+                          <p className="text-gray-600">Real-time debug information for the current project session</p>
+                        </div>
+                        
+                        <div className="flex-1 min-h-0">
+                          <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm h-full overflow-auto">
+                            <pre className="whitespace-pre-wrap">
+                              {debugInfo ? JSON.stringify({
+                                ...debugInfo,
+                                timestamp: new Date().toISOString() // Update timestamp in real-time
+                              }, null, 2) : 'No debug information available'}
+                            </pre>
+                          </div>
+                        </div>
                       </div>
                     ) : activeTab.type === 'ingest-tool' && activeTab.id === 'ingest-w2' ? (
                       // Ingest W-2 Tool

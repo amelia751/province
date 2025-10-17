@@ -326,7 +326,7 @@ const EnhancedExplorerPanel: React.FC<EnhancedExplorerPanelProps> = ({
         {/* Document Ingest Dialog */}
         {selectedIngestFolder && (
           <DocumentIngest
-            folderId={selectedIngestFolder.id}
+            engagementId={selectedProject.id}
             folderName={selectedIngestFolder.name}
             open={ingestDialogOpen}
             onOpenChange={setIngestDialogOpen}

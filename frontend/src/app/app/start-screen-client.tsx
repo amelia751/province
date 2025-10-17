@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from "react";
+import { useRouter, usePathname } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { cn } from "@/lib/utils";
 import Lottie from 'lottie-react';
@@ -126,13 +126,25 @@ const mockDeadlines: TaxDeadline[] = [
 
 export default function StartScreenClient() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useUser();
   const [selectedYear, setSelectedYear] = useState<number>(2025);
   const [isPastFilingsOpen, setIsPastFilingsOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [currentEngagementId, setCurrentEngagementId] = useState<string | null>(null);
+  const [isCreatingEngagement, setIsCreatingEngagement] = useState(false);
+  const [hasCheckedEngagement, setHasCheckedEngagement] = useState(false);
 
   const currentFiling = mockFilings.find(f => f.year === selectedYear);
   const pastFilings = mockFilings.filter(f => f.year < selectedYear);
+
+  // Debug current state
+  console.log('Current state:', {
+    selectedYear,
+    currentEngagementId,
+    hasCheckedEngagement,
+    user: !!user
+  });
 
   // Get deadlines for selected calendar month
   const today = new Date();
@@ -165,17 +177,182 @@ export default function StartScreenClient() {
     }
   };
 
-  const handleStartNewFiling = () => {
-    // Create new project for tax filing
-    const newProjectId = `tax-${selectedYear}-${Date.now()}`;
-    router.push(`/app/project/${newProjectId}`);
+  // Create or get tax engagement for the current year
+  const createTaxEngagement = async (filingYear: number) => {
+    if (!user) return null;
+
+    setIsCreatingEngagement(true);
+    try {
+      const response = await fetch('/api/tax-engagements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ filingYear }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create tax engagement');
+      }
+
+      const result = await response.json();
+      setCurrentEngagementId(result.engagementId);
+      setHasCheckedEngagement(true); // Mark as checked since we just created it
+      return result.engagementId;
+    } catch (error) {
+      console.error('Error creating tax engagement:', error);
+      return null;
+    } finally {
+      setIsCreatingEngagement(false);
+    }
   };
 
-  const handleOpenFiling = (filing: TaxFiling) => {
-    router.push(`/app/project/${filing.id}`);
+  // Fetch existing tax engagement for the year
+  const fetchTaxEngagement = async (filingYear: number) => {
+    if (!user) return null;
+
+    try {
+      const response = await fetch(`/api/tax-engagements?filingYear=${filingYear}`);
+      
+      if (!response.ok) {
+        return null;
+      }
+
+      const result = await response.json();
+      const engagements = result.engagements || [];
+      
+      console.log('=== FETCH TAX ENGAGEMENT DEBUG ===');
+      console.log('Raw API response:', result);
+      console.log('Engagements array:', engagements);
+      console.log('Engagements length:', engagements.length);
+      console.log('Looking for filing year:', filingYear);
+      
+      // Check if any engagement exists for this year
+      const hasEngagement = engagements.length > 0;
+      
+      if (hasEngagement) {
+        const engagement = engagements[0]; // Take the first engagement
+        console.log('Found engagement object:', engagement);
+        console.log('Engagement ID:', engagement.engagementId);
+        console.log('Setting current engagement ID to:', engagement.engagementId);
+        setCurrentEngagementId(engagement.engagementId);
+        return engagement.engagementId;
+      } else {
+        console.log('No engagement found - array is empty');
+        setCurrentEngagementId(null);
+      }
+      console.log('=== END FETCH DEBUG ===');
+      
+      return null;
+    } catch (error) {
+      console.error('Error fetching tax engagement:', error);
+      return null;
+    }
   };
 
-  const handleUploadDocuments = () => {
+  // Manual refresh function
+  const refreshEngagementState = async () => {
+    setHasCheckedEngagement(false);
+    setCurrentEngagementId(null);
+    if (user && selectedYear) {
+      await fetchTaxEngagement(selectedYear);
+      setHasCheckedEngagement(true);
+    }
+  };
+
+  // Reset check flag when year changes
+  useEffect(() => {
+    setHasCheckedEngagement(false);
+    setCurrentEngagementId(null);
+  }, [selectedYear]);
+
+  // Load engagement on component mount and year change
+  useEffect(() => {
+    console.log('useEffect triggered:', { user: !!user, selectedYear, hasCheckedEngagement });
+    if (user && selectedYear && !hasCheckedEngagement) {
+      console.log('Fetching tax engagement for year:', selectedYear);
+      fetchTaxEngagement(selectedYear).then((engagementId) => {
+        console.log('Fetch completed, engagement ID:', engagementId);
+        setHasCheckedEngagement(true);
+      });
+    }
+  }, [user, selectedYear, hasCheckedEngagement]);
+
+  // Reset and refetch when component becomes visible (user navigates back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user && selectedYear) {
+        // Reset and refetch when page becomes visible
+        setHasCheckedEngagement(false);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also reset on focus (when user comes back to tab/window)
+    const handleFocus = () => {
+      if (user && selectedYear) {
+        setHasCheckedEngagement(false);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [user, selectedYear]);
+
+  // Refresh engagement state when navigating back to this page
+  useEffect(() => {
+    if (pathname === '/app' && user && selectedYear) {
+      refreshEngagementState();
+    }
+  }, [pathname, user, selectedYear]);
+
+  const handleStartNewFiling = async () => {
+    const engagementId = await createTaxEngagement(selectedYear);
+    if (engagementId) {
+      router.push(`/app/project/${engagementId}`);
+    }
+  };
+
+  const handleOpenFiling = async (filing: TaxFiling) => {
+    if (isCreatingEngagement) return; // Prevent duplicate calls
+    
+    // Check if we have an engagement for this year, create if not
+    let engagementId = currentEngagementId;
+    
+    if (!engagementId) {
+      engagementId = await createTaxEngagement(filing.year);
+    }
+    
+    if (engagementId) {
+      router.push(`/app/project/${engagementId}`);
+    } else {
+      // Fallback to old behavior
+      router.push(`/app/project/${filing.id}`);
+    }
+  };
+
+  const handleUploadDocuments = async () => {
+    if (isCreatingEngagement) return; // Prevent duplicate calls
+    
+    // Ensure we have an engagement for document uploads
+    let engagementId = currentEngagementId;
+    
+    if (!engagementId) {
+      engagementId = await createTaxEngagement(selectedYear);
+    }
+    
+    if (engagementId) {
+      // For now, we'll redirect to project page where document upload will be available
+      router.push(`/app/project/${engagementId}`);
+    }
+  };
+
+  const handleUploadDocumentsOld = () => {
     router.push('/app/tax/upload');
   };
 
@@ -185,7 +362,26 @@ export default function StartScreenClient() {
 
   return (
     <div className="h-full bg-background overflow-auto">
-        <div className="max-w-7xl mx-auto px-6 py-8">
+      {/* Debug Panel */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-black text-green-400 p-4 text-xs font-mono sticky top-0 z-50">
+          <div className="mb-2 font-bold">🐛 DEBUG INFO (Copy this for debugging):</div>
+          <div className="bg-gray-900 p-2 rounded border max-h-32 overflow-auto">
+            <pre>{JSON.stringify({
+              timestamp: new Date().toISOString(),
+              selectedYear,
+              currentEngagementId: currentEngagementId || 'NULL',
+              hasCheckedEngagement,
+              isCreatingEngagement,
+              user: user ? { id: user.id, exists: true } : null,
+              pathname,
+              buttonText: currentEngagementId ? 'Open Folder' : 'Start Filing'
+            }, null, 2)}</pre>
+          </div>
+        </div>
+      )}
+      
+      <div className="max-w-7xl mx-auto px-6 py-8">
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Current Year Overview + Past Filings */}
@@ -200,19 +396,45 @@ export default function StartScreenClient() {
                     <CardTitle className="text-2xl">
                       {currentFiling.year} Return
                     </CardTitle>
-                    <Button onClick={() => handleOpenFiling(currentFiling)} className="bg-true-turquoise text-white hover:bg-black hover:text-white">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Open Folder
+                    <Button
+                      onClick={() => handleOpenFiling(currentFiling)}
+                      disabled={isCreatingEngagement}
+                      className="bg-true-turquoise text-white hover:bg-true-turquoise/90 disabled:opacity-50"
+                    >
+                      {currentEngagementId ? (
+                        <>
+                          <FileText className="h-4 w-4 mr-2" />
+                          {isCreatingEngagement ? 'Creating...' : 'Open Folder'}
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          {isCreatingEngagement ? 'Creating...' : 'Start Filing'}
+                        </>
+                      )}
                     </Button>
                   </div>
-                  {currentFiling.refundAmount && (
+                  {currentEngagementId ? (
+                    currentFiling.refundAmount && (
+                      <div className="flex-1 flex items-center justify-center text-center">
+                        <div>
+                          <div className="text-5xl font-semibold text-gray-700 mb-2">
+                            ${currentFiling.refundAmount.toLocaleString()}
+                          </div>
+                          <div className="text-sm text-muted-foreground tracking-wider uppercase">
+                            Total {currentFiling.year} Tax Refund
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  ) : (
                     <div className="flex-1 flex items-center justify-center text-center">
                       <div>
-                        <div className="text-5xl font-semibold text-gray-700 mb-2">
-                          ${currentFiling.refundAmount.toLocaleString()}
+                        <div className="text-lg text-gray-600 mb-2">
+                          Ready to start your {currentFiling.year} tax return
                         </div>
-                        <div className="text-sm text-muted-foreground tracking-wider uppercase">
-                          Total {currentFiling.year} Tax Refund
+                        <div className="text-sm text-muted-foreground">
+                          Click "Start Filing" to create your tax engagement
                         </div>
                       </div>
                     </div>
@@ -229,11 +451,20 @@ export default function StartScreenClient() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex space-x-3">
-                    <Button onClick={handleStartNewFiling} size="lg">
+                    <Button 
+                      onClick={handleStartNewFiling} 
+                      disabled={isCreatingEngagement}
+                      size="lg"
+                    >
                       <Plus className="h-5 w-5 mr-2" />
-                      Start New Filing
+                      {isCreatingEngagement ? 'Creating...' : 'Start Filing'}
                     </Button>
-                    <Button variant="outline" onClick={handleUploadDocuments} size="lg">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleUploadDocuments} 
+                      disabled={isCreatingEngagement}
+                      size="lg"
+                    >
                       <Upload className="h-5 w-5 mr-2" />
                       Upload Documents
                     </Button>

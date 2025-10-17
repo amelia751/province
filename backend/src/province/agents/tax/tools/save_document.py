@@ -61,15 +61,23 @@ async def save_document(engagement_id: str, path: str, content_b64: str, mime_ty
         dynamodb = boto3.resource('dynamodb', region_name=settings.aws_region)
         table = dynamodb.Table(settings.tax_documents_table_name)
         
-        # Extract tenant_id from engagement_id (assuming format: tenant_id#engagement_id)
-        if '#' in engagement_id:
-            tenant_id = engagement_id.split('#')[0]
-        else:
-            tenant_id = "default"  # Fallback
+        # Get engagement details to find the user_id
+        engagements_table = dynamodb.Table(settings.tax_engagements_table_name)
+        engagement_response = engagements_table.scan(
+            FilterExpression='engagement_id = :engagement_id',
+            ExpressionAttributeValues={
+                ':engagement_id': engagement_id
+            }
+        )
+        
+        if not engagement_response.get('Items'):
+            raise Exception(f"Engagement {engagement_id} not found")
+        
+        user_id = engagement_response['Items'][0]['user_id']
         
         table.put_item(
             Item={
-                'tenant_id#engagement_id': f"{tenant_id}#{engagement_id}",
+                'tenant_id#engagement_id': f"{user_id}#{engagement_id}",
                 'doc#path': f"doc#{path}",
                 'document_type': _determine_document_type(path),
                 's3_key': s3_key,
@@ -78,7 +86,8 @@ async def save_document(engagement_id: str, path: str, content_b64: str, mime_ty
                 'hash': content_hash,
                 'size_bytes': len(content),
                 'created_at': datetime.now().isoformat(),
-                'updated_at': datetime.now().isoformat()
+                'updated_at': datetime.now().isoformat(),
+                'engagement_id': engagement_id  # Store engagement_id for easy lookup
             }
         )
         

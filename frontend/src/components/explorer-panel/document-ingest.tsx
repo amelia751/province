@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { Upload, X, File, CheckCircle } from "lucide-react";
+import { CloudUpload, X, File, CheckCircle, AlertCircle } from "lucide-react";
+import { useUser } from '@clerk/nextjs';
 import {
   Dialog,
   DialogContent,
@@ -13,11 +14,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface DocumentIngestProps {
-  folderId: string;
+  engagementId: string;
   folderName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpload?: (files: File[], folderId: string) => void;
+  onUpload?: (files: File[], engagementId: string) => void;
 }
 
 interface UploadedFile {
@@ -25,15 +26,17 @@ interface UploadedFile {
   id: string;
   status: 'pending' | 'uploading' | 'success' | 'error';
   progress: number;
+  error?: string;
 }
 
 export default function DocumentIngest({
-  folderId,
+  engagementId,
   folderName,
   open,
   onOpenChange,
   onUpload
 }: DocumentIngestProps) {
+  const { user } = useUser();
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
@@ -63,66 +66,172 @@ export default function DocumentIngest({
     handleFiles(files);
   }, []);
 
+  const uploadFileToAPI = async (uploadedFile: UploadedFile) => {
+    try {
+      console.log('=== UPLOAD DEBUG START ===');
+      console.log('Engagement ID:', engagementId);
+      console.log('File:', uploadedFile.file.name, uploadedFile.file.type, uploadedFile.file.size);
+      console.log('User:', user?.id);
+
+      const formData = new FormData();
+      formData.append('file', uploadedFile.file);
+      formData.append('engagementId', engagementId);
+      formData.append('documentPath', `uploads/${uploadedFile.file.name}`);
+
+      console.log('Sending request to /api/documents/upload');
+      const response = await fetch('/api/documents/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('Error response text:', errorText);
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        
+        console.log('Parsed error data:', errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const resultText = await response.text();
+      console.log('Success response text:', resultText);
+      
+      const result = JSON.parse(resultText);
+      console.log('Parsed result:', result);
+      console.log('=== UPLOAD DEBUG END ===');
+      
+      return result;
+    } catch (error) {
+      console.error('=== UPLOAD ERROR ===');
+      console.error('Error details:', error);
+      console.error('Error message:', error instanceof Error ? error.message : String(error));
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
+      throw error;
+    }
+  };
+
   const handleFiles = (files: File[]) => {
-    const newFiles: UploadedFile[] = files.map(file => ({
-      file,
-      id: Math.random().toString(36).substr(2, 9),
-      status: 'pending',
-      progress: 0
-    }));
+    if (!user) {
+      console.error('User not authenticated');
+      return;
+    }
+
+    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+    const allowedExtensions = ['.pdf', '.png', '.jpg', '.jpeg'];
+
+    const newFiles: UploadedFile[] = files.map(file => {
+      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+      const isValidType = allowedTypes.includes(file.type) || allowedExtensions.includes(fileExtension);
+
+      if (!isValidType) {
+        return {
+          file,
+          id: Math.random().toString(36).substr(2, 9),
+          status: 'error' as const,
+          progress: 0,
+          error: 'Invalid file format. Only PDF, JPG, and PNG are supported.'
+        };
+      }
+
+      return {
+        file,
+        id: Math.random().toString(36).substr(2, 9),
+        status: 'pending' as const,
+        progress: 0
+      };
+    });
 
     setUploadedFiles(prev => [...prev, ...newFiles]);
+  };
 
-    // Simulate upload process
-    newFiles.forEach((uploadedFile, index) => {
-      setTimeout(() => {
+  const handleUploadFiles = async () => {
+    const pendingFiles = uploadedFiles.filter(f => f.status === 'pending');
+    
+    for (const uploadedFile of pendingFiles) {
+      // Set status to uploading
+      setUploadedFiles(prev =>
+        prev.map(f =>
+          f.id === uploadedFile.id
+            ? { ...f, status: 'uploading' }
+            : f
+        )
+      );
+
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setUploadedFiles(prev =>
+          prev.map(f => {
+            if (f.id === uploadedFile.id && f.status === 'uploading' && f.progress < 90) {
+              return { ...f, progress: Math.min(f.progress + 15, 90) };
+            }
+            return f;
+          })
+        );
+      }, 300);
+
+      try {
+        // Actual upload
+        const result = await uploadFileToAPI(uploadedFile);
+        
+        clearInterval(progressInterval);
+        
+        // Set success status
         setUploadedFiles(prev =>
           prev.map(f =>
             f.id === uploadedFile.id
-              ? { ...f, status: 'uploading' }
+              ? { ...f, status: 'success', progress: 100 }
               : f
           )
         );
 
-        // Simulate progress
-        const progressInterval = setInterval(() => {
-          setUploadedFiles(prev =>
-            prev.map(f => {
-              if (f.id === uploadedFile.id && f.progress < 100) {
-                const newProgress = Math.min(f.progress + 10, 100);
-                if (newProgress === 100) {
-                  setTimeout(() => {
-                    setUploadedFiles(prev =>
-                      prev.map(file =>
-                        file.id === uploadedFile.id
-                          ? { ...file, status: 'success' }
-                          : file
-                      )
-                    );
-                  }, 200);
-                }
-                return { ...f, progress: newProgress };
-              }
-              return f;
-            })
-          );
-        }, 200);
+        console.log('Upload successful:', result);
+      } catch (error) {
+        clearInterval(progressInterval);
+        
+        // Set error status
+        setUploadedFiles(prev =>
+          prev.map(f =>
+            f.id === uploadedFile.id
+              ? { ...f, status: 'error', progress: 0, error: error instanceof Error ? error.message : 'Upload failed' }
+              : f
+          )
+        );
 
-        setTimeout(() => {
-          clearInterval(progressInterval);
-        }, 2000);
-      }, index * 100);
-    });
+        console.error('Upload failed:', error);
+      }
+    }
 
-    // Call onUpload callback
+    // Call onUpload callback for successful uploads
     if (onUpload) {
-      onUpload(files, folderId);
+      const successfulFiles = uploadedFiles.filter(f => f.status === 'success').map(f => f.file);
+      if (successfulFiles.length > 0) {
+        onUpload(successfulFiles, engagementId);
+      }
     }
   };
 
-  const handleRemoveFile = (fileId: string) => {
+  const removeFile = (fileId: string) => {
     setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
   };
+
+  const clearAllFiles = () => {
+    setUploadedFiles([]);
+  };
+
+  const hasSuccessfulUploads = uploadedFiles.some(f => f.status === 'success');
+  const hasPendingFiles = uploadedFiles.some(f => f.status === 'pending');
+  const hasUploadingFiles = uploadedFiles.some(f => f.status === 'uploading');
+  const allUploadsComplete = uploadedFiles.length > 0 && uploadedFiles.every(f => f.status === 'success' || f.status === 'error');
+
 
   const handleClose = () => {
     setUploadedFiles([]);
@@ -139,36 +248,33 @@ export default function DocumentIngest({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] bg-white">
         <DialogHeader>
-          <DialogTitle>Upload Your {folderName}</DialogTitle>
-          <DialogDescription>
-            Drag and drop files here or click to browse your computer
-          </DialogDescription>
+          <DialogTitle className="text-lg font-normal">Upload Your {folderName}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Drop Zone */}
           <div
             className={cn(
-              "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
+              "border-2 border-dashed rounded-lg p-8 text-center transition-colors bg-white",
               isDragging
-                ? "border-black bg-gray-50"
+                ? "border-black"
                 : "border-gray-300 hover:border-gray-400"
             )}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-sm text-gray-600 mb-2">
-              Drag and drop your files here
+            <CloudUpload className="h-12 w-12 mx-auto mb-4 text-gray-400" strokeWidth={1} />
+            <p className="text-sm text-gray-700 mb-2">
+              Drag and drop your files
             </p>
             <p className="text-xs text-gray-500 mb-4">
               or
             </p>
             <label htmlFor="file-upload">
-              <Button variant="outline" asChild>
+              <Button asChild className="bg-[#EFEEE8] hover:bg-[#E8E5D8] text-black border-0">
                 <span className="cursor-pointer">
                   Browse Files
                 </span>
@@ -180,10 +286,10 @@ export default function DocumentIngest({
               multiple
               className="hidden"
               onChange={handleFileInput}
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+              accept=".pdf,.png,.jpg,.jpeg"
             />
             <p className="text-xs text-gray-500 mt-4">
-              Supported formats: PDF, DOC, DOCX, XLS, XLSX, PNG, JPG
+              Supported formats: PDF, JPG, PNG
             </p>
           </div>
 
@@ -194,7 +300,7 @@ export default function DocumentIngest({
               {uploadedFiles.map((uploadedFile) => (
                 <div
                   key={uploadedFile.id}
-                  className="flex items-center space-x-3 p-3 border rounded-lg"
+                  className="flex items-center space-x-3 p-3 rounded-lg bg-[#EFEEE8]"
                 >
                   <File className="h-5 w-5 text-gray-400 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -220,10 +326,16 @@ export default function DocumentIngest({
                         <span className="text-xs">Uploaded successfully</span>
                       </div>
                     )}
+                    {uploadedFile.status === 'error' && (
+                      <div className="flex items-center space-x-1 text-red-600">
+                        <AlertCircle className="h-3 w-3" />
+                        <span className="text-xs">{uploadedFile.error || 'Upload failed'}</span>
+                      </div>
+                    )}
                   </div>
                   {uploadedFile.status !== 'uploading' && (
                     <button
-                      onClick={() => handleRemoveFile(uploadedFile.id)}
+                      onClick={() => removeFile(uploadedFile.id)}
                       className="flex-shrink-0 text-gray-400 hover:text-gray-600"
                     >
                       <X className="h-4 w-4" />
@@ -235,15 +347,21 @@ export default function DocumentIngest({
           )}
 
           {/* Actions */}
-          <div className="flex justify-end space-x-2 pt-4 border-t">
-            <Button variant="outline" onClick={handleClose}>
-              Close
+          <div className="flex justify-end items-center space-x-2 pt-4 border-t">
+            <Button
+              onClick={handleClose}
+              className="bg-[#EFEEE8] hover:bg-[#E8E5D8] text-black border-0"
+            >
+              {allUploadsComplete ? 'Close' : 'Cancel'}
             </Button>
-            {uploadedFiles.length > 0 && uploadedFiles.every(f => f.status === 'success') && (
-              <Button onClick={handleClose}>
-                Done
-              </Button>
-            )}
+
+            <Button
+              onClick={handleUploadFiles}
+              disabled={!hasPendingFiles || hasUploadingFiles}
+              className="bg-true-turquoise hover:bg-true-turquoise/90 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
+            >
+              {hasUploadingFiles ? 'Uploading...' : allUploadsComplete && hasSuccessfulUploads ? 'Done' : 'Save'}
+            </Button>
           </div>
         </div>
       </DialogContent>
