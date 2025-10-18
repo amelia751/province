@@ -416,6 +416,9 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
   useEffect(() => {
     const activeTab = tabs.find(tab => tab.isActive);
     if (activeTab?.type === 'documents') {
+      // Reset deleting states when switching to documents tab
+      setIsDeletingDocument(null);
+      setIsDeletingAll(false);
       loadDocuments();
     }
   }, [tabs]);
@@ -448,6 +451,12 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
 
   // Delete individual document
   const deleteDocument = async (documentKey: string) => {
+    if (!documentKey) {
+      console.error('❌ Cannot delete document: Invalid document key');
+      alert('Cannot delete document: Invalid document key');
+      return;
+    }
+
     setIsDeletingDocument(documentKey);
     try {
       const response = await fetch('/api/documents/delete', {
@@ -459,7 +468,8 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to delete document: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || errorData.detail || `Failed to delete document: ${response.statusText}`);
       }
 
       const result = await response.json();
@@ -972,8 +982,10 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                                 Total: {documents.length} document{documents.length !== 1 ? 's' : ''}
                               </div>
                               
-                              {documents.map((doc, index) => (
-                                <div key={doc.document_key || index} className="border rounded-lg p-4 bg-white shadow-sm">
+                              {documents.map((doc, index) => {
+                                const uniqueKey = doc.document_key || doc.tenant_id_engagement_id || `doc-${index}`;
+                                return (
+                                <div key={uniqueKey} className="border rounded-lg p-4 bg-white shadow-sm">
                                   <div className="flex justify-between items-start">
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2 mb-2">
@@ -1009,15 +1021,23 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                                     </div>
                                     
                                     <button
-                                      onClick={() => deleteDocument(doc.document_key)}
-                                      disabled={isDeletingDocument === doc.document_key}
+                                      onClick={() => {
+                                        if (doc.document_key) {
+                                          deleteDocument(doc.document_key);
+                                        } else {
+                                          alert('Cannot delete document: Invalid document key');
+                                        }
+                                      }}
+                                      disabled={!doc.document_key || isDeletingDocument === doc.document_key}
                                       className="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-gray-300 text-sm"
                                     >
-                                      {isDeletingDocument === doc.document_key ? 'Deleting...' : 'Delete'}
+                                      {!doc.document_key ? 'Invalid' : 
+                                       (isDeletingDocument === doc.document_key ? 'Deleting...' : 'Delete')}
                                     </button>
                                   </div>
                                 </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
                         </div>

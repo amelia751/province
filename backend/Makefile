@@ -13,6 +13,12 @@ help:
 	@echo "  type-check   Run type checking"
 	@echo "  clean        Clean build artifacts"
 	@echo "  run          Run development server"
+	@echo "  dev          Run development server with monitoring"
+	@echo "  server-start Start server using dev script"
+	@echo "  server-stop  Stop server using dev script"
+	@echo "  server-restart Restart server using dev script"
+	@echo "  server-status Check server status"
+	@echo "  server-logs  Show server logs"
 	@echo "  deploy       Deploy infrastructure"
 
 # Python environment
@@ -85,3 +91,32 @@ synth: $(VENV)
 # Destroy infrastructure (use with caution)
 destroy: $(VENV)
 	cd infrastructure && $(VENV_BIN)/cdk destroy --all
+
+# Development server commands
+dev:
+	@echo "🔧 Starting development server with monitoring..."
+	$(PYTHON) monitor-server.py
+
+server-start:
+	@echo "🚀 Starting server..."
+	./dev-server.sh start
+
+server-stop:
+	@echo "🛑 Stopping server..."
+	./dev-server.sh stop
+
+server-restart:
+	@echo "🔄 Restarting server..."
+	./dev-server.sh restart
+
+server-status:
+	@echo "📊 Checking server status..."
+	./dev-server.sh status
+
+server-logs:
+	@echo "📋 Showing server logs..."
+	./dev-server.sh logs
+
+server-clean:
+	@echo "🧹 Cleaning server files..."
+	./dev-server.sh clean

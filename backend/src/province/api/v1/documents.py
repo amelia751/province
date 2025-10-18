@@ -6,7 +6,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import boto3
 import os
-from province.config import settings
+from province.core.config import get_settings
+
+settings = get_settings()
 
 from province.agents.tax.tools.save_document import save_document
 
@@ -93,13 +95,15 @@ async def list_user_documents(request: ListDocumentsRequest) -> Dict[str, Any]:
         documents = []
         for item in response.get('Items', []):
             documents.append({
-                'document_key': item.get('document_key'),
-                'document_path': item.get('document_path'),
+                'document_key': item.get('s3_key'),  # Use s3_key as document_key
+                'document_path': item.get('doc#path', '').replace('doc#', ''),  # Remove doc# prefix
                 'mime_type': item.get('mime_type'),
-                'file_size': item.get('file_size'),
-                'upload_timestamp': item.get('upload_timestamp'),
+                'file_size': item.get('size_bytes'),  # Use size_bytes instead of file_size
+                'upload_timestamp': item.get('created_at'),  # Use created_at as upload timestamp
                 'engagement_id': item.get('engagement_id'),
-                'tenant_id_engagement_id': item.get('tenant_id#engagement_id')
+                'tenant_id_engagement_id': item.get('tenant_id#engagement_id'),
+                'document_type': item.get('document_type'),
+                'hash': item.get('hash')
             })
         
         return {
@@ -133,10 +137,10 @@ async def delete_document(request: DeleteDocumentRequest) -> Dict[str, Any]:
         dynamodb = boto3.resource('dynamodb', region_name=settings.aws_region)
         table = dynamodb.Table('province-tax-documents')
         
-        # First, verify the document belongs to this user
+        # First, verify the document belongs to this user and find it by s3_key
         response = table.scan(
             FilterExpression=boto3.dynamodb.conditions.Attr('tenant_id#engagement_id').begins_with(f"{request.user_id}#") &
-                           boto3.dynamodb.conditions.Attr('document_key').eq(request.document_key)
+                           boto3.dynamodb.conditions.Attr('s3_key').eq(request.document_key)
         )
         
         items = response.get('Items', [])
@@ -152,17 +156,17 @@ async def delete_document(request: DeleteDocumentRequest) -> Dict[str, Any]:
         try:
             s3_client.delete_object(
                 Bucket='province-documents-[REDACTED-ACCOUNT-ID]-us-east-1',
-                Key=request.document_key
+                Key=request.document_key  # This is the s3_key
             )
             logger.info(f"Deleted document from S3: {request.document_key}")
         except Exception as s3_error:
             logger.warning(f"Failed to delete from S3 (may not exist): {s3_error}")
         
-        # Delete from DynamoDB
+        # Delete from DynamoDB using the correct key structure
         table.delete_item(
             Key={
                 'tenant_id#engagement_id': document_item['tenant_id#engagement_id'],
-                'document_key': request.document_key
+                'doc#path': document_item['doc#path']
             }
         )
         
@@ -218,30 +222,37 @@ async def delete_all_user_documents(request: ListDocumentsRequest) -> Dict[str, 
         
         for item in items:
             try:
-                document_key = item['document_key']
+                s3_key = item.get('s3_key')
+                doc_path = item.get('doc#path')
+                
+                if not s3_key or not doc_path:
+                    error_msg = f"Invalid document structure: missing s3_key or doc#path"
+                    errors.append(error_msg)
+                    logger.error(error_msg)
+                    continue
                 
                 # Delete from S3
                 try:
                     s3_client.delete_object(
                         Bucket='province-documents-[REDACTED-ACCOUNT-ID]-us-east-1',
-                        Key=document_key
+                        Key=s3_key
                     )
                 except Exception as s3_error:
-                    logger.warning(f"Failed to delete from S3: {document_key} - {s3_error}")
+                    logger.warning(f"Failed to delete from S3: {s3_key} - {s3_error}")
                 
-                # Delete from DynamoDB
+                # Delete from DynamoDB using correct key structure
                 table.delete_item(
                     Key={
                         'tenant_id#engagement_id': item['tenant_id#engagement_id'],
-                        'document_key': document_key
+                        'doc#path': doc_path
                     }
                 )
                 
                 deleted_count += 1
-                logger.info(f"Deleted document: {document_key}")
+                logger.info(f"Deleted document: {s3_key}")
                 
             except Exception as e:
-                error_msg = f"Failed to delete {item.get('document_key', 'unknown')}: {str(e)}"
+                error_msg = f"Failed to delete {item.get('s3_key', 'unknown')}: {str(e)}"
                 errors.append(error_msg)
                 logger.error(error_msg)
         
