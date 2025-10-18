@@ -62,6 +62,14 @@ const mockTabs: EditorTab[] = [
     type: "debug"
   },
   {
+    id: "documents",
+    name: "📄 My Documents",
+    path: "system/documents",
+    isDirty: false,
+    isActive: false,
+    type: "documents"
+  },
+  {
     id: "logs",
     name: "Backend Logs",
     path: "system/logs",
@@ -99,6 +107,10 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
   const [selectedW2File, setSelectedW2File] = useState<string>('');
   const [ocrResult, setOcrResult] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
+  const [isDeletingDocument, setIsDeletingDocument] = useState<string | null>(null);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -330,7 +342,8 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
   useEffect(() => {
     const checkBackend = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/v1/health/', { 
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:8000';
+        const response = await fetch(`${backendUrl}/api/v1/health/`, {
           method: 'GET',
           cache: 'no-cache'
         });
@@ -398,6 +411,120 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [logs, autoScroll]);
+
+  // Load documents when documents tab is active
+  useEffect(() => {
+    const activeTab = tabs.find(tab => tab.isActive);
+    if (activeTab?.type === 'documents') {
+      loadDocuments();
+    }
+  }, [tabs]);
+
+  // Load user documents
+  const loadDocuments = async () => {
+    setIsLoadingDocuments(true);
+    try {
+      const response = await fetch('/api/documents/list', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load documents: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      setDocuments(result.documents || []);
+      console.log('📄 Loaded documents:', result.count);
+    } catch (error) {
+      console.error('❌ Error loading documents:', error);
+      setDocuments([]);
+    } finally {
+      setIsLoadingDocuments(false);
+    }
+  };
+
+  // Delete individual document
+  const deleteDocument = async (documentKey: string) => {
+    setIsDeletingDocument(documentKey);
+    try {
+      const response = await fetch('/api/documents/delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ document_key: documentKey }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete document: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Document deleted:', result.message);
+      
+      // Refresh documents list
+      await loadDocuments();
+    } catch (error) {
+      console.error('❌ Error deleting document:', error);
+      alert(`Failed to delete document: ${error}`);
+    } finally {
+      setIsDeletingDocument(null);
+    }
+  };
+
+  // Delete all documents
+  const deleteAllDocuments = async () => {
+    if (!confirm('Are you sure you want to delete ALL your documents? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeletingAll(true);
+    try {
+      const response = await fetch('/api/documents/delete-all', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete all documents: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ All documents deleted:', result.message);
+      alert(`${result.message}`);
+      
+      // Refresh documents list
+      await loadDocuments();
+    } catch (error) {
+      console.error('❌ Error deleting all documents:', error);
+      alert(`Failed to delete all documents: ${error}`);
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
+
+  // Format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Format date
+  const formatDate = (timestamp: string) => {
+    try {
+      return new Date(timestamp).toLocaleString();
+    } catch {
+      return timestamp;
+    }
+  };
 
   const closeTab = (tabId: string) => {
     if (tabId === 'logs') return; // Don't allow closing logs tab
@@ -661,19 +788,238 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                       // Debug Info Tab
                       <div className="h-full flex flex-col p-6">
                         <div className="mb-6">
-                          <h2 className="text-xl font-semibold text-gray-800 mb-2">🐛 Project Debug Information</h2>
-                          <p className="text-gray-600">Real-time debug information for the current project session</p>
+                          <h2 className="text-xl font-semibold text-gray-800 mb-2">🐛 Enhanced Debug Information</h2>
+                          <p className="text-gray-600">Comprehensive debug info for chat, sessions, and system state</p>
                         </div>
                         
-                        <div className="flex-1 min-h-0">
-                          <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm h-full overflow-auto">
+                        <div className="flex-1 min-h-0 space-y-4">
+                          {/* Enhanced Debug Info */}
+                          <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-xs h-full overflow-auto">
                             <pre className="whitespace-pre-wrap">
-                              {debugInfo ? JSON.stringify({
-                                ...debugInfo,
-                                timestamp: new Date().toISOString() // Update timestamp in real-time
-                              }, null, 2) : 'No debug information available'}
+                              {(() => {
+                                const enhancedDebugInfo = {
+                                  // Basic project info
+                                  project: debugInfo || {},
+                                  
+                                  // System info
+                                  system: {
+                                    timestamp: new Date().toISOString(),
+                                    userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'SSR',
+                                    url: typeof window !== 'undefined' ? window.location.href : 'SSR',
+                                    localStorage: typeof window !== 'undefined' ? {
+                                      keys: Object.keys(localStorage),
+                                      chatSession: localStorage.getItem('chatSession'),
+                                      agentSession: localStorage.getItem('agentSession'),
+                                    } : 'SSR'
+                                  },
+                                  
+                                  // Chat system debug
+                                  chat: {
+                                    // Try to get chat state from window/global if available
+                                    globalChatState: typeof window !== 'undefined' && (window as any).chatDebugInfo ? (window as any).chatDebugInfo : 'Not available',
+                                    
+                                    // Session storage
+                                    sessionStorage: typeof window !== 'undefined' ? {
+                                      keys: Object.keys(sessionStorage),
+                                      chatSessionId: sessionStorage.getItem('chatSessionId'),
+                                      agentName: sessionStorage.getItem('agentName'),
+                                      lastMessage: sessionStorage.getItem('lastMessage'),
+                                    } : 'SSR',
+                                    
+                                    // Check for any chat-related DOM elements
+                                    chatElements: typeof window !== 'undefined' ? {
+                                      chatInput: !!document.querySelector('[data-tour="chat-input"]'),
+                                      micButton: !!document.querySelector('[data-tour="mic-button"]'),
+                                      chatContainer: !!document.querySelector('.chat-container, [class*="chat"]'),
+                                    } : 'SSR'
+                                  },
+                                  
+                                  // API status
+                                  api: {
+                                    backendUrl: process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:8000',
+                                    lastApiCall: typeof window !== 'undefined' ? localStorage.getItem('lastApiCall') : null,
+                                    lastApiError: typeof window !== 'undefined' ? localStorage.getItem('lastApiError') : null,
+                                  },
+                                  
+                                  // Recent errors from console
+                                  recentErrors: typeof window !== 'undefined' ? 
+                                    (window as any).recentErrors || 'No error tracking enabled' : 'SSR',
+                                  
+                                  // Network status
+                                  network: typeof window !== 'undefined' ? {
+                                    online: navigator.onLine,
+                                    connection: (navigator as any).connection ? {
+                                      effectiveType: (navigator as any).connection.effectiveType,
+                                      downlink: (navigator as any).connection.downlink,
+                                      rtt: (navigator as any).connection.rtt,
+                                    } : 'Not available'
+                                  } : 'SSR'
+                                };
+                                
+                                return JSON.stringify(enhancedDebugInfo, null, 2);
+                              })()}
                             </pre>
                           </div>
+                          
+                          {/* Quick Actions */}
+                          <div className="bg-gray-100 p-3 rounded-lg">
+                            <h3 className="font-semibold text-gray-800 mb-2">🔧 Debug Actions</h3>
+                            <div className="flex flex-wrap gap-2">
+                              <button 
+                                onClick={() => {
+                                  if (typeof window !== 'undefined') {
+                                    localStorage.clear();
+                                    sessionStorage.clear();
+                                    console.log('🧹 Cleared all storage');
+                                  }
+                                }}
+                                className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
+                              >
+                                Clear Storage
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  if (typeof window !== 'undefined') {
+                                    console.log('🔍 Current state:', {
+                                      localStorage: {...localStorage},
+                                      sessionStorage: {...sessionStorage},
+                                      url: window.location.href
+                                    });
+                                  }
+                                }}
+                                className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                              >
+                                Log State
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:8000';
+                                    const response = await fetch(`${backendUrl}/api/v1/health/`);
+                                    const data = await response.json();
+                                    console.log('🏥 Backend health:', data);
+                                    alert(`Backend Status: ${response.status} - ${JSON.stringify(data, null, 2)}`);
+                                  } catch (error) {
+                                    console.error('❌ Backend health check failed:', error);
+                                    alert(`Backend Error: ${error}`);
+                                  }
+                                }}
+                                className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
+                              >
+                                Test Backend
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:8000';
+                                    const response = await fetch(`${backendUrl}/api/v1/agents/stats`);
+                                    const data = await response.json();
+                                    console.log('🤖 Agent stats:', data);
+                                    alert(`Agent Stats: ${JSON.stringify(data, null, 2)}`);
+                                  } catch (error) {
+                                    console.error('❌ Agent stats failed:', error);
+                                    alert(`Agent Error: ${error}`);
+                                  }
+                                }}
+                                className="px-3 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600"
+                              >
+                                Agent Stats
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : activeTab.type === 'documents' ? (
+                      // Documents Management Tab
+                      <div className="h-full flex flex-col p-6">
+                        <div className="mb-6">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <h2 className="text-xl font-semibold text-gray-800 mb-2">📄 My Documents</h2>
+                              <p className="text-gray-600">Manage your uploaded documents</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={loadDocuments}
+                                disabled={isLoadingDocuments}
+                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 text-sm"
+                              >
+                                {isLoadingDocuments ? 'Loading...' : 'Refresh'}
+                              </button>
+                              <button
+                                onClick={deleteAllDocuments}
+                                disabled={isDeletingAll || documents.length === 0}
+                                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-gray-300 text-sm"
+                              >
+                                {isDeletingAll ? 'Deleting...' : 'Delete All'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex-1 min-h-0 overflow-auto">
+                          {isLoadingDocuments ? (
+                            <div className="flex items-center justify-center h-32">
+                              <div className="text-gray-500">Loading documents...</div>
+                            </div>
+                          ) : documents.length === 0 ? (
+                            <div className="flex items-center justify-center h-32">
+                              <div className="text-gray-500">No documents found. Upload some documents to see them here.</div>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="text-sm text-gray-600 mb-4">
+                                Total: {documents.length} document{documents.length !== 1 ? 's' : ''}
+                              </div>
+                              
+                              {documents.map((doc, index) => (
+                                <div key={doc.document_key || index} className="border rounded-lg p-4 bg-white shadow-sm">
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-lg">
+                                          {doc.mime_type?.includes('pdf') ? '📄' : 
+                                           doc.mime_type?.includes('image') ? '🖼️' : '📎'}
+                                        </span>
+                                        <h3 className="font-medium text-gray-900 truncate">
+                                          {doc.document_path?.split('/').pop() || 'Unnamed Document'}
+                                        </h3>
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                                        <div>
+                                          <span className="font-medium">Size:</span> {formatFileSize(doc.file_size || 0)}
+                                        </div>
+                                        <div>
+                                          <span className="font-medium">Type:</span> {doc.mime_type || 'Unknown'}
+                                        </div>
+                                        <div>
+                                          <span className="font-medium">Uploaded:</span> {formatDate(doc.upload_timestamp)}
+                                        </div>
+                                        <div>
+                                          <span className="font-medium">Engagement:</span> {doc.engagement_id || 'N/A'}
+                                        </div>
+                                      </div>
+                                      
+                                      {doc.document_key && (
+                                        <div className="mt-2 text-xs text-gray-500 font-mono bg-gray-50 p-2 rounded">
+                                          Key: {doc.document_key}
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    <button
+                                      onClick={() => deleteDocument(doc.document_key)}
+                                      disabled={isDeletingDocument === doc.document_key}
+                                      className="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-gray-300 text-sm"
+                                    >
+                                      {isDeletingDocument === doc.document_key ? 'Deleting...' : 'Delete'}
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ) : activeTab.type === 'ingest-tool' && activeTab.id === 'ingest-w2' ? (

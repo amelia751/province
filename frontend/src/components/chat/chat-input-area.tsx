@@ -42,6 +42,7 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
     const [isDragging, setIsDragging] = useState(false);
     const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [stagedFiles, setStagedFiles] = useState<File[]>([]);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const modes = [
@@ -102,15 +103,42 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
         setIsDragging(false);
 
         const files = Array.from(e.dataTransfer.files);
-        if (files.length > 0 && engagementId) {
-            handleFileUpload(files);
+        if (files.length > 0) {
+            // Filter for allowed file types: PDF and images (JPEG/PNG)
+            const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+            const allowedExtensions = ['.pdf', '.png', '.jpg', '.jpeg'];
+            
+            const validFiles = files.filter(file => {
+                const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+                return allowedTypes.includes(file.type) || allowedExtensions.includes(fileExtension);
+            });
+
+            if (validFiles.length > 0) {
+                // Stage files instead of uploading immediately
+                setStagedFiles(prev => [...prev, ...validFiles]);
+                
+                // Add file indicators to input value
+                const fileNames = validFiles.map(file => `📎 ${file.name}`).join('\n');
+                setInputValue(prev => prev ? `${prev}\n${fileNames}` : fileNames);
+            }
+
+            // Show warning for invalid files
+            const invalidFiles = files.filter(file => {
+                const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+                return !allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension);
+            });
+
+            if (invalidFiles.length > 0) {
+                console.warn('Invalid file types. Only PDF, PNG, and JPEG files are allowed:', invalidFiles.map(f => f.name));
+                // You could add a toast notification here
+            }
         }
-    }, [engagementId]);
+    }, [setInputValue]);
 
     const handleFileUpload = async (files: File[]) => {
         if (!engagementId) {
             console.error('No engagement ID available for file upload');
-            return;
+            throw new Error('No engagement ID available');
         }
 
         setUploadingFiles(files);
@@ -134,18 +162,51 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
 
                 const result = await response.json();
                 console.log(`Successfully uploaded ${file.name}:`, result);
-                
-                // Add a message to the chat about the uploaded file
-                const uploadMessage = `📎 Uploaded: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-                setInputValue(prev => prev ? `${prev}\n${uploadMessage}` : uploadMessage);
             }
         } catch (error) {
             console.error('File upload error:', error);
-            // You could add a toast notification here
+            throw error; // Re-throw to handle in calling function
         } finally {
             setIsUploading(false);
             setUploadingFiles([]);
         }
+    };
+
+    // Handle sending message with staged files
+    const handleSendWithFiles = async () => {
+        if (stagedFiles.length > 0 && engagementId) {
+            try {
+                // Upload staged files first
+                await handleFileUpload(stagedFiles);
+                
+                // Clear staged files after successful upload
+                setStagedFiles([]);
+                
+                // Remove file indicators from input value
+                const cleanedInput = inputValue.replace(/📎[^\n]*\n?/g, '').trim();
+                setInputValue(cleanedInput);
+                
+                // Send the message
+                handleSendMessage();
+            } catch (error) {
+                console.error('Failed to upload files before sending message:', error);
+                // Don't send message if file upload fails
+                return;
+            }
+        } else {
+            // No files to upload, just send the message
+            handleSendMessage();
+        }
+    };
+
+    // Remove a staged file
+    const removeStagedFile = (fileToRemove: File) => {
+        setStagedFiles(prev => prev.filter(file => file !== fileToRemove));
+        
+        // Remove file indicator from input value
+        const fileIndicator = `📎 ${fileToRemove.name}`;
+        const updatedInput = inputValue.replace(new RegExp(`${fileIndicator}\\n?`, 'g'), '').trim();
+        setInputValue(updatedInput);
     };
 
     // Keep focus on input only when switching to text mode
@@ -260,6 +321,27 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
                 ) : (
                     // Text Mode Layout - Cursor-style with shadcn
                     <div className="space-y-2">
+                        {/* Staged Files Display */}
+                        {stagedFiles.length > 0 && (
+                            <div className="bg-gray-50 border rounded-md p-2">
+                                <div className="text-xs text-gray-600 mb-1">Files to upload:</div>
+                                <div className="flex flex-wrap gap-1">
+                                    {stagedFiles.map((file, index) => (
+                                        <div key={index} className="flex items-center gap-1 bg-white border rounded px-2 py-1 text-xs">
+                                            <span>📎 {file.name}</span>
+                                            <button
+                                                onClick={() => removeStagedFile(file)}
+                                                className="text-gray-400 hover:text-red-500"
+                                                title="Remove file"
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        
                         {/* Top row: Mode/Agent selector and action buttons */}
                         <div className="flex items-center justify-between px-1">
                             {/* Left: Mode/Agent selector with dropdown */}
@@ -328,8 +410,8 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
                         </div>
 
                         {/* Text input area */}
-                        <div 
-                            className={`relative ${isDragging ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}`}
+                        <div
+                            className="relative"
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
                             onDrop={handleDrop}
@@ -341,20 +423,20 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && !e.shiftKey) {
                                         e.preventDefault();
-                                        handleSendMessage();
+                                        handleSendWithFiles();
                                     }
                                 }}
                                 placeholder={
                                     isDragging
-                                        ? "Drop files here to upload..."
+                                        ? "Drop PDF or image files here..."
                                         : !isConnected
                                         ? "Connect to tax assistant to start chatting..."
                                         : selectedMode === 'ask'
-                                            ? "Ask me anything... (or drag & drop files)"
-                                            : "Ask your tax agents... (or drag & drop files)"
+                                            ? "Ask me anything... (or drag & drop PDF/images)"
+                                            : "Ask your tax agents... (or drag & drop PDF/images)"
                                 }
                                 className={`min-h-[52px] max-h-[200px] pr-12 resize-none transition-all ${
-                                    isDragging ? 'border-blue-500 bg-blue-50' : ''
+                                    isDragging ? 'border-true-turquoise bg-true-turquoise/10 ring-[3px] ring-true-turquoise/30' : ''
                                 }`}
                                 disabled={isTextSending || isInputDisabled || isUploading}
                                 data-tour="chat-input"
@@ -372,7 +454,7 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
 
                             {/* Send button - bottom right of textarea */}
                             <Button
-                                onClick={handleSendMessage}
+                                onClick={handleSendWithFiles}
                                 disabled={!inputValue.trim() || isInputDisabled}
                                 size="sm"
                                 className="absolute right-2 bottom-2 h-8 w-8 p-0 bg-black hover:bg-gray-800"

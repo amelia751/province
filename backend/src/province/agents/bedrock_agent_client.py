@@ -42,7 +42,7 @@ class BedrockAgentClient:
     not custom orchestration logic.
     """
     
-    def __init__(self, region_name: str = "us-east-2"):
+    def __init__(self, region_name: str = "us-east-1"):
         self.region_name = region_name
         
         # Use Bedrock-specific credentials if available

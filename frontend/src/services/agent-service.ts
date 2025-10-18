@@ -110,10 +110,41 @@ class AgentService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: response.statusText }));
-        throw new Error(errorData.error || `Failed to send message: ${response.statusText}`);
+        const errorMessage = errorData.detail || errorData.error || `Failed to send message: ${response.statusText}`;
+        
+        // Store error for debugging
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('lastApiError', JSON.stringify({
+            timestamp: new Date().toISOString(),
+            url: `${this.baseUrl}/agents/chat`,
+            method: 'POST',
+            status: response.status,
+            error: errorMessage,
+            requestData: {
+              message: request.message.substring(0, 100) + '...',
+              session_id: request.sessionId,
+              agent_name: request.agentName
+            }
+          }));
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      
+      // Store successful API call for debugging
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lastApiCall', JSON.stringify({
+          timestamp: new Date().toISOString(),
+          url: `${this.baseUrl}/agents/chat`,
+          method: 'POST',
+          status: response.status,
+          success: true,
+          sessionId: data.session_id,
+          agentName: data.agent_name
+        }));
+      }
       
       // Update session if new one was created
       if (data.session_id && data.session_id !== request.sessionId) {

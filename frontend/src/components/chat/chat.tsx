@@ -89,6 +89,27 @@ const TaxChatInterface: React.FC<ChatProps> = ({
     enableWebSocket: false,
   });
 
+  // Expose debug info to global window for debugging
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).chatDebugInfo = {
+        messages: messages.length,
+        currentSession: currentSession ? {
+          sessionId: currentSession.sessionId,
+          agentName: currentSession.agentName,
+          agentId: currentSession.agentId,
+          status: currentSession.status
+        } : null,
+        isProcessing,
+        selectedAgent,
+        isConnected,
+        isConnecting,
+        connectionError,
+        lastUpdate: new Date().toISOString()
+      };
+    }
+  }, [messages, currentSession, isProcessing, selectedAgent, isConnected, isConnecting, connectionError]);
+
   const displayMessages = messages;
 
   // Simulate connection process for tax agent
