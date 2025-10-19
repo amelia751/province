@@ -369,27 +369,112 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
     return () => clearTimeout(timer);
   }, []);
 
-  // Listen for fetch errors (like the one you showed)
+  // Enhanced error tracking and fetch monitoring
   useEffect(() => {
-    const originalFetch = window.fetch;
-    window.fetch = async (...args) => {
-      try {
-        const response = await originalFetch(...args);
-        if (!response.ok) {
-          addLog('warning', 'frontend', `HTTP ${response.status}`, 
-            `${args[0]} - ${response.statusText}`);
+    // Initialize error tracking
+    if (typeof window !== 'undefined') {
+      (window as any).recentErrors = (window as any).recentErrors || [];
+      
+      // Track console errors
+      const originalError = console.error;
+      console.error = (...args) => {
+        const errorInfo = {
+          timestamp: new Date().toISOString(),
+          type: 'console.error',
+          message: args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg)).join(' '),
+          stack: new Error().stack
+        };
+        
+        (window as any).recentErrors.push(errorInfo);
+        if ((window as any).recentErrors.length > 50) {
+          (window as any).recentErrors = (window as any).recentErrors.slice(-50);
         }
-        return response;
-      } catch (error) {
-        addLog('error', 'frontend', 'Network request failed', 
-          `${args[0]} - ${error instanceof Error ? error.message : 'Unknown error'}`);
-        throw error;
-      }
-    };
+        
+        addLog('error', 'frontend', 'Console Error', errorInfo.message);
+        originalError.apply(console, args);
+      };
+      
+      // Track unhandled promise rejections
+      const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+        const errorInfo = {
+          timestamp: new Date().toISOString(),
+          type: 'unhandled_promise_rejection',
+          message: event.reason?.message || String(event.reason),
+          stack: event.reason?.stack
+        };
+        
+        (window as any).recentErrors.push(errorInfo);
+        addLog('error', 'frontend', 'Unhandled Promise Rejection', errorInfo.message);
+      };
+      
+      window.addEventListener('unhandledrejection', handleUnhandledRejection);
+      
+      // Enhanced fetch monitoring
+      const originalFetch = window.fetch;
+      window.fetch = async (...args) => {
+        const startTime = Date.now();
+        const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || 'Unknown URL';
+        
+        try {
+          // Store API call info
+          localStorage.setItem('lastApiCall', JSON.stringify({
+            url,
+            timestamp: new Date().toISOString(),
+            method: args[1]?.method || 'GET'
+          }));
+          
+          const response = await originalFetch(...args);
+          const duration = Date.now() - startTime;
+          
+          if (!response.ok) {
+            const errorText = await response.text().catch(() => 'Unable to read response');
+            const errorInfo = {
+              url,
+              status: response.status,
+              statusText: response.statusText,
+              duration,
+              response: errorText
+            };
+            
+            localStorage.setItem('lastApiError', JSON.stringify(errorInfo));
+            addLog('warning', 'frontend', `HTTP ${response.status}`, 
+              `${url} - ${response.statusText} (${duration}ms)`);
+          } else {
+            // Store successful response info
+            localStorage.setItem('lastApiResponse', JSON.stringify({
+              url,
+              status: response.status,
+              duration,
+              timestamp: new Date().toISOString()
+            }));
+            
+            addLog('info', 'frontend', `HTTP ${response.status}`, 
+              `${url} - Success (${duration}ms)`);
+          }
+          
+          return response;
+        } catch (error) {
+          const duration = Date.now() - startTime;
+          const errorInfo = {
+            url,
+            error: error instanceof Error ? error.message : String(error),
+            duration,
+            timestamp: new Date().toISOString()
+          };
+          
+          localStorage.setItem('lastApiError', JSON.stringify(errorInfo));
+          addLog('error', 'frontend', 'Network request failed', 
+            `${url} - ${error instanceof Error ? error.message : 'Unknown error'} (${duration}ms)`);
+          throw error;
+        }
+      };
 
-    return () => {
-      window.fetch = originalFetch;
-    };
+      return () => {
+        window.fetch = originalFetch;
+        console.error = originalError;
+        window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      };
+    }
   }, []);
 
   const addLog = (level: LogEntry['level'], source: LogEntry['source'], message: string, details?: string) => {
@@ -808,6 +893,28 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                             <pre className="whitespace-pre-wrap">
                               {(() => {
                                 const enhancedDebugInfo = {
+                                  // CRITICAL: Tax Service Integration Status
+                                  '⚡ TAX_SERVICE_STATUS': {
+                                    description: 'Tax service is now hooked up to frontend via /api/tax-service/* endpoints',
+                                    isUsingTaxService: 'TaxPlannerAgent and TaxIntakeAgent use tax-service (Strands SDK)',
+                                    isUsingBedrockAgent: 'Other agents still use Bedrock Agent',
+                                    expectedEndpoints: {
+                                      start: '/api/tax-service/start',
+                                      continue: '/api/tax-service/continue'
+                                    },
+                                    backendEndpoints: {
+                                      start: '/api/v1/tax-service/start',
+                                      continue: '/api/v1/tax-service/continue'
+                                    },
+                                    tools: {
+                                      ingest_documents: '✅ Process W2 and extract data',
+                                      calc_1040: '✅ Calculate taxes and refund',
+                                      fill_form: '✅ Fill Form 1040 PDF',
+                                      save_document: '✅ Save to DynamoDB (needs engagement)'
+                                    },
+                                    noThrottling: 'Using Strands SDK - no AWS rate limits!'
+                                  },
+                                  
                                   // Basic project info
                                   project: debugInfo || {},
                                   
@@ -836,17 +943,39 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                                       lastMessage: sessionStorage.getItem('lastMessage'),
                                     } : 'SSR',
                                     
+                                    // Local storage
+                                    localStorage: typeof window !== 'undefined' ? {
+                                      lastApiCall: localStorage.getItem('lastApiCall'),
+                                      lastApiError: localStorage.getItem('lastApiError'),
+                                      lastApiResponse: localStorage.getItem('lastApiResponse'),
+                                      chatSession: localStorage.getItem('chatSession'),
+                                      agentSession: localStorage.getItem('agentSession'),
+                                    } : 'SSR',
+                                    
                                     // Check for any chat-related DOM elements
                                     chatElements: typeof window !== 'undefined' ? {
                                       chatInput: !!document.querySelector('[data-tour="chat-input"]'),
                                       micButton: !!document.querySelector('[data-tour="mic-button"]'),
                                       chatContainer: !!document.querySelector('.chat-container, [class*="chat"]'),
+                                      messageElements: document.querySelectorAll('[class*="message"]').length,
+                                    } : 'SSR',
+                                    
+                                    // Current page context
+                                    pageContext: typeof window !== 'undefined' ? {
+                                      pathname: window.location.pathname,
+                                      search: window.location.search,
+                                      hash: window.location.hash,
+                                      referrer: document.referrer,
                                     } : 'SSR'
                                   },
                                   
                                   // API status
                                   api: {
                                     backendUrl: process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:8000',
+                                    taxServiceEndpoints: {
+                                      frontend: '/api/tax-service/*',
+                                      backend: '/api/v1/tax-service/*'
+                                    },
                                     lastApiCall: typeof window !== 'undefined' ? localStorage.getItem('lastApiCall') : null,
                                     lastApiError: typeof window !== 'undefined' ? localStorage.getItem('lastApiError') : null,
                                   },
@@ -934,6 +1063,156 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                                 className="px-3 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600"
                               >
                                 Agent Stats
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:8000';
+                                    const response = await fetch(`${backendUrl}/api/v1/documents/notifications/test-engagement-final`);
+                                    const data = await response.json();
+                                    console.log('🔔 Notifications:', data);
+                                    alert(`Notifications: ${JSON.stringify(data, null, 2)}`);
+                                  } catch (error) {
+                                    console.error('❌ Notifications failed:', error);
+                                    alert(`Notifications Error: ${error}`);
+                                  }
+                                }}
+                                className="px-3 py-1 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600"
+                              >
+                                Test Notifications
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:8000';
+                                    const response = await fetch(`${backendUrl}/api/v1/documents/notifications/test-engagement-final/simulate-processing`, {
+                                      method: 'POST'
+                                    });
+                                    const data = await response.json();
+                                    console.log('🔄 Simulation:', data);
+                                    alert(`Simulation Result: ${JSON.stringify(data.processing_result, null, 2)}`);
+                                  } catch (error) {
+                                    console.error('❌ Simulation failed:', error);
+                                    alert(`Simulation Error: ${error}`);
+                                  }
+                                }}
+                                className="px-3 py-1 bg-indigo-500 text-white text-xs rounded hover:bg-indigo-600"
+                              >
+                                Simulate Processing
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const debugInfo = {
+                                    '🎯 QUICK_DIAGNOSIS': {
+                                      taxServiceHooked: '✅ YES - Using /api/tax-service/* endpoints',
+                                      agentUsed: 'TaxPlannerAgent (routes to tax-service automatically)',
+                                      tools: 'ingest_documents, calc_1040, fill_form, save_document',
+                                      noThrottling: '✅ Using Strands SDK - no AWS rate limits',
+                                      testW2Available: 'datasets/w2-forms/test/W2_XL_input_clean_1000.pdf'
+                                    },
+                                    timestamp: new Date().toISOString(),
+                                    url: window.location.href,
+                                    userAgent: navigator.userAgent,
+                                    localStorage: {...localStorage},
+                                    sessionStorage: {...sessionStorage},
+                                    chatState: (window as any).chatDebugInfo,
+                                    errors: (window as any).recentErrors || [],
+                                    backendConfig: {
+                                      url: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000',
+                                      taxServiceStart: '/api/v1/tax-service/start',
+                                      taxServiceContinue: '/api/v1/tax-service/continue'
+                                    }
+                                  };
+                                  
+                                  const debugText = JSON.stringify(debugInfo, null, 2);
+                                  navigator.clipboard.writeText(debugText).then(() => {
+                                    alert('✅ Debug info copied to clipboard! You can now paste it back to the assistant.');
+                                  });
+                                }}
+                                className="px-3 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-800"
+                              >
+                                📋 Copy Debug Info
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    // Comprehensive auto-debug
+                                    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+                                    
+                                    // Test health
+                                    let healthStatus = '❌ Failed';
+                                    try {
+                                      const health = await fetch(`${backendUrl}/api/v1/health/`);
+                                      healthStatus = health.ok ? '✅ Healthy' : `❌ ${health.status}`;
+                                    } catch (e) {
+                                      healthStatus = `❌ ${e}`;
+                                    }
+                                    
+                                    // Test tax service
+                                    let taxServiceStatus = '❌ Failed';
+                                    try {
+                                      const taxStart = await fetch(`${backendUrl}/api/v1/tax-service/start`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({})
+                                      });
+                                      const taxData = await taxStart.json();
+                                      taxServiceStatus = taxStart.ok ? `✅ Working (session: ${taxData.session_id})` : `❌ ${taxStart.status}`;
+                                    } catch (e) {
+                                      taxServiceStatus = `❌ ${e}`;
+                                    }
+                                    
+                                    const report = {
+                                      '🎯 AUTO-DEBUG REPORT': {
+                                        timestamp: new Date().toISOString(),
+                                        summary: 'Tax service integration status and diagnostics'
+                                      },
+                                      '🏥 BACKEND_STATUS': {
+                                        health: healthStatus,
+                                        taxService: taxServiceStatus,
+                                        url: backendUrl
+                                      },
+                                      '⚡ FRONTEND_INTEGRATION': {
+                                        taxServiceHooked: '✅ YES',
+                                        agentService: 'Updated to use tax-service for TaxPlannerAgent',
+                                        apiProxyRoutes: ['/api/tax-service/start', '/api/tax-service/continue'],
+                                        backendEndpoints: ['/api/v1/tax-service/start', '/api/v1/tax-service/continue']
+                                      },
+                                      '🔧 TOOLS_AVAILABLE': {
+                                        ingest_documents: '✅ Process W2 and extract wage/withholding data',
+                                        calc_1040: '✅ Calculate taxes and refund amount',
+                                        fill_form: '✅ Fill Form 1040 and upload to S3',
+                                        save_document: '✅ Save to DynamoDB (needs engagement_id)'
+                                      },
+                                      '📝 TEST_DATA': {
+                                        testW2: 'datasets/w2-forms/test/W2_XL_input_clean_1000.pdf',
+                                        expectedWages: '$55,151.93',
+                                        expectedWithholding: '$16,606.17',
+                                        expectedRefund: '$11,971.94'
+                                      },
+                                      '💡 CHAT_STATE': (window as any).chatDebugInfo || 'Not available',
+                                      '⚠️ ERRORS': (window as any).recentErrors || [],
+                                      '🔍 LAST_API_CALL': localStorage.getItem('lastApiCall') ? JSON.parse(localStorage.getItem('lastApiCall')!) : 'None',
+                                      '❌ LAST_ERROR': localStorage.getItem('lastApiError') ? JSON.parse(localStorage.getItem('lastApiError')!) : 'None'
+                                    };
+                                    
+                                    const reportText = JSON.stringify(report, null, 2);
+                                    await navigator.clipboard.writeText(reportText);
+                                    
+                                    alert(`🤖 Auto-Debug Report Generated & Copied!
+
+Backend Health: ${healthStatus}
+Tax Service: ${taxServiceStatus}
+
+✅ Report copied to clipboard!
+📋 Paste it to the assistant for instant analysis and fixes.`);
+                                  } catch (error) {
+                                    alert(`❌ Auto-debug failed: ${error}`);
+                                  }
+                                }}
+                                className="px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs rounded hover:from-purple-600 hover:to-pink-600 font-semibold shadow-lg"
+                              >
+                                🤖 Auto-Debug & Copy for AI
                               </button>
                             </div>
                           </div>

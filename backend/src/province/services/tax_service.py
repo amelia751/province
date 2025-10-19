@@ -260,10 +260,13 @@ async def save_document_tool(
     description: str = "Completed Tax Return"
 ) -> str:
     """
-    Save completed tax document to documents bucket.
+    Save supporting documents (W2s, receipts, etc) to engagement folder.
+    
+    NOTE: Filled tax forms are ALREADY SAVED by fill_form_tool with versioning!
+    This tool is for OTHER documents like source documents, workpapers, etc.
     
     Args:
-        document_type: Type of document
+        document_type: Type of document (e.g., 'w2', 'receipt', 'workpaper')
         description: Document description
     
     Returns:
@@ -275,6 +278,27 @@ async def save_document_tool(
         session_id = conversation_state.get('current_session_id', 'default')
         session_data = conversation_state.get(session_id, {})
         filled_form = session_data.get('filled_form', {})
+        
+        # If trying to save a tax return, inform that it's already saved by fill_form
+        if document_type == "tax_return" or "tax" in document_type.lower():
+            if filled_form:
+                versioning = filled_form.get('versioning', {})
+                form_url = filled_form.get('form_url', '')
+                version = versioning.get('version', 'v1')
+                total_versions = versioning.get('total_versions', 1)
+                
+                return f"""🎉 Great news! Your tax return is already saved!
+
+📋 Form Information:
+   - Form Type: {filled_form.get('form_type', 'Form 1040')}
+   - Version: {version} (Total versions: {total_versions})
+   - Location: S3 filled_forms folder
+   - Filled At: {filled_form.get('filled_at', 'just now')}
+
+✅ The form was automatically saved with versioning when you filled it out.
+   All {total_versions} version(s) are preserved and available for download.
+   
+💡 The fill_form tool automatically saves your completed forms with full version history!"""
         
         if not filled_form:
             return "No completed form found. Please fill out the form first."

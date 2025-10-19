@@ -56,7 +56,8 @@ async def start_tax_conversation(request: StartConversationRequest):
         initial_message = await tax_service.start_conversation(request.session_id)
         
         # Get session ID (generated if not provided)
-        session_id = tax_service.conversation_state.get('session_id')
+        from ...services.tax_service import conversation_state
+        session_id = conversation_state.get('current_session_id')
         
         # List available W2s for demo
         available_w2s = await tax_service.list_available_w2s()

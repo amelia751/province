@@ -82,7 +82,9 @@ async def calc_1040(engagement_id: str, filing_status: str, dependents_count: in
         }
         
     except Exception as e:
+        import traceback
         logger.error(f"Error calculating 1040: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return {
             'success': False,
             'error': str(e)
@@ -98,16 +100,23 @@ async def _load_w2_extracts(engagement_id: str) -> Dict[str, Any]:
         dynamodb = boto3.resource('dynamodb', region_name=settings.aws_region)
         table = dynamodb.Table(settings.tax_documents_table_name)
         
-        # Extract tenant_id from engagement_id
-        if '#' in engagement_id:
-            tenant_id = engagement_id.split('#')[0]
-        else:
-            tenant_id = "default"
+        # Get user_id from engagement to construct the correct key
+        engagements_table = dynamodb.Table(settings.tax_engagements_table_name)
+        engagement_response = engagements_table.scan(
+            FilterExpression=boto3.dynamodb.conditions.Attr('engagement_id').eq(engagement_id)
+        )
+        
+        engagement_items = engagement_response.get('Items', [])
+        if not engagement_items:
+            logger.error(f"Engagement {engagement_id} not found")
+            return None
+        
+        user_id = engagement_items[0]['user_id']
         
         # Query for W-2 extracts document
         response = table.get_item(
             Key={
-                'tenant_id#engagement_id': f"{tenant_id}#{engagement_id}",
+                'tenant_id#engagement_id': f"{user_id}#{engagement_id}",
                 'doc#path': 'doc#/Workpapers/W2_Extracts.json'
             }
         )
@@ -120,7 +129,7 @@ async def _load_w2_extracts(engagement_id: str) -> Dict[str, Any]:
         s3_key = response['Item']['s3_key']
         
         s3_response = s3_client.get_object(
-            Bucket="province-documents-storage",
+            Bucket=settings.documents_bucket_name,
             Key=s3_key
         )
         
@@ -150,7 +159,7 @@ async def _save_calculation_results(engagement_id: str, calculation: TaxCalculat
         s3_key = f"tax-engagements/{engagement_id}/Workpapers/Calc_1040_Simple.json"
         
         s3_client.put_object(
-            Bucket="province-documents-storage",
+            Bucket=settings.documents_bucket_name,
             Key=s3_key,
             Body=calc_content.encode('utf-8'),
             ContentType='application/json',
@@ -216,25 +225,26 @@ def _perform_tax_calculation(
     tax_brackets = TAX_YEAR_2025_CONSTANTS["tax_brackets"][filing_status.value]
     tax = Decimal('0')
     
-    for bracket in tax_brackets:
-        bracket_min = Decimal(str(bracket["min"]))
-        bracket_max = Decimal(str(bracket["max"])) if bracket["max"] is not None else None
-        bracket_rate = Decimal(str(bracket["rate"]))
-        
-        if taxable_income <= bracket_min:
-            break
-            
-        if bracket_max is None:
-            # Top bracket
-            tax += (taxable_income - bracket_min) * bracket_rate
-            break
-        elif taxable_income <= bracket_max:
-            # Within this bracket
-            tax += (taxable_income - bracket_min) * bracket_rate
+    previous_threshold = Decimal('0')
+    
+    for threshold, rate in tax_brackets:
+        if threshold == float("inf"):
+            # Top bracket - apply rate to remaining income
+            if taxable_income > previous_threshold:
+                tax += (taxable_income - previous_threshold) * rate
             break
         else:
-            # Full bracket
-            tax += (bracket_max - bracket_min) * bracket_rate
+            # Regular bracket
+            bracket_threshold = Decimal(str(threshold))
+            if taxable_income > previous_threshold:
+                bracket_income = min(taxable_income, bracket_threshold) - previous_threshold
+                if bracket_income > 0:
+                    tax += bracket_income * rate
+            
+            if taxable_income <= bracket_threshold:
+                break
+                
+            previous_threshold = bracket_threshold
     
     # Calculate Child Tax Credit
     child_tax_credit = Decimal(str(qualifying_children * 2000))  # $2000 per qualifying child
@@ -256,5 +266,13 @@ def _perform_tax_calculation(
         tax=tax,
         credits=credits,
         withholding=withholding,
-        refund_or_due=refund_or_due
+        refund_or_due=refund_or_due,
+        provenance={
+            "calculation_method": "simplified_1040",
+            "tax_brackets_used": f"TAX_YEAR_{tax_year}_CONSTANTS",
+            "standard_deduction_amount": float(standard_deduction),
+            "child_tax_credit_per_child": 2000,
+            "qualifying_children": qualifying_children,
+            "calculated_at": datetime.now().isoformat()
+        }
     )

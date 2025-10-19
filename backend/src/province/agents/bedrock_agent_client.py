@@ -9,9 +9,12 @@ import boto3
 import json
 import logging
 import os
+import time
+import random
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from datetime import datetime
+from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
@@ -84,48 +87,73 @@ class BedrockAgentClient:
         agent_alias_id: str,
         session_id: str,
         input_text: str,
-        enable_trace: bool = False
+        enable_trace: bool = False,
+        max_retries: int = 3
     ) -> AgentResponse:
         """
-        Invoke AWS Bedrock Agent using the managed service.
+        Invoke AWS Bedrock Agent using the managed service with retry logic.
         
         This calls AWS's AgentCore orchestrator directly - no custom logic.
+        Includes exponential backoff for throttling errors.
         """
-        try:
-            response = self.bedrock_agent_runtime.invoke_agent(
-                agentId=agent_id,
-                agentAliasId=agent_alias_id,
-                sessionId=session_id,
-                inputText=input_text,
-                enableTrace=enable_trace
-            )
-            
-            # Process the streaming response
-            response_text = ""
-            citations = []
-            trace_data = None
-            
-            for event in response['completion']:
-                if 'chunk' in event:
-                    chunk = event['chunk']
-                    if 'bytes' in chunk:
-                        response_text += chunk['bytes'].decode('utf-8')
-                    if 'attribution' in chunk:
-                        citations.extend(chunk['attribution'].get('citations', []))
+        last_exception = None
+        
+        for attempt in range(max_retries + 1):
+            try:
+                response = self.bedrock_agent_runtime.invoke_agent(
+                    agentId=agent_id,
+                    agentAliasId=agent_alias_id,
+                    sessionId=session_id,
+                    inputText=input_text,
+                    enableTrace=enable_trace
+                )
+                
+                # Process the streaming response
+                response_text = ""
+                citations = []
+                trace_data = None
+                
+                for event in response['completion']:
+                    if 'chunk' in event:
+                        chunk = event['chunk']
+                        if 'bytes' in chunk:
+                            response_text += chunk['bytes'].decode('utf-8')
+                        if 'attribution' in chunk:
+                            citations.extend(chunk['attribution'].get('citations', []))
+                            
+                    if 'trace' in event and enable_trace:
+                        trace_data = event['trace']
                         
-                if 'trace' in event and enable_trace:
-                    trace_data = event['trace']
+                return AgentResponse(
+                    response_text=response_text,
+                    session_id=session_id,
+                    citations=citations,
+                    trace=trace_data
+                )
+                
+            except ClientError as e:
+                error_code = e.response.get('Error', {}).get('Code', '')
+                last_exception = e
+                
+                # Handle throttling with exponential backoff
+                if error_code == 'ThrottlingException' and attempt < max_retries:
+                    # Exponential backoff: 1s, 2s, 4s, etc. with jitter
+                    wait_time = (2 ** attempt) + random.uniform(0, 1)
+                    logger.warning(f"Bedrock throttling detected. Retrying in {wait_time:.1f}s (attempt {attempt + 1}/{max_retries + 1})")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    # Re-raise for non-throttling errors or max retries exceeded
+                    logger.error(f"Error invoking Bedrock Agent: {str(e)}")
+                    raise
                     
-            return AgentResponse(
-                response_text=response_text,
-                session_id=session_id,
-                citations=citations,
-                trace=trace_data
-            )
-            
-        except Exception as e:
-            logger.error(f"Error invoking Bedrock Agent: {str(e)}")
-            raise
+            except Exception as e:
+                logger.error(f"Error invoking Bedrock Agent: {str(e)}")
+                raise
+        
+        # If we get here, all retries failed
+        logger.error(f"All {max_retries + 1} attempts failed. Last error: {str(last_exception)}")
+        raise last_exception
             
     def create_session(self, agent_id: str, agent_alias_id: str) -> AgentSession:
         """Create a new session with the Bedrock Agent"""

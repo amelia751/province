@@ -55,6 +55,42 @@ class AgentService {
    */
   async createSession(agentName: string, matterId?: string): Promise<AgentSession> {
     try {
+      // Use tax-service endpoint which has working tools and no throttling
+      const useTaxService = agentName === 'TaxPlannerAgent' || 
+                           agentName === 'TaxIntakeAgent';
+      
+      if (useTaxService) {
+        // Use the tax-service start endpoint
+        const response = await fetch(`${this.baseUrl}/tax-service/start`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            session_id: matterId, // Use matterId as session_id if provided
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: response.statusText }));
+          throw new Error(errorData.error || `Failed to create session: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        const session: AgentSession = {
+          sessionId: data.session_id,
+          agentName: agentName,
+          agentId: 'tax-service',
+          matterId: matterId,
+          status: 'active',
+        };
+
+        this.sessions.set(session.sessionId, session);
+        return session;
+      }
+
+      // Fall back to original Bedrock Agent endpoint for other agents
       const response = await fetch(`${this.baseUrl}/agents/sessions`, {
         method: 'POST',
         headers: {
@@ -94,6 +130,42 @@ class AgentService {
    */
   async sendMessage(request: ChatRequest): Promise<ChatResponse> {
     try {
+      // Use tax-service endpoint which has working tools and no throttling
+      const useTaxService = request.agentName === 'TaxPlannerAgent' || 
+                           request.agentName === 'TaxIntakeAgent';
+      
+      if (useTaxService) {
+        // Use the tax-service endpoints (Strands SDK with working tools)
+        const response = await fetch(`${this.baseUrl}/tax-service/continue`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            session_id: request.sessionId,
+            user_message: request.message,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: response.statusText }));
+          const errorMessage = errorData.detail || errorData.error || `Failed to send message: ${response.statusText}`;
+          throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+        
+        return {
+          response: data.agent_response,
+          sessionId: data.session_id,
+          agentName: request.agentName,
+          matterId: request.matterId,
+          citations: [],
+          trace: undefined,
+        };
+      }
+
+      // Fall back to original Bedrock Agent endpoint for other agents
       const response = await fetch(`${this.baseUrl}/agents/chat`, {
         method: 'POST',
         headers: {

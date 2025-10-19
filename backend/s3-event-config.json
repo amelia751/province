@@ -1,0 +1,21 @@
+{
+  "LambdaFunctionConfigurations": [
+    {
+      "Id": "ProvinceDocumentProcessorTrigger",
+      "LambdaFunctionArn": "arn:aws:lambda:us-east-1:[REDACTED-ACCOUNT-ID]:function:ProvinceDocumentProcessor",
+      "Events": [
+        "s3:ObjectCreated:*"
+      ],
+      "Filter": {
+        "Key": {
+          "FilterRules": [
+            {
+              "Name": "prefix",
+              "Value": "tax-engagements/"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

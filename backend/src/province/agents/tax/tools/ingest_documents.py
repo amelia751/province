@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import time
+from datetime import datetime
 from typing import Dict, Any, List
 from decimal import Decimal
 import boto3
@@ -246,7 +247,7 @@ async def ingest_documents(s3_key: str, taxpayer_name: str, tax_year: int, docum
         
         # Prepare return data based on document type
         if document_type == 'W-2':
-            return {
+            result = {
                 'success': True,
                 'document_type': document_type,
                 'w2_extract': extract_object.dict(),
@@ -256,6 +257,11 @@ async def ingest_documents(s3_key: str, taxpayer_name: str, tax_year: int, docum
                 'total_withholding': float(total_withholding),
                 'processing_method': 'bedrock_data_automation'
             }
+            
+            # Save W-2 extract data for calc_1040 to use
+            await _save_w2_extract_for_calc(s3_key, result, taxpayer_name)
+            
+            return result
         else:
             return {
                 'success': True,
@@ -914,5 +920,89 @@ def _validate_1099_data(tax_data: List[Dict[str, Any]], taxpayer_name: str, tax_
             validation_results['warnings'].append(f"{form_prefix}Could not validate income amounts")
     
     return validation_results
+
+
+async def _save_w2_extract_for_calc(s3_key: str, w2_result: Dict[str, Any], taxpayer_name: str) -> None:
+    """
+    Save W-2 extract data in the format that calc_1040 expects.
+    This bridges the gap between ingest_documents and calc_1040.
+    """
+    try:
+        # Extract engagement_id from s3_key if it follows the pattern
+        # tax-engagements/{engagement_id}/...
+        parts = s3_key.split('/')
+        if len(parts) >= 2 and parts[0] == 'tax-engagements':
+            engagement_id = parts[1]
+        else:
+            logger.warning(f"Could not extract engagement_id from s3_key: {s3_key}")
+            return
+        
+        # Get user_id from engagement
+        settings = get_settings()
+        dynamodb = boto3.resource('dynamodb', region_name=settings.aws_region)
+        engagements_table = dynamodb.Table(settings.tax_engagements_table_name)
+        
+        # Find the engagement to get user_id
+        response = engagements_table.scan(
+            FilterExpression=boto3.dynamodb.conditions.Attr('engagement_id').eq(engagement_id)
+        )
+        
+        items = response.get('Items', [])
+        if not items:
+            logger.warning(f"Could not find engagement {engagement_id}")
+            return
+        
+        user_id = items[0]['user_id']
+        
+        # Save W-2 extract data to S3 in JSON format
+        s3_client = boto3.client('s3', region_name=settings.aws_region)
+        extract_s3_key = f"tax-engagements/{engagement_id}/Workpapers/W2_Extracts.json"
+        
+        # Prepare the data in the format calc_1040 expects
+        w2_extract_data = {
+            "taxpayer_name": taxpayer_name,
+            "tax_year": 2024,  # Could be extracted from the result
+            "w2_forms": w2_result.get('w2_extract', {}).get('forms', []),
+            "total_wages": w2_result.get('total_wages', 0),
+            "total_withholding": w2_result.get('total_withholding', 0),
+            "forms_count": w2_result.get('forms_count', 0),
+            "validation_results": w2_result.get('validation_results', {}),
+            "processing_method": w2_result.get('processing_method', 'bedrock_data_automation'),
+            "created_at": datetime.now().isoformat()
+        }
+        
+        # Upload to S3
+        s3_client.put_object(
+            Bucket=settings.documents_bucket_name,
+            Key=extract_s3_key,
+            Body=json.dumps(w2_extract_data, indent=2, default=str),
+            ContentType='application/json'
+        )
+        
+        # Save metadata to DynamoDB in the format calc_1040 expects
+        documents_table = dynamodb.Table(settings.tax_documents_table_name)
+        
+        document_item = {
+            'tenant_id#engagement_id': f"{user_id}#{engagement_id}",
+            'doc#path': 'doc#/Workpapers/W2_Extracts.json',
+            'engagement_id': engagement_id,
+            'document_type': 'W-2_EXTRACT',
+            'mime_type': 'application/json',
+            'created_at': datetime.now().isoformat(),
+            's3_key': extract_s3_key,
+            'size_bytes': len(json.dumps(w2_extract_data, default=str)),
+            'hash': 'w2-extract-hash',
+            'total_wages': Decimal(str(w2_result.get('total_wages', 0))),
+            'total_withholding': Decimal(str(w2_result.get('total_withholding', 0))),
+            'forms_count': w2_result.get('forms_count', 0)
+        }
+        
+        documents_table.put_item(Item=document_item)
+        
+        logger.info(f"Saved W-2 extract data for calc_1040: {extract_s3_key}")
+        
+    except Exception as e:
+        logger.error(f"Failed to save W-2 extract for calc_1040: {e}")
+        # Don't raise the exception - this is a supplementary operation
 
 

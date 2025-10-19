@@ -7,6 +7,7 @@ import AgentActions from "./agent-actions";
 import VoiceChat from "./voice-chat";
 import ChatInputArea from "./chat-input-area";
 import EmptyChatState from "./empty-chat";
+import { DocumentProcessingNotifications } from "./document-processing-notifications";
 import {
   Send,
   User,
@@ -309,9 +310,21 @@ const TaxChatInterface: React.FC<ChatProps> = ({
           style={{ scrollBehavior: 'smooth' }}
         >
           {displayMessages.length === 0 ? (
-            <EmptyChatState />
+            <div className="space-y-6">
+              <EmptyChatState />
+              <DocumentProcessingNotifications 
+                engagementId={engagementId}
+                className="max-w-md mx-auto"
+              />
+            </div>
           ) : (
             <div className="space-y-4 max-w-4xl mx-auto px-4">
+              {/* Document Processing Notifications */}
+              <DocumentProcessingNotifications 
+                engagementId={engagementId}
+                className="mb-4"
+              />
+              
               {displayMessages.map((message, idx) => (
                 <div key={message.id} className="w-full" style={{ userSelect: 'text' }}>
                   <div className={cn("flex", message.type === 'user' ? "justify-end" : "justify-start")} style={{ userSelect: 'text' }}>
