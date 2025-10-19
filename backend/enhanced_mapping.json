@@ -1,0 +1,103 @@
+{
+  "form_metadata": {
+    "field_types": {
+      "checkbox": 39,
+      "text": 102
+    },
+    "form_type": "F1040",
+    "tax_year": "2024",
+    "total_fields": 141
+  },
+  "income": {
+    "total_income": "topmostSubform[0].Page1[0].f1_41[0]",
+    "pension_annuities": "topmostSubform[0].Page1[0].f1_36[0]",
+    "other_income": "topmostSubform[0].Page1[0].f1_39[0]",
+    "social_security_benefits": "topmostSubform[0].Page1[0].f1_37[0]",
+    "ira_distributions": "topmostSubform[0].Page1[0].f1_35[0]",
+    "wages_salaries": "topmostSubform[0].Page1[0].f1_32[0]",
+    "dividend_income": "topmostSubform[0].Page1[0].f1_34[0]",
+    "capital_gains": "topmostSubform[0].Page1[0].f1_38[0]",
+    "interest_income": "topmostSubform[0].Page1[0].f1_33[0]"
+  },
+  "tax_and_credits": {
+    "standard_deduction": "topmostSubform[0].Page2[0].f2_05[0]",
+    "tax": "topmostSubform[0].Page2[0].f2_07[0]",
+    "taxable_income": "topmostSubform[0].Page2[0].f2_06[0]",
+    "child_tax_credit": "topmostSubform[0].Page2[0].f2_08[0]",
+    "total_credits": "topmostSubform[0].Page2[0].f2_09[0]"
+  },
+  "address": {
+    "street_address": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_10[0]",
+    "apartment_number": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_11[0]",
+    "city": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_12[0]",
+    "foreign_country": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_15[0]",
+    "foreign_state_province": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_16[0]",
+    "state": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_13[0]",
+    "zip_code": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_14[0]"
+  },
+  "adjustments": {
+    "adjusted_gross_income": "topmostSubform[0].Page2[0].f2_04[0]",
+    "ira_deduction": "topmostSubform[0].Page2[0].f2_01[0]",
+    "total_adjustments": "topmostSubform[0].Page2[0].f2_03[0]",
+    "student_loan_interest": "topmostSubform[0].Page2[0].f2_02[0]"
+  },
+  "signature": {
+    "preparer_name": "topmostSubform[0].Page2[0].f2_39[0]",
+    "preparer_ptin": "topmostSubform[0].Page2[0].f2_40[0]",
+    "taxpayer_occupation": "topmostSubform[0].Page2[0].f2_33[0]",
+    "firm_address": "topmostSubform[0].Page2[0].f2_43[0]",
+    "firm_name": "topmostSubform[0].Page2[0].f2_41[0]",
+    "phone_number": "topmostSubform[0].Page2[0].f2_37[0]",
+    "self_employed_checkbox": "topmostSubform[0].Page2[0].c2_7[0]",
+    "spouse_occupation": "topmostSubform[0].Page2[0].f2_35[0]"
+  },
+  "personal_identification": {
+    "taxpayer_first_name": "topmostSubform[0].Page1[0].f1_04[0]",
+    "spouse_last_name": "topmostSubform[0].Page1[0].f1_08[0]",
+    "taxpayer_ssn": "topmostSubform[0].Page1[0].f1_06[0]",
+    "spouse_first_name": "topmostSubform[0].Page1[0].f1_07[0]",
+    "taxpayer_last_name": "topmostSubform[0].Page1[0].f1_05[0]",
+    "spouse_ssn": "topmostSubform[0].Page1[0].f1_09[0]"
+  },
+  "elections": {
+    "presidential_election_you": "topmostSubform[0].Page1[0].c1_1[0]",
+    "presidential_election_spouse": "topmostSubform[0].Page1[0].c1_2[0]"
+  },
+  "header_info": {
+    "tax_year": "topmostSubform[0].Page1[0].f1_01[0]",
+    "omb_number": "topmostSubform[0].Page1[0].f1_02[0]",
+    "year_suffix": "topmostSubform[0].Page1[0].f1_03[0]"
+  },
+  "filing_status": {
+    "single": "topmostSubform[0].Page1[0].FilingStatus_ReadOrder[0].c1_3[1]",
+    "head_household": "topmostSubform[0].Page1[0].c1_3[1]",
+    "married_separate": "topmostSubform[0].Page1[0].FilingStatus_ReadOrder[0].c1_3[2]",
+    "qualifying_widow": "topmostSubform[0].Page1[0].c1_4[0]",
+    "married_joint": "topmostSubform[0].Page1[0].FilingStatus_ReadOrder[0].c1_3[0]"
+  },
+  "payments_and_refund": {
+    "total_payments": "topmostSubform[0].Page2[0].f2_12[0]",
+    "refund_amount": "topmostSubform[0].Page2[0].f2_13[0]",
+    "federal_tax_withheld": "topmostSubform[0].Page2[0].f2_10[0]",
+    "estimated_tax_payments": "topmostSubform[0].Page2[0].f2_11[0]",
+    "amount_owed": "topmostSubform[0].Page2[0].f2_14[0]"
+  },
+  "dependents": {
+    "dependent2_child_credit": "topmostSubform[0].Page1[0].Table_Dependents[0].Row2[0].c1_16[0]",
+    "dependent2_other_credit": "topmostSubform[0].Page1[0].Table_Dependents[0].Row2[0].c1_17[0]",
+    "dependent1_child_credit": "topmostSubform[0].Page1[0].Table_Dependents[0].Row1[0].c1_14[0]",
+    "dependent1_other_credit": "topmostSubform[0].Page1[0].Table_Dependents[0].Row1[0].c1_15[0]",
+    "dependent1_ssn": "topmostSubform[0].Page1[0].Table_Dependents[0].Row1[0].f1_21[0]",
+    "dependent2_ssn": "topmostSubform[0].Page1[0].Table_Dependents[0].Row2[0].f1_24[0]",
+    "dependent2_first_name": "topmostSubform[0].Page1[0].Table_Dependents[0].Row2[0].f1_23[0]",
+    "dependent2_relationship": "topmostSubform[0].Page1[0].Table_Dependents[0].Row2[0].f1_25[0]",
+    "dependent1_first_name": "topmostSubform[0].Page1[0].Table_Dependents[0].Row1[0].f1_20[0]",
+    "dependent1_relationship": "topmostSubform[0].Page1[0].Table_Dependents[0].Row1[0].f1_22[0]"
+  },
+  "direct_deposit": {
+    "account_number": "topmostSubform[0].Page2[0].AccountNo[0].f2_26[0]",
+    "account_type_checking": "topmostSubform[0].Page2[0].c2_5[0]",
+    "routing_number": "topmostSubform[0].Page2[0].RoutingNo[0].f2_25[0]",
+    "account_type_savings": "topmostSubform[0].Page2[0].c2_5[1]"
+  }
+}

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { PdfViewer } from "@/components/pdf-viewer";
+import { Form1040Viewer } from "@/components/tax-forms";
 import { TaxFormFiller } from '@/components/tax-form-filler';
 import "@/components/pdf-viewer/pdf-viewer.css";
 import {
@@ -60,6 +61,32 @@ const mockTabs: EditorTab[] = [
     isDirty: false,
     isActive: true,
     type: "debug"
+  },
+  {
+    id: "visual-field-map",
+    name: "🗺️ Field Map (Visual Reference)",
+    path: "reference/field-map",
+    isDirty: false,
+    isActive: false,
+    type: "pdf",
+    url: "https://province-documents-[REDACTED-ACCOUNT-ID]-us-east-1.s3.amazonaws.com/filled_forms/VISUAL_MAPPING/1040_field_map_visual.pdf?AWSAccessKeyId=[REDACTED-AWS-KEY-1]&Signature=nF%2B2rqTRR9Y7CXINaPuwV9mF2B4%3D&Expires=1761497273"
+  },
+  {
+    id: "ai-filled-1040-comprehensive",
+    name: "🤖 AI-Filled 1040 (66/66 Fields - 100%!)",
+    path: "samples/1040-comprehensive",
+    isDirty: false,
+    isActive: false,
+    type: "pdf",
+    url: "https://province-documents-[REDACTED-ACCOUNT-ID]-us-east-1.s3.amazonaws.com/filled_forms/John_A._Smith/1040/2024/v002_comprehensive_ai_filled.pdf?AWSAccessKeyId=[REDACTED-AWS-KEY-1]&Signature=sIz7F3BnTUdPU2jGcZZG6oiDTy4%3D&Expires=1761501734"
+  },
+  {
+    id: "form-1040",
+    name: "📋 Form 1040 (Your Taxes)",
+    path: "forms/1040",
+    isDirty: false,
+    isActive: false,
+    type: "tax-return"
   },
   {
     id: "documents",
@@ -834,7 +861,18 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
 
                   {/* Document Content */}
                   <div className="flex-1 relative">
-                    {(activeTab.type === 'w2-form' ||
+                    {activeTab.type === 'tax-return' ? (
+                      // Form 1040 Viewer with Version Control
+                      <Form1040Viewer
+                        engagementId={
+                          // Get engagement ID from debugInfo URL or default to current session
+                          debugInfo?.url?.includes('project/') 
+                            ? debugInfo.url.split('project/')[1]?.split(/[?#]/)[0] || ''
+                            : 'ea3b3a4f-c877-4d29-bd66-2cff2aa77476'
+                        }
+                        className="w-full h-full"
+                      />
+                    ) : (activeTab.type === 'w2-form' ||
                       activeTab.type === 'tax-return' ||
                       activeTab.type?.includes('pdf') ||
                       activeTab.name?.toLowerCase().endsWith('.pdf')) && activeTab.url ? (

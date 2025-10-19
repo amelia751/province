@@ -1,0 +1,848 @@
+{
+  "topmostSubform[0].Page1[0].f1_01[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "F 1040 U.S. Individual Income T For the year Jan. 1\u2013Dec. 31, 2024, or other tax year beginning Your ...",
+    "position": "(226, 62)"
+  },
+  "topmostSubform[0].Page1[0].f1_02[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "2024 vidual Income Tax Return r other tax year beginning , 2024, ending Last name",
+    "position": "(348, 62)"
+  },
+  "topmostSubform[0].Page1[0].f1_03[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "2024 x Return OMB No. 1545-0074 IRS , 2024, ending , 20 Last name",
+    "position": "(439, 62)"
+  },
+  "topmostSubform[0].Page1[0].f1_04[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "",
+    "position": "(36, 88)"
+  },
+  "topmostSubform[0].Page1[0].f1_05[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "Your first name and middle initial If joint return, spouse\u2019s first name and middle initial",
+    "position": "(239, 88)"
+  },
+  "topmostSubform[0].Page1[0].f1_06[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "me me",
+    "position": "(469, 88)"
+  },
+  "topmostSubform[0].Page1[0].f1_07[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "",
+    "position": "(36, 112)"
+  },
+  "topmostSubform[0].Page1[0].f1_08[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "If joint return, spouse\u2019s first name and middle initial Home address (number and street). If you hav...",
+    "position": "(239, 112)"
+  },
+  "topmostSubform[0].Page1[0].f1_09[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "me ns. Apt. no.",
+    "position": "(469, 112)"
+  },
+  "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_10[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "",
+    "position": "(36, 136)"
+  },
+  "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_11[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "x, see instructions. also complete spaces below. State ZIP",
+    "position": "(419, 136)"
+  },
+  "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_12[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "",
+    "position": "(36, 160)"
+  },
+  "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_13[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "have a foreign address, also complete spaces below. Foreign province/state/c",
+    "position": "(339, 160)"
+  },
+  "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_14[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "ss, also complete spaces below. State Foreign province/state/county",
+    "position": "(404, 160)"
+  },
+  "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_15[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "",
+    "position": "(36, 184)"
+  },
+  "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_16[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "n country name Status Single",
+    "position": "(260, 184)"
+  },
+  "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_17[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "Foreign province/state/county Head o",
+    "position": "(404, 184)"
+  },
+  "topmostSubform[0].Page1[0].c1_1[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "nce/state/county Foreign postal code your tax o Head of household (HOH)",
+    "position": "(504, 186)"
+  },
+  "topmostSubform[0].Page1[0].c1_2[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "ounty Foreign postal code your tax or refund. You Head of household (HOH)",
+    "position": "(540, 186)"
+  },
+  "topmostSubform[0].Page1[0].FilingStatus_ReadOrder[0].c1_3[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "Filing Status C",
+    "position": "(103, 200)"
+  },
+  "topmostSubform[0].Page1[0].FilingStatus_ReadOrder[0].c1_3[1]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "Filing Status Check only one box",
+    "position": "(103, 212)"
+  },
+  "topmostSubform[0].Page1[0].FilingStatus_ReadOrder[0].c1_3[2]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "Check only one box. I",
+    "position": "(103, 224)"
+  },
+  "topmostSubform[0].Page1[0].c1_3[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "ointly (even if only one had income)",
+    "position": "(369, 200)"
+  },
+  "topmostSubform[0].Page1[0].c1_3[1]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "ointly (even if only one had income) eparately (MFS) MFS box enter the name of your spouse If you ch...",
+    "position": "(369, 224)"
+  },
+  "topmostSubform[0].Page1[0].f1_18[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "If you checked the MFS box, enter the name of your qualifying person is a child but not your depende...",
+    "position": "(288, 246)"
+  },
+  "topmostSubform[0].Page1[0].c1_4[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "q",
+    "position": "(103, 260)"
+  },
+  "topmostSubform[0].Page1[0].f1_19[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "ing a nonresident alien or dual-status alien spouse as a U ame (see instructions and attach statemen...",
+    "position": "(338, 270)"
+  },
+  "topmostSubform[0].Page1[0].c1_5[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "award, or payment for property or services); or (b) sell, ncial interest in a digital asset)? (See i...",
+    "position": "(504, 301)"
+  },
+  "topmostSubform[0].Page1[0].c1_5[1]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "payment for property or services); or (b) sell, st in a digital asset)? (See instructions.) Yes e as...",
+    "position": "(540, 301)"
+  },
+  "topmostSubform[0].Page1[0].c1_6[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "Assets exchange, or otherwise d Standard Deduction Someone can claim: Spouse itemizes on a",
+    "position": "(182, 314)"
+  },
+  "topmostSubform[0].Page1[0].c1_7[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "exchange, or otherwise dispose of a digital asset (or a n Someone can claim: You as a dependent Spou...",
+    "position": "(283, 314)"
+  },
+  "topmostSubform[0].Page1[0].c1_8[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "Standard Deduction S",
+    "position": "(96, 326)"
+  },
+  "topmostSubform[0].Page1[0].c1_9[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "educ o p Age/Blindness You: Dependents (see ins",
+    "position": "(117, 343)"
+  },
+  "topmostSubform[0].Page1[0].c1_10[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "c o p p y indness You: Were born before January 2, 1960 ndents (see instructions):",
+    "position": "(261, 343)"
+  },
+  "topmostSubform[0].Page1[0].c1_11[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "p y rn before January 2, 1960 Are blind Spouse: (2) S i l it (",
+    "position": "(362, 343)"
+  },
+  "topmostSubform[0].Page1[0].c1_12[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "Spouse: Was born before January 2, 1960 l it (3) R l ti hi (4) Check the box if qualifies",
+    "position": "(506, 343)"
+  },
+  "topmostSubform[0].Page1[0].Dependents_ReadOrder[0].c1_13[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "see instructio and check here . . Income",
+    "position": "(80, 415)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row1[0].f1_20[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "If more than four dependents, i t ti",
+    "position": "(94, 378)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row1[0].f1_21[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "r ents, ti (1) First name Last name",
+    "position": "(266, 378)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row1[0].f1_22[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "number Last name",
+    "position": "(354, 378)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row1[0].c1_14[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "number to you Child t",
+    "position": "(453, 380)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row1[0].c1_15[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "to you Child tax credit Credit for ot",
+    "position": "(532, 380)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row2[0].f1_23[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "than four dependents, see instructions and check",
+    "position": "(94, 390)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row2[0].f1_24[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "r ents, uctions ck",
+    "position": "(266, 390)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row2[0].f1_25[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "",
+    "position": "(354, 390)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row2[0].c1_16[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "",
+    "position": "(453, 392)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row2[0].c1_17[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "",
+    "position": "(532, 392)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row3[0].f1_26[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "dependents, see instructions and check here . .",
+    "position": "(94, 402)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row3[0].f1_27[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "ents, uctions ck .",
+    "position": "(266, 402)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row3[0].f1_28[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "",
+    "position": "(354, 402)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row3[0].c1_18[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "",
+    "position": "(453, 404)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row3[0].c1_19[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "",
+    "position": "(532, 404)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row4[0].f1_29[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "see instructions and check here . . Income",
+    "position": "(94, 414)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row4[0].f1_30[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "uctions ck . me 1 a Total amount from Form(s) W-2, box 1 (see",
+    "position": "(266, 414)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row4[0].f1_31[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "unt from Form(s) W-2, box 1 (see instructions) . . .",
+    "position": "(354, 414)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row4[0].c1_20[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "(see instructions)",
+    "position": "(453, 416)"
+  },
+  "topmostSubform[0].Page1[0].Table_Dependents[0].Row4[0].c1_21[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "1a",
+    "position": "(532, 416)"
+  },
+  "topmostSubform[0].Page1[0].f1_32[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "ns) . . . . . . . . . . . . . 1a W-2 . . . . . . . . . . . . . 1b",
+    "position": "(504, 426)"
+  },
+  "topmostSubform[0].Page1[0].f1_33[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "ns) . . . . . . . . . . . . . 1a W-2 . . . . . . . . . . . . . 1b . . . . . . . . . . . . . . 1c",
+    "position": "(504, 438)"
+  },
+  "topmostSubform[0].Page1[0].f1_34[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "W-2 . . . . . . . . . . . . . 1b . . . . . . . . . . . . . . 1c W-2 (see instructions) . . . . . . ....",
+    "position": "(504, 450)"
+  },
+  "topmostSubform[0].Page1[0].f1_35[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": ". . . . . . . . . . . . . . 1c W-2 (see instructions) . . . . . . . . 1d ne 26 . . . . . . . . . . ....",
+    "position": "(504, 462)"
+  },
+  "topmostSubform[0].Page1[0].f1_36[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "W-2 (see instructions) . . . . . . . . 1d ne 26 . . . . . . . . . . . . 1e 9, line 29 . . . . . . . ...",
+    "position": "(504, 474)"
+  },
+  "topmostSubform[0].Page1[0].f1_37[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "ne 26 . . . . . . . . . . . . 1e 9, line 29 . . . . . . . . . . . 1f . . . . . . . . . . . . . . 1g",
+    "position": "(504, 486)"
+  },
+  "topmostSubform[0].Page1[0].f1_38[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "9, line 29 . . . . . . . . . . . 1f . . . . . . . . . . . . . . 1g . . . . . . . . . . . . . . 1h",
+    "position": "(504, 498)"
+  },
+  "topmostSubform[0].Page1[0].f1_39[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": ". . . . . . . . . . . . . . 1g . . . . . . . . . . . . . . 1h . . . . . . 1i",
+    "position": "(504, 510)"
+  },
+  "topmostSubform[0].Page1[0].f1_40[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "instructions) . . . . . . . . . . . . . ection (see instructions) . . . . . . . 1i . . . . . . . . ....",
+    "position": "(410, 522)"
+  },
+  "topmostSubform[0].Page1[0].f1_41[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": ". . . . . . 1i . . . . . . . . . . . . . . 1z b Taxable interest . . . . . 2b",
+    "position": "(504, 534)"
+  },
+  "topmostSubform[0].Page1[0].f1_42[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "z Add lines 1a through 1h . . . ch Sch. B uired. 2a Tax-exempt interest . . . 2a 3a Qualified divide...",
+    "position": "(252, 546)"
+  },
+  "topmostSubform[0].Page1[0].f1_43[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": ". . . . . . . . . . . . . . 1z b Taxable interest . . . . . 2b b Ordinary dividends . . . . . 3b",
+    "position": "(504, 546)"
+  },
+  "topmostSubform[0].Page1[0].f1_44[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "ch Sch. B uired. 2a Tax-exempt interest . . . 2a 3a Qualified dividends . . . 3a 4a IRA distribution...",
+    "position": "(252, 558)"
+  },
+  "topmostSubform[0].Page1[0].f1_45[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "b Taxable interest . . . . . 2b b Ordinary dividends . . . . . 3b b Taxable amount . . . . . . 4b",
+    "position": "(504, 558)"
+  },
+  "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_46[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "uired. 3a Qualified dividends . . . 3a 4a IRA distributions . . . . 4a 5a Pensions and annuities . ....",
+    "position": "(252, 570)"
+  },
+  "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_47[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "b Ordinary dividends . . . . . 3b b Taxable amount . . . . . . 4b b Taxable amount . . . . . . 5b",
+    "position": "(504, 570)"
+  },
+  "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_48[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "4a IRA distributions . . . . 4a 5a Pensions and annuities . . 5a 6a Social security benefits . . 6a ...",
+    "position": "(252, 582)"
+  },
+  "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_49[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "b Taxable amount . . . . . . 4b b Taxable amount . . . . . . 5b b Taxable amount . . . . . . 6b",
+    "position": "(504, 582)"
+  },
+  "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_50[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "5a Pensions and annuities . . 5a 6a Social security benefits . . 6a c If you elect to use the lump-s...",
+    "position": "(252, 594)"
+  },
+  "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_51[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "b Taxable amount . . . . . . 5b b Taxable amount . . . . . . 6b eck here (see instructions) . . . . ...",
+    "position": "(504, 594)"
+  },
+  "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].c1_22[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "b Taxable amount . . . . . method, check here (see instructions) . . . . . f required If not require...",
+    "position": "(465, 608)"
+  },
+  "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].c1_23[0]": {
+    "type": "CheckBox",
+    "page": 1,
+    "label": "method, check here (see instructions) . . . . . f required. If not required, check here . . . . . 0",
+    "position": "(465, 620)"
+  },
+  "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_52[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "eck here (see instructions) . . . . . f not required, check here . . . . . 7 . . . . . . . . . . . ....",
+    "position": "(504, 618)"
+  },
+  "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_53[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "f not required, check here . . . . . 7 . . . . . . . . . . . . . . 8 r total income . . . . . . . . ...",
+    "position": "(504, 630)"
+  },
+  "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_54[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": ". . . . . . . . . . . . . . 8 r total income . . . . . . . . . . 9 . . . . . . . . . . . . . . 10",
+    "position": "(504, 642)"
+  },
+  "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_55[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "r total income . . . . . . . . . . 9 . . . . . . . . . . . . . . 10 oss income . . . . . . . . . . 1...",
+    "position": "(504, 654)"
+  },
+  "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_56[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": ". . . . . . . . . . . . . . 10 oss income . . . . . . . . . . 11 Schedule A) . . . . . . . . . . 12",
+    "position": "(504, 666)"
+  },
+  "topmostSubform[0].Page1[0].f1_57[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "oss income . . . . . . . . . . 11 Schedule A) . . . . . . . . . . 12 5 or Form 8995-A . . . . . . . ...",
+    "position": "(504, 678)"
+  },
+  "topmostSubform[0].Page1[0].f1_58[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "Schedule A) . . . . . . . . . . 12 5 or Form 8995-A . . . . . . . . . 13 . . . . . . . . . . . . . ....",
+    "position": "(504, 690)"
+  },
+  "topmostSubform[0].Page1[0].f1_59[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": "5 or Form 8995-A . . . . . . . . . 13 . . . . . . . . . . . . . . 14 . This is your taxable income ....",
+    "position": "(504, 702)"
+  },
+  "topmostSubform[0].Page1[0].f1_60[0]": {
+    "type": "Text",
+    "page": 1,
+    "label": ". . . . . . . . . . . . . . 14 . This is your taxable income . . . . . 15 instructions. Cat. No. 113...",
+    "position": "(504, 714)"
+  },
+  "topmostSubform[0].Page2[0].c2_1[0]": {
+    "type": "CheckBox",
+    "page": 2,
+    "label": "6 Tax (see instructions). Check if any from Form(s): 1 7 Amount from Schedule 2 line 3",
+    "position": "(297, 38)"
+  },
+  "topmostSubform[0].Page2[0].c2_2[0]": {
+    "type": "CheckBox",
+    "page": 2,
+    "label": "instructions). Check if any from Form(s): 1 8814 2 from Schedule 2 line 3",
+    "position": "(348, 38)"
+  },
+  "topmostSubform[0].Page2[0].c2_3[0]": {
+    "type": "CheckBox",
+    "page": 2,
+    "label": "Check if any from Form(s): 1 8814 2 4972 3 2 line 3",
+    "position": "(398, 38)"
+  },
+  "topmostSubform[0].Page2[0].f2_01[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "ck if any from Form(s): 1 8814 2 4972 3 ine 3 . . . . . . . . . . . . . . .",
+    "position": "(410, 36)"
+  },
+  "topmostSubform[0].Page2[0].f2_02[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "8814 2 4972 3 . . 16 . . . . . . . . . . . . . . 17",
+    "position": "(504, 36)"
+  },
+  "topmostSubform[0].Page2[0].f2_03[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "8814 2 4972 3 . . 16 . . . . . . . . . . . . . . 17 . . . . . . . . . . . . . . 18",
+    "position": "(504, 48)"
+  },
+  "topmostSubform[0].Page2[0].f2_04[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": ". . . . . . . . . . . . . . 17 . . . . . . . . . . . . . . 18 Schedule 8812 . . . . . . . . . . 19",
+    "position": "(504, 60)"
+  },
+  "topmostSubform[0].Page2[0].f2_05[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": ". . . . . . . . . . . . . . 18 Schedule 8812 . . . . . . . . . . 19 . . . . . . . . . . . . . . 20",
+    "position": "(504, 72)"
+  },
+  "topmostSubform[0].Page2[0].f2_06[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "Schedule 8812 . . . . . . . . . . 19 . . . . . . . . . . . . . . 20 . . . . . . . . . . . . . . 21",
+    "position": "(504, 84)"
+  },
+  "topmostSubform[0].Page2[0].f2_07[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": ". . . . . . . . . . . . . . 20 . . . . . . . . . . . . . . 21 . . . . . . . . . . . . . . 22",
+    "position": "(504, 96)"
+  },
+  "topmostSubform[0].Page2[0].f2_08[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": ". . . . . . . . . . . . . . 21 . . . . . . . . . . . . . . 22 hedule 2, line 21 . . . . . . . . . 23",
+    "position": "(504, 108)"
+  },
+  "topmostSubform[0].Page2[0].f2_09[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": ". . . . . . . . . . . . . . 22 hedule 2, line 21 . . . . . . . . . 23 . . . . . . . . . . . . . . 24",
+    "position": "(504, 120)"
+  },
+  "topmostSubform[0].Page2[0].f2_10[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "hedule 2, line 21 . . . . . . . . . 23 . . . . . . . . . . . . . . 24",
+    "position": "(504, 132)"
+  },
+  "topmostSubform[0].Page2[0].f2_11[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "ld from: . . . . . . . . . . . . . . 25a . . . . . . . . . . . . . . 25b",
+    "position": "(410, 156)"
+  },
+  "topmostSubform[0].Page2[0].f2_12[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": ". . . . . . . . . . . . . . 25a . . . . . . . . . . . . . . 25b ns) . . . . . . . . . . . . . 25c",
+    "position": "(410, 168)"
+  },
+  "topmostSubform[0].Page2[0].f2_13[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": ". . . . . . . . . . . . . . 25b ns) . . . . . . . . . . . . . 25c . . . . . . . . . . . . . . . . .",
+    "position": "(410, 180)"
+  },
+  "topmostSubform[0].Page2[0].f2_14[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": ". . . . . . 25c . . . . . . . . . . . . . . 25d om 2023 return . . . . . . . . . . 26",
+    "position": "(504, 192)"
+  },
+  "topmostSubform[0].Page2[0].f2_15[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": ". . . . . . . . . . . . . . 25d om 2023 return . . . . . . . . . . 26 . . . . . . 27",
+    "position": "(504, 204)"
+  },
+  "topmostSubform[0].Page2[0].f2_16[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "nts and amount applied from 2023 return . . . . . . . . . . . . . . . . . . . 27 om Schedule 8812 . ...",
+    "position": "(410, 216)"
+  },
+  "topmostSubform[0].Page2[0].f2_17[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": ". . . . . . . . . . . . . . 27 om Schedule 8812 . . . . . . . . 28 it from Form 8863, line 8 . . . ....",
+    "position": "(410, 228)"
+  },
+  "topmostSubform[0].Page2[0].f2_18[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "om Schedule 8812 . . . . . . . . 28 it from Form 8863, line 8 . . . . . . . 29 . . . . . . . . . . ....",
+    "position": "(410, 240)"
+  },
+  "topmostSubform[0].Page2[0].f2_19[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "it from Form 8863, line 8 . . . . . . . 29 . . . . . . . . . . . . . . 30 ine 15 . . . . . . . . . ....",
+    "position": "(410, 252)"
+  },
+  "topmostSubform[0].Page2[0].f2_20[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": ". . . . . . . . . . . . . . 30 ine 15 . . . . . . . . . . . . 31 31. These are your total other paym...",
+    "position": "(410, 264)"
+  },
+  "topmostSubform[0].Page2[0].f2_21[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": ". . . . . . 31 her payments and refundable credits . . 32 ments . . . . . . . . . . . . 33",
+    "position": "(504, 276)"
+  },
+  "topmostSubform[0].Page2[0].f2_22[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "her payments and refundable credits . . 32 ments . . . . . . . . . . . . 33 ne 33. This is the amoun...",
+    "position": "(504, 288)"
+  },
+  "topmostSubform[0].Page2[0].f2_23[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "ments . . . . . . . . . . . . 33 ne 33. This is the amount you overpaid . . 34 m 8888 is attached, c...",
+    "position": "(504, 300)"
+  },
+  "topmostSubform[0].Page2[0].c2_4[0]": {
+    "type": "CheckBox",
+    "page": 2,
+    "label": "e 24 from line 33. This is the amount you overpaid . you. If Form 8888 is attached, check here . . ....",
+    "position": "(465, 314)"
+  },
+  "topmostSubform[0].Page2[0].f2_24[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "ne 33. This is the amount you overpaid . . 34 m 8888 is attached, check here . . . . 35a c Type: Che...",
+    "position": "(504, 312)"
+  },
+  "topmostSubform[0].Page2[0].RoutingNo[0].f2_25[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "35a Amount of line 3 Direct deposit? See instructions. b Routing number d Account number",
+    "position": "(173, 324)"
+  },
+  "topmostSubform[0].Page2[0].c2_5[0]": {
+    "type": "CheckBox",
+    "page": 2,
+    "label": "4 you want refunded to you. If Form 8888 is attached, ch c Type:",
+    "position": "(377, 327)"
+  },
+  "topmostSubform[0].Page2[0].c2_5[1]": {
+    "type": "CheckBox",
+    "page": 2,
+    "label": "ded to you. If Form 8888 is attached, check here . . c Type: Checking",
+    "position": "(435, 327)"
+  },
+  "topmostSubform[0].Page2[0].AccountNo[0].f2_26[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "Direct deposit? See instructions. b Routing number d Account number 36 Amount of line 3",
+    "position": "(173, 337)"
+  },
+  "topmostSubform[0].Page2[0].f2_27[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "t applied to your 2025 estimated tax . . . 36 24 This is the amount you owe",
+    "position": "(410, 348)"
+  },
+  "topmostSubform[0].Page2[0].f2_28[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "owe. nts or see instructions . . . . . . . . 37 . . . . . . 38",
+    "position": "(504, 372)"
+  },
+  "topmostSubform[0].Page2[0].f2_29[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "go to www.irs.gov/Payments or see instructions . . . instructions) . . . . . . . . . . 38 er person ...",
+    "position": "(410, 384)"
+  },
+  "topmostSubform[0].Page2[0].c2_6[0]": {
+    "type": "CheckBox",
+    "page": 2,
+    "label": "er person to discuss this return with the IRS? See . . . . . . . . . . . . . . . . Phone",
+    "position": "(410, 408)"
+  },
+  "topmostSubform[0].Page2[0].c2_6[1]": {
+    "type": "CheckBox",
+    "page": 2,
+    "label": "eturn with the IRS? See . . . . . . . . Yes. Complete below. one Personal identification",
+    "position": "(511, 408)"
+  },
+  "topmostSubform[0].Page2[0].f2_30[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "Designee instructions Designee\u2019s name Sign Under penaltie",
+    "position": "(144, 420)"
+  },
+  "topmostSubform[0].Page2[0].f2_31[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "ons . . . . . . . . . . . . . . . \u2019s Phone no. nalties of perjury, I declare that I have examined th...",
+    "position": "(331, 420)"
+  },
+  "topmostSubform[0].Page2[0].f2_32[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "p Phone no. Personal identification number (PIN) rn and accompanying schedules and statements, and t...",
+    "position": "(504, 426)"
+  },
+  "topmostSubform[0].Page2[0].f2_33[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "gnature Date \u2019s signature. If a joint return, both must sign. Date",
+    "position": "(325, 472)"
+  },
+  "topmostSubform[0].Page2[0].f2_34[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "ou occupa o Protection P (see inst.) Spouse\u2019s occupation If the IRS sen",
+    "position": "(504, 480)"
+  },
+  "topmostSubform[0].Page2[0].f2_35[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "\u2019s signature. If a joint return, both must sign. Date no. Email address",
+    "position": "(325, 502)"
+  },
+  "topmostSubform[0].Page2[0].f2_36[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "Spouse s occupa o Identity Prote (see inst.) dress",
+    "position": "(504, 510)"
+  },
+  "topmostSubform[0].Page2[0].f2_37[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "your records. Phone no. P id Preparer\u2019s",
+    "position": "(135, 522)"
+  },
+  "topmostSubform[0].Page2[0].f2_38[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "no. Email address er\u2019s name Preparer\u2019s signature",
+    "position": "(324, 522)"
+  },
+  "topmostSubform[0].Page2[0].f2_39[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "Paid Preparer U O l",
+    "position": "(92, 544)"
+  },
+  "topmostSubform[0].Page2[0].f2_40[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "\u2019s signature Date",
+    "position": "(447, 544)"
+  },
+  "topmostSubform[0].Page2[0].c2_7[0]": {
+    "type": "CheckBox",
+    "page": 2,
+    "label": "Date PTIN C Phone no",
+    "position": "(511, 547)"
+  },
+  "topmostSubform[0].Page2[0].f2_41[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "Paid Preparer Use Only Firm\u2019s name Firm\u2019s addres",
+    "position": "(143, 558)"
+  },
+  "topmostSubform[0].Page2[0].f2_42[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "Phone no. Firm\u2019s EIN",
+    "position": "(500, 558)"
+  },
+  "topmostSubform[0].Page2[0].f2_43[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "Preparer Use Only Firm\u2019s name Firm\u2019s address Go to www.irs.gov/Form1040 for inst",
+    "position": "(151, 570)"
+  },
+  "topmostSubform[0].Page2[0].f2_44[0]": {
+    "type": "Text",
+    "page": 2,
+    "label": "Phone no. Firm\u2019s EIN",
+    "position": "(500, 570)"
+  }
+}

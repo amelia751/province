@@ -1,0 +1,50 @@
+{
+  "form_metadata": {
+    "form_type": "F1040",
+    "tax_year": "2024",
+    "total_fields": 141
+  },
+  "tax_year_info": {
+    "tax_year_begin": "topmostSubform[0].Page1[0].f1_01[0]",
+    "tax_year_end": "topmostSubform[0].Page1[0].f1_02[0]",
+    "tax_year_end_year": "topmostSubform[0].Page1[0].f1_03[0]"
+  },
+  "personal_info": {
+    "taxpayer_first_name": "topmostSubform[0].Page1[0].f1_04[0]",
+    "taxpayer_last_name": "topmostSubform[0].Page1[0].f1_05[0]",
+    "taxpayer_ssn": "topmostSubform[0].Page1[0].f1_06[0]",
+    "spouse_first_name": "topmostSubform[0].Page1[0].f1_07[0]",
+    "spouse_last_name": "topmostSubform[0].Page1[0].f1_08[0]",
+    "spouse_ssn": "topmostSubform[0].Page1[0].f1_09[0]"
+  },
+  "address": {
+    "street_address": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_10[0]",
+    "apt_no": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_11[0]",
+    "city": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_12[0]",
+    "state": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_13[0]",
+    "zip": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_14[0]"
+  },
+  "income": {
+    "wages_1a": "topmostSubform[0].Page1[0].f1_32[0]",
+    "wages_1z": "topmostSubform[0].Page1[0].f1_41[0]",
+    "tax_exempt_interest_2a": "topmostSubform[0].Page1[0].f1_42[0]",
+    "taxable_interest_2b": "topmostSubform[0].Page1[0].f1_43[0]",
+    "qualified_dividends_3a": "topmostSubform[0].Page1[0].f1_44[0]",
+    "ordinary_dividends_3b": "topmostSubform[0].Page1[0].f1_45[0]",
+    "ira_4a": "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_46[0]",
+    "ira_4b": "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_47[0]",
+    "pensions_5a": "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_48[0]",
+    "pensions_5b": "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_49[0]",
+    "ss_6a": "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_50[0]",
+    "ss_6b": "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_51[0]",
+    "capital_gain_7": "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_52[0]",
+    "schedule_1_8": "topmostSubform[0].Page1[0].Line4a-11_ReadOrder[0].f1_53[0]",
+    "total_income_9": "topmostSubform[0].Page1[0].f1_54[0]",
+    "adjustments_10": "topmostSubform[0].Page1[0].f1_55[0]",
+    "agi_11": "topmostSubform[0].Page1[0].f1_56[0]",
+    "standard_deduction_12": "topmostSubform[0].Page1[0].f1_57[0]",
+    "qbi_13": "topmostSubform[0].Page1[0].f1_58[0]",
+    "total_deductions_14": "topmostSubform[0].Page1[0].f1_59[0]",
+    "taxable_income_15": "topmostSubform[0].Page1[0].f1_60[0]"
+  }
+}

@@ -1,8 +1,8 @@
 """
 Tax Form Filler Tool
 
-This tool handles filling PDF tax forms using PyMuPDF for precise form field filling.
-Supports both text fields and checkboxes with proper formatting.
+AI-powered form filling using hybrid mapping (seed + agent) for precise field matching.
+Supports conversational questions for missing critical fields.
 """
 
 import json
@@ -10,8 +10,11 @@ import logging
 import os
 import tempfile
 import time
+import io
+import re
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+from decimal import Decimal
 import boto3
 from botocore.exceptions import ClientError
 
@@ -20,7 +23,7 @@ from province.core.config import get_settings
 logger = logging.getLogger(__name__)
 
 class TaxFormFiller:
-    """Tax form filling tool using PyMuPDF for precise field filling."""
+    """AI-powered tax form filling with hybrid mapping and conversational questions."""
     
     def __init__(self):
         self.settings = get_settings()
@@ -30,32 +33,144 @@ class TaxFormFiller:
             aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
             aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
         )
+        self.bedrock = boto3.client(
+            'bedrock-runtime',
+            region_name=self.settings.aws_region,
+            aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
+        )
+        self.dynamodb = boto3.resource(
+            'dynamodb',
+            region_name=self.settings.aws_region,
+            aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
+        )
         self.templates_bucket = self.settings.templates_bucket_name
         self.documents_bucket = self.settings.documents_bucket_name
+        self.mappings_table = self.dynamodb.Table(os.getenv('FORM_MAPPINGS_TABLE_NAME', 'province-form-mappings'))
 
-    async def fill_tax_form(self, form_type: str, form_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _get_hybrid_mapping(self, form_type: str, tax_year: str = "2024") -> Optional[Dict[str, Any]]:
+        """Load hybrid mapping from DynamoDB."""
+        try:
+            response = self.mappings_table.get_item(
+                Key={'form_type': form_type, 'tax_year': tax_year}
+            )
+            item = response.get('Item')
+            if item:
+                def convert_decimal(obj):
+                    if isinstance(obj, Decimal):
+                        return float(obj)
+                    raise TypeError
+                return json.loads(json.dumps(item['mapping'], default=convert_decimal))
+            return None
+        except Exception as e:
+            logger.error(f"Error loading hybrid mapping: {e}")
+            return None
+    
+    def _ask_ai_for_questions(self, form_data: Dict[str, Any], form_mapping: Dict[str, Any]) -> Dict[str, Any]:
+        """Use AI to identify missing critical fields and generate questions."""
+        try:
+            available_fields = []
+            for section, fields in form_mapping.items():
+                if isinstance(fields, dict) and section != 'form_metadata':
+                    available_fields.extend(list(fields.keys())[:20])
+            
+            prompt = f"""You are helping fill IRS Form 1040. Review the data and identify MISSING critical fields.
+
+FORM DATA AVAILABLE:
+{json.dumps(form_data, indent=2)[:1500]}
+
+FORM FIELDS (examples):
+{json.dumps(available_fields[:30], indent=2)}
+
+CRITICAL FIELDS TO CHECK:
+- Bank routing/account (if refund > 0)
+- Dependent SSN/names (if has dependents)
+- Spouse info (if married filing jointly)
+
+TASK: Return JSON with:
+1. "needs_input": true/false
+2. "questions": list of questions if needs input
+3. "ready_to_fill": true/false
+
+OUTPUT:
+{{
+  "needs_input": true,
+  "questions": [
+    {{"field": "routing_number_35b", "question": "What's your bank routing number?", "context": "For $X refund"}}
+  ],
+  "ready_to_fill": false
+}}"""
+
+            response = self.bedrock.invoke_model(
+                modelId='us.anthropic.claude-3-5-sonnet-20241022-v2:0',
+                body=json.dumps({
+                    'anthropic_version': 'bedrock-2023-05-31',
+                    'max_tokens': 2000,
+                    'temperature': 0,
+                    'messages': [{'role': 'user', 'content': prompt}]
+                })
+            )
+            
+            ai_response = json.loads(response['body'].read())['content'][0]['text']
+            json_match = re.search(r'```json\n({.*?})\n```', ai_response, re.DOTALL)
+            if json_match:
+                ai_response = json_match.group(1)
+            
+            return json.loads(ai_response)
+        except Exception as e:
+            logger.error(f"AI question generation error: {e}")
+            return {"needs_input": False, "ready_to_fill": True, "questions": []}
+    
+    async def fill_tax_form(self, form_type: str, form_data: Dict[str, Any], user_responses: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Fill any tax form with provided data using dynamic field mapping.
+        Fill tax form using AI reasoning and hybrid mapping.
         
         Args:
-            form_type: Type of form to fill (1040, SCHEDULE_C, STATE_CA, etc.)
-            form_data: Dictionary containing form field data
+            form_type: Type of form (1040, SCHEDULE_C, etc.)
+            form_data: Form data including calculations
+            user_responses: Optional responses to questions
             
         Returns:
-            Dictionary with filled form URL and metadata
+            Dict with filled form URL, questions, or metadata
         """
         try:
-            logger.info(f"Starting {form_type} form filling process")
+            logger.info(f"🤖 AI-powered filling: {form_type}")
             
-            # Add form_type to form_data for mapping purposes
-            form_data_with_type = {**form_data, 'form_type': form_type}
+            # 1. Load hybrid mapping
+            tax_year = form_data.get('tax_year', '2024')
+            form_type_upper = form_type.upper()
+            mapping_key = 'F1040' if '1040' in form_type_upper else form_type_upper
             
-            # Get template path for the form type
+            hybrid_mapping = self._get_hybrid_mapping(mapping_key, tax_year)
+            if not hybrid_mapping:
+                logger.warning("No hybrid mapping found, falling back to legacy method")
+                return await self._legacy_fill(form_type, form_data)
+            
+            logger.info(f"✅ Loaded hybrid mapping")
+            
+            # 2. Check if AI needs to ask questions (unless user already responded)
+            if not user_responses:
+                ai_analysis = self._ask_ai_for_questions(form_data, hybrid_mapping)
+                
+                if ai_analysis.get('needs_input') and ai_analysis.get('questions'):
+                    return {
+                        'success': False,
+                        'needs_input': True,
+                        'message': "I need some additional information:",
+                        'questions': ai_analysis['questions']
+                    }
+            
+            # 3. Merge user responses into form_data
+            if user_responses:
+                form_data = {**form_data, **user_responses}
+            
+            # 4. Download template
             template_key = self._get_template_path(form_type)
             template_data = await self._download_pdf_template(template_key)
             
-            # Fill the form using PyMuPDF with dynamic mapping
-            filled_pdf_bytes = self._fill_pdf_with_pymupdf(template_data, form_data_with_type)
+            # 5. Fill using hybrid mapping
+            filled_pdf_bytes = self._fill_pdf_with_hybrid_mapping(template_data, form_data, hybrid_mapping)
             
             # Upload the filled form with versioning
             upload_result = await self._upload_filled_pdf_with_versioning(
@@ -139,7 +254,83 @@ class TaxFormFiller:
         
         return template_paths.get(form_type.upper(), 'tax_forms/2024/f1040.pdf')
 
-    def _fill_pdf_with_pymupdf(self, pdf_data: bytes, form_data: Dict[str, Any]) -> bytes:
+    def _fill_pdf_with_hybrid_mapping(self, pdf_data: bytes, form_data: Dict[str, Any], hybrid_mapping: Dict[str, Any]) -> bytes:
+        """Fill PDF using hybrid mapping (seed + AI agent)."""
+        import fitz
+        
+        logger.info("Filling with hybrid mapping...")
+        doc = fitz.open(stream=pdf_data, filetype='pdf')
+        
+        # Flatten mapping
+        flat_mapping = {}
+        for section, fields in hybrid_mapping.items():
+            if isinstance(fields, dict) and section != 'form_metadata':
+                flat_mapping.update(fields)
+        
+        logger.info(f"Hybrid mapping has {len(flat_mapping)} semantic fields")
+        
+        filled_text = 0
+        filled_checkboxes = 0
+        
+        for page_num in range(doc.page_count):
+            page = doc[page_num]
+            for widget in page.widgets():
+                full_field_name = widget.field_name
+                if not full_field_name:
+                    continue
+                
+                # Find semantic name for this PDF field
+                semantic_name = None
+                for sem, pdf_path in flat_mapping.items():
+                    if pdf_path == full_field_name:
+                        semantic_name = sem
+                        break
+                
+                if semantic_name and semantic_name in form_data:
+                    value = form_data[semantic_name]
+                    
+                    if widget.field_type == 7:  # Text
+                        widget.field_value = str(value)
+                        widget.update()
+                        filled_text += 1
+                    elif widget.field_type == 2:  # Checkbox
+                        if value is True or value == "Yes" or value == 1:
+                            widget.field_value = "Yes"
+                            widget.update()
+                            filled_checkboxes += 1
+        
+        logger.info(f"✅ Filled {filled_text} text, {filled_checkboxes} checkboxes")
+        
+        # Save to bytes
+        output_buffer = io.BytesIO()
+        doc.save(output_buffer, deflate=True)
+        output_buffer.seek(0)
+        pdf_bytes = output_buffer.read()
+        doc.close()
+        
+        return pdf_bytes
+    
+    async def _legacy_fill(self, form_type: str, form_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Legacy fill method (fallback)."""
+        template_key = self._get_template_path(form_type)
+        template_data = await self._download_pdf_template(template_key)
+        filled_pdf_bytes = self._fill_pdf_with_pymupdf_legacy(template_data, form_data)
+        
+        upload_result = await self._upload_filled_pdf_with_versioning(
+            file_content=filled_pdf_bytes,
+            form_type=form_type,
+            tax_year=form_data.get('tax_year', 2024),
+            metadata={'method': 'legacy'},
+            taxpayer_id=form_data.get('taxpayer_name', 'Unknown').replace(' ', '_')
+        )
+        
+        return {
+            'success': True,
+            'filled_form_url': upload_result['download_url'],
+            'message': 'Form filled (legacy method)'
+        }
+    
+    def _fill_pdf_with_pymupdf_legacy(self, pdf_data: bytes, form_data: Dict[str, Any]) -> bytes:
         """
         Fill PDF form using PyMuPDF with support for text fields and checkboxes.
         

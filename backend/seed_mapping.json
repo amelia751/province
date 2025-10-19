@@ -1,0 +1,46 @@
+{
+  "form_metadata": {
+    "form_type": "F1040",
+    "tax_year": "2024",
+    "total_fields": 141
+  },
+  "tax_year": {
+    "tax_year_begin": "topmostSubform[0].Page1[0].f1_01[0]",
+    "tax_year_end": "topmostSubform[0].Page1[0].f1_02[0]",
+    "tax_year_end_year": "topmostSubform[0].Page1[0].f1_03[0]"
+  },
+  "personal_info": {
+    "taxpayer_first_name": "topmostSubform[0].Page1[0].f1_04[0]",
+    "taxpayer_last_name": "topmostSubform[0].Page1[0].f1_05[0]",
+    "taxpayer_ssn": "topmostSubform[0].Page1[0].f1_06[0]",
+    "spouse_first_name": "topmostSubform[0].Page1[0].f1_07[0]",
+    "spouse_last_name": "topmostSubform[0].Page1[0].f1_08[0]",
+    "spouse_ssn": "topmostSubform[0].Page1[0].f1_09[0]"
+  },
+  "address": {
+    "street_address": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_10[0]",
+    "apt_no": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_11[0]",
+    "city": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_12[0]",
+    "state": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_13[0]",
+    "zip": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_14[0]"
+  },
+  "filing_status": {
+    "single": "topmostSubform[0].Page1[0].c1_1[0]",
+    "married_filing_jointly": "topmostSubform[0].Page1[0].c1_2[0]",
+    "married_filing_separately": "topmostSubform[0].Page1[0].c1_3[0]",
+    "head_of_household": "topmostSubform[0].Page1[0].c1_3[1]",
+    "qualifying_widow": "topmostSubform[0].Page1[0].c1_4[0]"
+  },
+  "digital_assets": {
+    "yes": "topmostSubform[0].Page1[0].c1_5[0]",
+    "no": "topmostSubform[0].Page1[0].c1_6[0]"
+  },
+  "dependents": {
+    "dependent_1_first_name": "topmostSubform[0].Page1[0].f1_18[0]",
+    "dependent_1_last_name": "topmostSubform[0].Page1[0].f1_19[0]",
+    "dependent_1_ssn": "topmostSubform[0].Page1[0].f1_20[0]",
+    "dependent_1_relationship": "topmostSubform[0].Page1[0].f1_21[0]",
+    "dependent_1_child_tax_credit": "topmostSubform[0].Page1[0].c1_7[0]",
+    "dependent_1_other_credit": "topmostSubform[0].Page1[0].c1_8[0]"
+  }
+}

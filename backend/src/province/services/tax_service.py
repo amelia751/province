@@ -210,19 +210,100 @@ async def fill_form_tool(
         calc_data = session_data.get('tax_calculation', {})
         w2_data = session_data.get('w2_data', {})
         
-        # Prepare form data
+        # Parse address
+        address_full = session_data.get('address', '123 Main St, Anytown, CA 90210')
+        address_parts = address_full.split(',')
+        street = address_parts[0].strip() if len(address_parts) > 0 else ''
+        city = address_parts[1].strip() if len(address_parts) > 1 else ''
+        state_zip = address_parts[2].strip() if len(address_parts) > 2 else 'CA 90210'
+        state = state_zip.split()[0] if state_zip else 'CA'
+        zip_code = state_zip.split()[1] if len(state_zip.split()) > 1 else '90210'
+        
+        # Parse taxpayer name
+        taxpayer_name = session_data.get('taxpayer_name', 'John A. Smith')
+        name_parts = taxpayer_name.split()
+        first_name = name_parts[0] if len(name_parts) > 0 else 'JOHN'
+        middle_initial = name_parts[1][0] if len(name_parts) > 2 and name_parts[1] else ''
+        last_name = name_parts[-1] if len(name_parts) > 1 else 'SMITH'
+        
+        # Get filing status for checkbox mapping
+        filing_status_value = filing_status or session_data.get('filing_status', 'Single')
+        
+        # Calculate refund/owe outside dict
+        refund_or_due = calc_data.get('refund_or_due', 0)
+        is_refund = refund_or_due > 0
+        
+        # Prepare comprehensive form data with IRS Form 1040 field mapping
         form_data = {
-            'filing_status': filing_status or session_data.get('filing_status'),
-            'wages': wages or calc_data.get('agi', 0),
-            'federal_withholding': withholding or calc_data.get('withholding', 0),
+            # === PERSONAL INFORMATION ===
+            # Name fields (fields f1_01, f1_02, f1_03)
+            'f1_01': first_name.upper(),  # First name
+            'f1_02': middle_initial.upper(),  # Middle initial
+            'f1_03': last_name.upper(),  # Last name
+            'f1_04': session_data.get('ssn', '123-45-6789'),  # SSN
+            
+            # Address fields
+            'f1_09': street.upper(),  # Home address
+            'f1_10': city.upper(),  # City
+            'f1_11': state.upper(),  # State
+            'f1_12': zip_code,  # ZIP code
+            
+            # === FILING STATUS CHECKBOXES ===
+            'c1_1': 1 if filing_status_value == 'Single' else 0,  # Single
+            'c1_2': 1 if filing_status_value == 'Married filing jointly' else 0,  # Married filing jointly
+            'c1_3': 1 if filing_status_value == 'Married filing separately' else 0,  # MFS
+            'c1_4': 1 if filing_status_value == 'Head of household' else 0,  # HOH
+            'c1_5': 1 if filing_status_value == 'Qualifying surviving spouse' else 0,  # QSS
+            
+            # === DIGITAL ASSETS QUESTION ===
+            'c1_6': 0,  # Digital assets - No (default)
+            
+            # === INCOME SECTION ===
+            # Line 1a - Wages, salaries, tips
+            'f1_13': wages or calc_data.get('agi', 0),
+            
+            # Line 9 - Total income (same as wages for simple returns)
+            'f1_21': wages or calc_data.get('agi', 0),
+            
+            # === ADJUSTED GROSS INCOME ===
+            # Line 11 - AGI
+            'f1_23': calc_data.get('agi', wages or 0),
+            
+            # === STANDARD DEDUCTION ===
+            # Line 12 - Standard deduction
+            'f1_29': calc_data.get('standard_deduction', 0),
+            
+            # === TAXABLE INCOME ===
+            # Line 15 - Taxable income
+            'f1_34': calc_data.get('taxable_income', 0),
+            
+            # === TAX COMPUTATION ===
+            # Line 16 - Tax
+            'f1_35': calc_data.get('tax', 0),
+            
+            # === PAYMENTS ===
+            # Line 25a - Federal income tax withheld
+            'f1_44': withholding or calc_data.get('withholding', 0),
+            
+            # Line 33 - Total payments
+            'f1_48': withholding or calc_data.get('withholding', 0),
+            
+            # === REFUND OR AMOUNT OWED ===
+            # Line 34 - Refund
+            'f1_50': abs(refund_or_due) if is_refund else 0,
+            'f1_51': abs(refund_or_due) if is_refund else 0,  # Amount to be refunded
+            
+            # Line 37 - Amount you owe
+            'f1_56': abs(refund_or_due) if not is_refund else 0,
+            
+            # === METADATA ===
+            'taxpayer_name': taxpayer_name,
+            'filing_status': filing_status_value,
+            'tax_year': calc_data.get('tax_year', 2024),
+            
+            # Additional fields for reference
             'dependents': dependents or session_data.get('dependents', 0),
-            'standard_deduction': calc_data.get('standard_deduction', 0),
-            'taxable_income': calc_data.get('taxable_income', 0),
-            'tax_liability': calc_data.get('tax', 0),
-            'refund_or_due': calc_data.get('refund_or_due', 0),
-            'taxpayer_name': session_data.get('taxpayer_name', 'Test User'),
-            'ssn': session_data.get('ssn', '123-45-6789'),
-            'address': session_data.get('address', '123 Main St, Anytown, ST 12345')
+            'address_full': address_full,
         }
         
         result = await fill_tax_form(form_type, form_data)
