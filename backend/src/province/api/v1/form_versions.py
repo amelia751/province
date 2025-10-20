@@ -62,6 +62,34 @@ async def get_form_versions(
     try:
         settings = get_settings()
         
+        # First, get the user_id from the engagement
+        dynamodb = boto3.resource('dynamodb', region_name=settings.aws_region)
+        engagements_table = dynamodb.Table(settings.tax_engagements_table_name)
+        
+        # Query for the engagement to get user_id
+        engagement_response = engagements_table.scan(
+            FilterExpression='engagement_id = :engagement_id',
+            ExpressionAttributeValues={
+                ':engagement_id': engagement_id
+            },
+            Limit=1
+        )
+        
+        if not engagement_response.get('Items'):
+            raise HTTPException(
+                status_code=404,
+                detail=f"Engagement {engagement_id} not found"
+            )
+        
+        user_id = engagement_response['Items'][0].get('user_id')
+        if not user_id:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Engagement {engagement_id} has no associated user_id"
+            )
+        
+        logger.info(f"Found user_id={user_id} for engagement={engagement_id}")
+        
         s3_client = boto3.client(
             's3',
             region_name=settings.aws_region,
@@ -71,63 +99,52 @@ async def get_form_versions(
         
         bucket = settings.documents_bucket_name
         
-        # Try to find forms by engagement_id pattern
-        # Forms are stored as: filled_forms/{taxpayer_name}/{form_type}/{tax_year}/vXXX_*.pdf
+        # Forms are now stored as: filled_forms/{user_id}/{form_type}/{tax_year}/vXXX_*.pdf
+        prefix = f"filled_forms/{user_id}/{form_type.lower()}/{tax_year}/"
         
-        # First, scan for any folders that might match
-        prefix = "filled_forms/"
+        logger.info(f"Searching for forms with prefix: {prefix}")
         
+        # List all form versions for this user
         response = s3_client.list_objects_v2(
             Bucket=bucket,
             Prefix=prefix,
-            Delimiter='/'
+            MaxKeys=limit
         )
         
-        # Search through taxpayer folders
         versions = []
         
-        # Get all form prefixes
-        form_prefix = f"filled_forms/Test_User/{form_type}/{tax_year}/"
+        if response.get('Contents'):
+            for obj in response['Contents']:
+                key = obj['Key']
+                
+                # Skip if not a PDF
+                if not key.endswith('.pdf'):
+                    continue
+                
+                # Extract version from filename (e.g., v031_1040_1760887161.pdf)
+                filename = key.split('/')[-1]
+                if filename.startswith('v'):
+                    version_str = filename.split('_')[0]  # e.g., "v031"
+                    version_num = int(version_str[1:])  # Extract number
+                    
+                    # Generate signed URL (valid for 1 hour)
+                    signed_url = s3_client.generate_presigned_url(
+                        'get_object',
+                        Params={'Bucket': bucket, 'Key': key},
+                        ExpiresIn=3600
+                    )
+                    
+                    versions.append(FormVersion(
+                        version=version_str,
+                        version_number=version_num,
+                        s3_key=key,
+                        size=obj['Size'],
+                        timestamp=obj['LastModified'].isoformat(),
+                        last_modified=obj['LastModified'].strftime('%Y-%m-%d %H:%M:%S'),
+                        download_url=signed_url
+                    ))
         
-        try:
-            form_response = s3_client.list_objects_v2(
-                Bucket=bucket,
-                Prefix=form_prefix,
-                MaxKeys=limit
-            )
-            
-            if form_response.get('Contents'):
-                for obj in form_response['Contents']:
-                    key = obj['Key']
-                    
-                    # Skip if not a PDF
-                    if not key.endswith('.pdf'):
-                        continue
-                    
-                    # Extract version from filename (e.g., v031_1040_1760887161.pdf)
-                    filename = key.split('/')[-1]
-                    if filename.startswith('v'):
-                        version_str = filename.split('_')[0]  # e.g., "v031"
-                        version_num = int(version_str[1:])  # Extract number
-                        
-                        # Generate signed URL (valid for 1 hour)
-                        signed_url = s3_client.generate_presigned_url(
-                            'get_object',
-                            Params={'Bucket': bucket, 'Key': key},
-                            ExpiresIn=3600
-                        )
-                        
-                        versions.append(FormVersion(
-                            version=version_str,
-                            version_number=version_num,
-                            s3_key=key,
-                            size=obj['Size'],
-                            timestamp=obj['LastModified'].isoformat(),
-                            last_modified=obj['LastModified'].strftime('%Y-%m-%d %H:%M:%S'),
-                            download_url=signed_url
-                        ))
-        except Exception as e:
-            logger.warning(f"Error listing forms for Test_User: {e}")
+        logger.info(f"Found {len(versions)} versions for user_id={user_id}, form={form_type}, year={tax_year}")
         
         if not versions:
             raise HTTPException(
@@ -135,8 +152,9 @@ async def get_form_versions(
                 detail=f"No versions found for {form_type} form"
             )
         
-        # Sort by version number (descending)
-        versions.sort(key=lambda x: x.version_number, reverse=True)
+        # Sort by timestamp (most recent first), not version number
+        # Version numbers only make sense within a single taxpayer folder
+        versions.sort(key=lambda x: x.timestamp, reverse=True)
         
         return FormVersionsResponse(
             engagement_id=engagement_id,

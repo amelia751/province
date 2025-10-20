@@ -17,6 +17,7 @@ export interface ChatRequest {
   agentName: string;
   matterId?: string;
   enableTrace?: boolean;
+  userId?: string;  // Clerk user ID for PII-safe storage
 }
 
 export interface ChatResponse {
@@ -53,7 +54,7 @@ class AgentService {
   /**
    * Create a new agent session
    */
-  async createSession(agentName: string, matterId?: string): Promise<AgentSession> {
+  async createSession(agentName: string, matterId?: string, userId?: string): Promise<AgentSession> {
     try {
       // Use tax-service endpoint which has working tools and no throttling
       const useTaxService = agentName === 'TaxPlannerAgent' || 
@@ -68,6 +69,7 @@ class AgentService {
           },
           body: JSON.stringify({
             session_id: matterId, // Use matterId as session_id if provided
+            user_id: userId,  // Pass user_id for PII-safe storage
           }),
         });
 
@@ -144,6 +146,7 @@ class AgentService {
           body: JSON.stringify({
             session_id: request.sessionId,
             user_message: request.message,
+            user_id: request.userId,  // Pass user_id for PII-safe storage
           }),
         });
 

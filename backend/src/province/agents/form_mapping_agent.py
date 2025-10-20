@@ -203,16 +203,35 @@ FIELDS (sorted top-to-bottom by position):
    - f1_26-f1_29 → dependent 3 (same pattern)
    - f1_30-f1_31 → dependent 4 (same pattern)
 
-7. Income Section (y~450-600, f1_32+):
-   - f1_32 → "wages_line_1a"
-   - f1_41 → "wages_line_1z"
+7. **INCOME SECTION** (IRS Form 1040 Lines 1-9, y~450-600):
+   **CRITICAL IRS RULES**: 
+   - Line 1a = W-2 wages (Box 1) ONLY
+   - Line 1b = household employee wages
+   - Line 1c-1h = other income sources
+   - Line 1z = TOTAL of lines 1a-1h
+   - Lines 2-8 = other income types
+   - Line 9 = SUM of all income (1z + 2b + 3b + 4b + 5b + 7 + 8)
+   
+   MAPPINGS:
+   - f1_32 → "wages_line_1a" (W-2 Box 1 wages)
+   - f1_33 → "household_employee_wages_1b"
+   - f1_34-f1_40 → other income lines 1c-1h
+   - f1_41 → "wages_line_1z" (TOTAL wages, sum of 1a-1h)
    - f1_42 → "tax_exempt_interest_2a"
    - f1_43 → "taxable_interest_2b"
    - f1_44 → "qualified_dividends_3a"
    - f1_45 → "ordinary_dividends_3b"
-   - Continue for all income/deduction lines through f1_60
-
-8. Page 2 (f2_XX): Tax, credits, payments, refund
+   - f1_46-f1_55 → Lines 4-8 (other income)
+   - f1_56 → "total_income_9" (SUM of ALL income lines)
+   
+8. **DEDUCTIONS** (Lines 10-15):
+   - f1_57 → "adjustments_line_10" (from Schedule 1)
+   - f1_58 → "adjusted_gross_income_11" (Line 9 minus Line 10)
+   - f1_59 → "deductions_line_12" (standard OR itemized)
+   - f1_60 → "qualified_business_income_deduction_13" (Form 8995 ONLY IF APPLICABLE)
+   - f1_61 → "total_deductions_15" (sum of 12+13+14)
+   
+9. Page 2 (f2_XX): Tax, credits, payments, refund
 
 **OUTPUT**: Map ALL {len(fields)} fields. For fields with explicit mappings above, use those EXACT semantic names. For other fields, infer from y-position and context."""
 

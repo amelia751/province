@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { ChevronUp, ChevronDown, Clock, FileText } from 'lucide-react';
+import { ChevronUp, ChevronDown, Clock, FileText, Rabbit } from 'lucide-react';
 import { PdfViewer } from '@/components/pdf-viewer';
 import { cn } from '@/lib/utils';
 
@@ -94,13 +94,10 @@ export function Form1040Viewer({ engagementId, className }: Form1040ViewerProps)
 
   if (error || !versionsData || !currentVersion) {
     return (
-      <div className={cn("flex items-center justify-center h-full bg-red-50", className)}>
-        <div className="text-center p-6">
-          <FileText className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-red-800 mb-2">No Form Versions Found</h3>
-          <p className="text-sm text-red-600">
-            {error || 'Please fill out Form 1040 first to see versions here.'}
-          </p>
+      <div className={cn("flex items-center justify-center h-full bg-white", className)}>
+        <div className="text-center p-8 max-w-md">
+          <Rabbit className="h-12 w-12 mx-auto mb-4 text-gray-400" strokeWidth={1} />
+          <h3 className="text-lg font-medium text-gray-900">No Form 1040 Available</h3>
         </div>
       </div>
     );

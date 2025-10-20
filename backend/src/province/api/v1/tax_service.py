@@ -18,6 +18,7 @@ router = APIRouter(prefix="/tax-service", tags=["tax-service"])
 
 class StartConversationRequest(BaseModel):
     session_id: Optional[str] = Field(None, description="Optional session ID")
+    user_id: Optional[str] = Field(None, description="Clerk user ID")
 
 
 class StartConversationResponse(BaseModel):
@@ -29,6 +30,7 @@ class StartConversationResponse(BaseModel):
 class ContinueConversationRequest(BaseModel):
     session_id: str
     user_message: str
+    user_id: Optional[str] = Field(None, description="Clerk user ID")
 
 
 class ContinueConversationResponse(BaseModel):
@@ -50,10 +52,10 @@ async def start_tax_conversation(request: StartConversationRequest):
     Returns initial greeting and available W2 documents.
     """
     try:
-        logger.info(f"Starting tax conversation with session_id: {request.session_id}")
+        logger.info(f"Starting tax conversation with session_id: {request.session_id}, user_id: {request.user_id}")
         
-        # Start conversation
-        initial_message = await tax_service.start_conversation(request.session_id)
+        # Start conversation with user_id
+        initial_message = await tax_service.start_conversation(request.session_id, request.user_id)
         
         # Get session ID (generated if not provided)
         from ...services.tax_service import conversation_state
@@ -83,10 +85,11 @@ async def continue_tax_conversation(request: ContinueConversationRequest):
     try:
         logger.info(f"Continuing conversation {request.session_id} with message: {request.user_message[:100]}...")
         
-        # Continue conversation
+        # Continue conversation with user_id
         agent_response = await tax_service.continue_conversation(
             user_message=request.user_message,
-            session_id=request.session_id
+            session_id=request.session_id,
+            user_id=request.user_id
         )
         
         # Get updated conversation state

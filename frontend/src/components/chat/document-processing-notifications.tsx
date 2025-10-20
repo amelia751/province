@@ -65,20 +65,7 @@ export function DocumentProcessingNotifications({
   }
 
   if (notifications.length === 0 && !isLoading) {
-    return (
-      <div className={`bg-gray-50 border border-gray-200 rounded-lg p-3 ${className}`}>
-        <div className="text-center">
-          <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-          <p className="text-sm text-gray-600">No document processing notifications</p>
-          <button
-            onClick={simulateProcessing}
-            className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
-          >
-            Simulate W2 Processing
-          </button>
-        </div>
-      </div>
-    );
+    return null; // Hide when no notifications
   }
 
   return (
@@ -166,16 +153,6 @@ export function DocumentProcessingNotifications({
           </div>
         </div>
       )}
-
-      {/* Debug Actions */}
-      <div className="pt-2 border-t border-gray-200">
-        <button
-          onClick={simulateProcessing}
-          className="text-xs text-gray-500 hover:text-gray-700"
-        >
-          🧪 Simulate Processing
-        </button>
-      </div>
     </div>
   );
 }

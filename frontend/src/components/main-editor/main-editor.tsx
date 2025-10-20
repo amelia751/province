@@ -63,26 +63,8 @@ const mockTabs: EditorTab[] = [
     type: "debug"
   },
   {
-    id: "visual-field-map",
-    name: "🗺️ Field Map (Visual Reference)",
-    path: "reference/field-map",
-    isDirty: false,
-    isActive: false,
-    type: "pdf",
-    url: "https://province-documents-[REDACTED-ACCOUNT-ID]-us-east-1.s3.amazonaws.com/filled_forms/VISUAL_MAPPING/1040_field_map_visual.pdf?AWSAccessKeyId=[REDACTED-AWS-KEY-1]&Signature=nF%2B2rqTRR9Y7CXINaPuwV9mF2B4%3D&Expires=1761497273"
-  },
-  {
-    id: "ai-filled-1040-comprehensive",
-    name: "🤖 AI-Filled 1040 (66/66 Fields - 100%!)",
-    path: "samples/1040-comprehensive",
-    isDirty: false,
-    isActive: false,
-    type: "pdf",
-    url: "https://province-documents-[REDACTED-ACCOUNT-ID]-us-east-1.s3.amazonaws.com/filled_forms/John_A._Smith/1040/2024/v002_comprehensive_ai_filled.pdf?AWSAccessKeyId=[REDACTED-AWS-KEY-1]&Signature=sIz7F3BnTUdPU2jGcZZG6oiDTy4%3D&Expires=1761501734"
-  },
-  {
     id: "form-1040",
-    name: "📋 Form 1040 (Your Taxes)",
+    name: "📋 Form 1040",
     path: "forms/1040",
     isDirty: false,
     isActive: false,
@@ -95,35 +77,6 @@ const mockTabs: EditorTab[] = [
     isDirty: false,
     isActive: false,
     type: "documents"
-  },
-  {
-    id: "logs",
-    name: "Backend Logs",
-    path: "system/logs",
-    isDirty: false,
-    isActive: false
-  },
-  {
-    id: "ingest-w2",
-    name: "Ingest W-2",
-    path: "tools/ingest-w2",
-    isDirty: false,
-    isActive: false,
-    type: "ingest-tool"
-  },
-  {
-    id: "1",
-    name: "sidebar.tsx",
-    path: "src/components/ui/sidebar.tsx",
-    isDirty: true,
-    isActive: false
-  },
-  {
-    id: "2",
-    name: "page.tsx",
-    path: "src/app/page.tsx",
-    isDirty: false,
-    isActive: false
   }
 ];
 
@@ -440,7 +393,9 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
       const originalFetch = window.fetch;
       window.fetch = async (...args) => {
         const startTime = Date.now();
-        const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || 'Unknown URL';
+        const url = typeof args[0] === 'string' ? args[0] : 
+                     (args[0] instanceof Request ? args[0].url : 
+                     (args[0] instanceof URL ? args[0].toString() : 'Unknown URL'));
         
         try {
           // Store API call info
@@ -930,105 +885,140 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                           <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-xs h-full overflow-auto">
                             <pre className="whitespace-pre-wrap">
                               {(() => {
+                                // Get engagement ID from URL
+                                const engagementId = typeof window !== 'undefined' && window.location.pathname.includes('project/') 
+                                  ? window.location.pathname.split('project/')[1]?.split(/[?#]/)[0] || 'UNKNOWN'
+                                  : 'UNKNOWN';
+                                
+                                // Get user ID from localStorage Clerk data
+                                let userId = 'UNKNOWN';
+                                if (typeof window !== 'undefined') {
+                                  try {
+                                    const clerkEnv = localStorage.getItem('__clerk_environment');
+                                    if (clerkEnv) {
+                                      // Try to extract user ID from URL or other sources
+                                      const sessionData = localStorage.getItem('__clerk_client');
+                                      if (sessionData) {
+                                        const match = sessionData.match(/user_[a-zA-Z0-9]+/);
+                                        if (match) userId = match[0];
+                                      }
+                                    }
+                                    // Also check if stored directly
+                                    const storedUserId = localStorage.getItem('clerk_user_id');
+                                    if (storedUserId) userId = storedUserId;
+                                  } catch (e) {
+                                    console.error('Error extracting user ID:', e);
+                                  }
+                                }
+                                
                                 const enhancedDebugInfo = {
-                                  // CRITICAL: Tax Service Integration Status
+                                  // === 🎯 CRITICAL INFO (Copy this first!) ===
+                                  '🎯 COPY_THIS_FIRST': {
+                                    USER_ID: userId,
+                                    ENGAGEMENT_ID: engagementId,
+                                    TIMESTAMP: new Date().toISOString(),
+                                    URL: typeof window !== 'undefined' ? window.location.href : 'SSR',
+                                    SESSION_ID: typeof window !== 'undefined' ? 
+                                      (window as any).chatDebugInfo?.currentSession?.sessionId || 'No session' : 'SSR',
+                                    AGENT_NAME: typeof window !== 'undefined' ? 
+                                      (window as any).chatDebugInfo?.currentSession?.agentName || 'No agent' : 'SSR',
+                                  },
+                                  
+                                  // === 📋 FORM FILLING STATUS ===
+                                  '📋 FORM_STATUS': {
+                                    description: 'Current form versions and fill status',
+                                    formVersionsEndpoint: `/api/v1/forms/1040/${engagementId}/versions`,
+                                    s3Path: `s3://province-documents-[REDACTED-ACCOUNT-ID]-us-east-1/filled_forms/${userId}/1040/2024/`,
+                                    expectedFields: '17+ critical fields (name, SSN, wages, refund, etc.)',
+                                    checkMainEditor: 'Switch to "Form 1040" tab to see filled form',
+                                  },
+                                  
+                                  // === ⚡ TAX SERVICE STATUS ===
                                   '⚡ TAX_SERVICE_STATUS': {
                                     description: 'Tax service is now hooked up to frontend via /api/tax-service/* endpoints',
-                                    isUsingTaxService: 'TaxPlannerAgent and TaxIntakeAgent use tax-service (Strands SDK)',
-                                    isUsingBedrockAgent: 'Other agents still use Bedrock Agent',
-                                    expectedEndpoints: {
-                                      start: '/api/tax-service/start',
-                                      continue: '/api/tax-service/continue'
-                                    },
+                                    isUsingTaxService: 'TaxPlannerAgent uses tax-service (Strands SDK)',
                                     backendEndpoints: {
                                       start: '/api/v1/tax-service/start',
-                                      continue: '/api/v1/tax-service/continue'
+                                      continue: '/api/v1/tax-service/continue',
+                                      formVersions: `/api/v1/forms/1040/${engagementId}/versions`
                                     },
                                     tools: {
-                                      ingest_documents: '✅ Process W2 and extract data',
-                                      calc_1040: '✅ Calculate taxes and refund',
-                                      fill_form: '✅ Fill Form 1040 PDF',
-                                      save_document: '✅ Save to DynamoDB (needs engagement)'
+                                      ingest_documents: '✅ Process W2 from Bedrock BDA',
+                                      calc_1040: '✅ Calculate taxes from inference results',
+                                      fill_form: '✅ Fill Form 1040 using DynamoDB mapping (139 fields)',
+                                      save_document: '✅ Save to S3 with user_id (PII-safe)'
                                     },
-                                    noThrottling: 'Using Strands SDK - no AWS rate limits!'
+                                    dynamoDBMapping: 'province-form-mappings table (F1040 + 2024)',
+                                    noThrottling: '✅ Using Strands SDK - no AWS rate limits!'
                                   },
                                   
-                                  // Basic project info
-                                  project: debugInfo || {},
+                                  // === 🔄 RECENT API CALLS ===
+                                  '🔄 RECENT_API_CALLS': typeof window !== 'undefined' ? {
+                                    lastCall: (() => {
+                                      try {
+                                        return JSON.parse(localStorage.getItem('lastApiCall') || '{}');
+                                      } catch { return 'Parse error'; }
+                                    })(),
+                                    lastResponse: (() => {
+                                      try {
+                                        return JSON.parse(localStorage.getItem('lastApiResponse') || '{}');
+                                      } catch { return 'Parse error'; }
+                                    })(),
+                                    lastError: (() => {
+                                      try {
+                                        return JSON.parse(localStorage.getItem('lastApiError') || '{}');
+                                      } catch { return 'No errors'; }
+                                    })(),
+                                  } : 'SSR',
                                   
-                                  // System info
-                                  system: {
-                                    timestamp: new Date().toISOString(),
-                                    userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'SSR',
-                                    url: typeof window !== 'undefined' ? window.location.href : 'SSR',
-                                    localStorage: typeof window !== 'undefined' ? {
-                                      keys: Object.keys(localStorage),
+                                  // === 💬 CHAT STATE ===
+                                  '💬 CHAT_STATE': typeof window !== 'undefined' ? {
+                                    messagesCount: (window as any).chatDebugInfo?.messages || 0,
+                                    currentSession: (window as any).chatDebugInfo?.currentSession || 'No session',
+                                    isProcessing: (window as any).chatDebugInfo?.isProcessing || false,
+                                    selectedAgent: (window as any).chatDebugInfo?.selectedAgent || 'None',
+                                    isConnected: (window as any).chatDebugInfo?.isConnected || false,
+                                    connectionError: (window as any).chatDebugInfo?.connectionError || false,
+                                    lastUpdate: (window as any).chatDebugInfo?.lastUpdate || 'Never',
+                                  } : 'SSR',
+                                  
+                                  // === ❌ ERRORS ===
+                                  '❌ ERRORS': typeof window !== 'undefined' ? 
+                                    (window as any).recentErrors || [] : 'SSR',
+                                  
+                                  // === 🌐 BACKEND CONFIG ===
+                                  '🌐 BACKEND': {
+                                    url: process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:8000',
+                                    isRunning: '❓ Click "Test Backend" button below',
+                                    endpoints: {
+                                      health: '/api/v1/health/',
+                                      taxStart: '/api/v1/tax-service/start',
+                                      taxContinue: '/api/v1/tax-service/continue',
+                                      formVersions: '/api/v1/forms/{form_type}/{engagement_id}/versions',
+                                    }
+                                  },
+                                  
+                                  // === 🔐 STORAGE ===
+                                  '🔐 STORAGE': typeof window !== 'undefined' ? {
+                                    localStorage: {
+                                      clerk_user_id: localStorage.getItem('clerk_user_id'),
                                       chatSession: localStorage.getItem('chatSession'),
                                       agentSession: localStorage.getItem('agentSession'),
-                                    } : 'SSR'
-                                  },
-                                  
-                                  // Chat system debug
-                                  chat: {
-                                    // Try to get chat state from window/global if available
-                                    globalChatState: typeof window !== 'undefined' && (window as any).chatDebugInfo ? (window as any).chatDebugInfo : 'Not available',
-                                    
-                                    // Session storage
-                                    sessionStorage: typeof window !== 'undefined' ? {
-                                      keys: Object.keys(sessionStorage),
+                                      __clerk_environment: localStorage.getItem('__clerk_environment') ? 'Present' : 'Missing',
+                                    },
+                                    sessionStorage: {
                                       chatSessionId: sessionStorage.getItem('chatSessionId'),
                                       agentName: sessionStorage.getItem('agentName'),
-                                      lastMessage: sessionStorage.getItem('lastMessage'),
-                                    } : 'SSR',
-                                    
-                                    // Local storage
-                                    localStorage: typeof window !== 'undefined' ? {
-                                      lastApiCall: localStorage.getItem('lastApiCall'),
-                                      lastApiError: localStorage.getItem('lastApiError'),
-                                      lastApiResponse: localStorage.getItem('lastApiResponse'),
-                                      chatSession: localStorage.getItem('chatSession'),
-                                      agentSession: localStorage.getItem('agentSession'),
-                                    } : 'SSR',
-                                    
-                                    // Check for any chat-related DOM elements
-                                    chatElements: typeof window !== 'undefined' ? {
-                                      chatInput: !!document.querySelector('[data-tour="chat-input"]'),
-                                      micButton: !!document.querySelector('[data-tour="mic-button"]'),
-                                      chatContainer: !!document.querySelector('.chat-container, [class*="chat"]'),
-                                      messageElements: document.querySelectorAll('[class*="message"]').length,
-                                    } : 'SSR',
-                                    
-                                    // Current page context
-                                    pageContext: typeof window !== 'undefined' ? {
-                                      pathname: window.location.pathname,
-                                      search: window.location.search,
-                                      hash: window.location.hash,
-                                      referrer: document.referrer,
-                                    } : 'SSR'
-                                  },
+                                    }
+                                  } : 'SSR',
                                   
-                                  // API status
-                                  api: {
-                                    backendUrl: process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:8000',
-                                    taxServiceEndpoints: {
-                                      frontend: '/api/tax-service/*',
-                                      backend: '/api/v1/tax-service/*'
-                                    },
-                                    lastApiCall: typeof window !== 'undefined' ? localStorage.getItem('lastApiCall') : null,
-                                    lastApiError: typeof window !== 'undefined' ? localStorage.getItem('lastApiError') : null,
-                                  },
-                                  
-                                  // Recent errors from console
-                                  recentErrors: typeof window !== 'undefined' ? 
-                                    (window as any).recentErrors || 'No error tracking enabled' : 'SSR',
-                                  
-                                  // Network status
-                                  network: typeof window !== 'undefined' ? {
+                                  // === 🌐 NETWORK ===
+                                  '🌐 NETWORK': typeof window !== 'undefined' ? {
                                     online: navigator.onLine,
                                     connection: (navigator as any).connection ? {
-                                      effectiveType: (navigator as any).connection.effectiveType,
-                                      downlink: (navigator as any).connection.downlink,
-                                      rtt: (navigator as any).connection.rtt,
+                                      type: (navigator as any).connection.effectiveType,
+                                      downlink: (navigator as any).connection.downlink + ' Mbps',
+                                      rtt: (navigator as any).connection.rtt + ' ms',
                                     } : 'Not available'
                                   } : 'SSR'
                                 };
@@ -1140,25 +1130,74 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                               </button>
                               <button
                                 onClick={() => {
+                                  // Get engagement ID from URL
+                                  const engagementId = window.location.pathname.includes('project/') 
+                                    ? window.location.pathname.split('project/')[1]?.split(/[?#]/)[0] || 'UNKNOWN'
+                                    : 'UNKNOWN';
+                                  
+                                  // Get user ID from localStorage Clerk data
+                                  let userId = 'UNKNOWN';
+                                  try {
+                                    const sessionData = localStorage.getItem('__clerk_client');
+                                    if (sessionData) {
+                                      const match = sessionData.match(/user_[a-zA-Z0-9]+/);
+                                      if (match) userId = match[0];
+                                    }
+                                    const storedUserId = localStorage.getItem('clerk_user_id');
+                                    if (storedUserId) userId = storedUserId;
+                                  } catch (e) {}
+                                  
                                   const debugInfo = {
-                                    '🎯 QUICK_DIAGNOSIS': {
+                                    '🎯 COPY_THIS_FIRST': {
+                                      USER_ID: userId,
+                                      ENGAGEMENT_ID: engagementId,
+                                      TIMESTAMP: new Date().toISOString(),
+                                      URL: window.location.href,
+                                      SESSION_ID: (window as any).chatDebugInfo?.currentSession?.sessionId || 'No session',
+                                      AGENT_NAME: (window as any).chatDebugInfo?.currentSession?.agentName || 'No agent',
+                                    },
+                                    '📋 FORM_STATUS': {
+                                      formVersionsEndpoint: `/api/v1/forms/1040/${engagementId}/versions`,
+                                      s3Path: `s3://province-documents-[REDACTED-ACCOUNT-ID]-us-east-1/filled_forms/${userId}/1040/2024/`,
+                                      expectedFields: '17+ critical fields',
+                                    },
+                                    '⚡ TAX_SERVICE_STATUS': {
                                       taxServiceHooked: '✅ YES - Using /api/tax-service/* endpoints',
                                       agentUsed: 'TaxPlannerAgent (routes to tax-service automatically)',
                                       tools: 'ingest_documents, calc_1040, fill_form, save_document',
                                       noThrottling: '✅ Using Strands SDK - no AWS rate limits',
-                                      testW2Available: 'datasets/w2-forms/test/W2_XL_input_clean_1000.pdf'
+                                      dynamoDBMapping: 'province-form-mappings (F1040 + 2024 = 139 fields)'
                                     },
-                                    timestamp: new Date().toISOString(),
-                                    url: window.location.href,
-                                    userAgent: navigator.userAgent,
-                                    localStorage: {...localStorage},
-                                    sessionStorage: {...sessionStorage},
-                                    chatState: (window as any).chatDebugInfo,
-                                    errors: (window as any).recentErrors || [],
-                                    backendConfig: {
+                                    '🔄 RECENT_API_CALLS': {
+                                      lastCall: (() => {
+                                        try { return JSON.parse(localStorage.getItem('lastApiCall') || '{}'); }
+                                        catch { return 'Parse error'; }
+                                      })(),
+                                      lastResponse: (() => {
+                                        try { return JSON.parse(localStorage.getItem('lastApiResponse') || '{}'); }
+                                        catch { return 'Parse error'; }
+                                      })(),
+                                      lastError: (() => {
+                                        try { return JSON.parse(localStorage.getItem('lastApiError') || '{}'); }
+                                        catch { return 'No errors'; }
+                                      })(),
+                                    },
+                                    '💬 CHAT_STATE': {
+                                      messagesCount: (window as any).chatDebugInfo?.messages || 0,
+                                      currentSession: (window as any).chatDebugInfo?.currentSession || 'No session',
+                                      isProcessing: (window as any).chatDebugInfo?.isProcessing || false,
+                                      selectedAgent: (window as any).chatDebugInfo?.selectedAgent || 'None',
+                                      isConnected: (window as any).chatDebugInfo?.isConnected || false,
+                                      lastUpdate: (window as any).chatDebugInfo?.lastUpdate || 'Never',
+                                    },
+                                    '❌ ERRORS': (window as any).recentErrors || [],
+                                    '🌐 BACKEND': {
                                       url: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000',
-                                      taxServiceStart: '/api/v1/tax-service/start',
-                                      taxServiceContinue: '/api/v1/tax-service/continue'
+                                      endpoints: {
+                                        taxStart: '/api/v1/tax-service/start',
+                                        taxContinue: '/api/v1/tax-service/continue',
+                                        formVersions: `/api/v1/forms/1040/${engagementId}/versions`,
+                                      }
                                     }
                                   };
                                   

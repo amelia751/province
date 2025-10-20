@@ -31,6 +31,7 @@ export interface UseAgentOptions {
   matterId?: string;
   autoConnect?: boolean;
   enableWebSocket?: boolean;
+  userId?: string;  // Clerk user ID for PII-safe storage
 }
 
 export interface UseAgentReturn {
@@ -63,6 +64,7 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentReturn {
     matterId,
     autoConnect = true,
     enableWebSocket = false,
+    userId,
   } = options;
 
   // State
@@ -162,14 +164,14 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentReturn {
   const createSession = useCallback(async (agentName?: string, matterId?: string) => {
     try {
       const agent = agentName || selectedAgent;
-      const session = await agentService.createSession(agent, matterId);
+      const session = await agentService.createSession(agent, matterId, userId);
       setCurrentSession(session);
       
       // Add welcome message
       const welcomeMessage: ChatMessage = {
         id: `welcome_${Date.now()}`,
         type: 'assistant',
-        content: `Hello! I'm your ${agent.replace('_', ' ')} assistant. How can I help you today?`,
+        content: `Hi! I'm here to help you file your taxes. Let's get started—what's your filing status?`,
         timestamp: new Date(),
         agent: agent,
         status: 'completed',
@@ -240,6 +242,7 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentReturn {
         agentName: selectedAgent,
         matterId: currentSession.matterId,
         enableTrace: false,
+        userId: userId,  // Pass user_id for PII-safe storage
       };
 
       const response = await agentService.sendMessage(request);

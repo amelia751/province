@@ -34,7 +34,8 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
     handleKeyPress = () => { },
     engagementId
 }) => {
-    const [inputMode, setInputMode] = useState<'voice' | 'text'>('voice');
+    // TODO: Re-enable voice mode later - temporarily defaulting to text
+    const [inputMode, setInputMode] = useState<'voice' | 'text'>('text'); // Temporarily using text mode (was 'voice')
     const [isConnecting, setIsConnecting] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
@@ -393,7 +394,8 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
                                 >
                                     <Image className="h-3.5 w-3.5" />
                                 </Button>
-                                <Button
+                                {/* TODO: Re-enable voice mode button later */}
+                                {/* <Button
                                     variant="ghost"
                                     size="sm"
                                     className="h-6 w-6 p-0"
@@ -405,7 +407,7 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
                                     title="Switch to voice input"
                                 >
                                     <Mic className="h-3.5 w-3.5" />
-                                </Button>
+                                </Button> */}
                             </div>
                         </div>
 

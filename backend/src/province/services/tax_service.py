@@ -48,6 +48,9 @@ async def ingest_documents_tool(s3_key: str, taxpayer_name: str = "Test User", t
     """
     try:
         logger.info(f"Processing tax document: {s3_key} (type: {document_type or 'auto-detect'})")
+        
+        # Note: ingest_documents will wait for Bedrock processing to complete (up to 3 minutes)
+        # This ensures we always have the data before continuing
         result = await ingest_documents(s3_key, taxpayer_name, tax_year, document_type)
         
         if result.get('success'):
@@ -60,6 +63,16 @@ async def ingest_documents_tool(s3_key: str, taxpayer_name: str = "Test User", t
             doc_type = result.get('document_type', 'unknown')
             if doc_type == 'W-2':
                 conversation_state[session_id]['w2_data'] = result['w2_extract']
+                logger.info(f"✅ Stored W-2 data in session '{session_id}'")
+                
+                # Log extracted employee info
+                if 'forms' in result['w2_extract'] and len(result['w2_extract']['forms']) > 0:
+                    employee = result['w2_extract']['forms'][0].get('employee', {})
+                    logger.info(f"   Employee: {employee.get('name', 'Unknown')}")
+                    logger.info(f"   SSN: {employee.get('SSN', 'Not found')}")
+                    if employee.get('address'):
+                        logger.info(f"   Address: {employee.get('address')}")
+                    
             elif doc_type in ['1099-INT', '1099-MISC']:
                 if 'tax_documents' not in conversation_state[session_id]:
                     conversation_state[session_id]['tax_documents'] = []
@@ -70,6 +83,8 @@ async def ingest_documents_tool(s3_key: str, taxpayer_name: str = "Test User", t
             return f"Failed to process tax document: {result.get('error', 'Unknown error')}"
     except Exception as e:
         logger.error(f"Error in document ingestion: {e}")
+        import traceback
+        traceback.print_exc()
         return f"Error processing tax document: {str(e)}"
 
 
@@ -206,25 +221,77 @@ async def fill_form_tool(
         session_id = conversation_state.get('current_session_id', 'default')
         session_data = conversation_state.get(session_id, {})
         
+        logger.info(f"🔍 DEBUG fill_form_tool:")
+        logger.info(f"   Current session_id: {session_id}")
+        logger.info(f"   Session data keys: {list(session_data.keys())}")
+        logger.info(f"   All conversation_state keys: {list(conversation_state.keys())}")
+        
         # Use calculation data if available
         calc_data = session_data.get('tax_calculation', {})
         w2_data = session_data.get('w2_data', {})
         
-        # Parse address
-        address_full = session_data.get('address', '123 Main St, Anytown, CA 90210')
-        address_parts = address_full.split(',')
-        street = address_parts[0].strip() if len(address_parts) > 0 else ''
-        city = address_parts[1].strip() if len(address_parts) > 1 else ''
-        state_zip = address_parts[2].strip() if len(address_parts) > 2 else 'CA 90210'
-        state = state_zip.split()[0] if state_zip else 'CA'
-        zip_code = state_zip.split()[1] if len(state_zip.split()) > 1 else '90210'
+        logger.info(f"   Has w2_data: {bool(w2_data)}")
+        if w2_data:
+            logger.info(f"   W2 data keys: {list(w2_data.keys())}")
         
-        # Parse taxpayer name
-        taxpayer_name = session_data.get('taxpayer_name', 'John A. Smith')
-        name_parts = taxpayer_name.split()
-        first_name = name_parts[0] if len(name_parts) > 0 else 'JOHN'
-        middle_initial = name_parts[1][0] if len(name_parts) > 2 and name_parts[1] else ''
-        last_name = name_parts[-1] if len(name_parts) > 1 else 'SMITH'
+        # Extract employee info from W-2 if available
+        employee_info = {}
+        if w2_data and 'forms' in w2_data and len(w2_data['forms']) > 0:
+            employee_info = w2_data['forms'][0].get('employee', {})
+            logger.info(f"✅ Found W-2 employee data: {employee_info}")
+        else:
+            logger.warning(f"⚠️  NO W-2 DATA FOUND in session '{session_id}' - will use fallback values!")
+        
+        # Get SSN from W-2 (capital SSN key from Bedrock)
+        ssn = employee_info.get('SSN') or employee_info.get('ssn') or session_data.get('ssn', '123-45-6789')
+        
+        # Parse taxpayer name from W-2 'name' field (full name)
+        if employee_info.get('name'):
+            full_name = employee_info.get('name')
+            logger.info(f"📝 Parsing W-2 name: {full_name}")
+            name_parts = full_name.split()
+            first_name = name_parts[0] if len(name_parts) > 0 else 'John'
+            last_name = name_parts[-1] if len(name_parts) > 1 else 'Smith'
+            middle_initial = name_parts[1][0] if len(name_parts) > 2 else ''
+        else:
+            # Fallback to session data
+            taxpayer_name = session_data.get('taxpayer_name', 'John A. Smith')
+            name_parts = taxpayer_name.split()
+            first_name = name_parts[0] if len(name_parts) > 0 else 'John'
+            middle_initial = name_parts[1][0] if len(name_parts) > 2 and name_parts[1] else ''
+            last_name = name_parts[-1] if len(name_parts) > 1 else 'Smith'
+        
+        # Get address from W-2 if available (extracted from Bedrock markdown)
+        if employee_info.get('address'):
+            # W-2 has full address extracted from markdown
+            address_full = employee_info.get('address')
+            street = employee_info.get('street', '123 Main St')
+            city = employee_info.get('city', 'Anytown')
+            state = employee_info.get('state', 'CA')
+            zip_code = employee_info.get('zip', '90210')
+            logger.info(f"📍 Using address from W-2: {address_full}")
+        elif session_data.get('address'):
+            # Use address from session
+            address_full = session_data.get('address')
+            address_parts = address_full.split(',') if ',' in address_full else address_full.split()
+            street = address_parts[0].strip() if len(address_parts) > 0 else '123 Main St'
+            city = address_parts[1].strip() if len(address_parts) > 1 else 'Anytown'
+            state_zip_part = address_parts[2].strip() if len(address_parts) > 2 else 'CA 90210'
+            state_zip_components = state_zip_part.split()
+            state = state_zip_components[0] if state_zip_components else 'CA'
+            zip_code = state_zip_components[1] if len(state_zip_components) > 1 else '90210'
+        else:
+            # Fallback: use state from W-2 box 15 if available
+            boxes = w2_data.get('forms', [{}])[0].get('boxes', {}) if w2_data else {}
+            state_from_w2 = boxes.get('15', 'CA')  # Box 15 is state
+            street = '123 Main St'
+            city = 'Anytown'
+            state = state_from_w2
+            zip_code = '90210'
+            logger.info(f"📍 Using fallback address with state from W-2 box 15: {state}")
+
+        
+        logger.info(f"📝 Form filling with: {first_name} {last_name}, SSN: {ssn}, Address: {street}, {city}, {state} {zip_code}")
         
         # Get filing status for checkbox mapping
         filing_status_value = filing_status or session_data.get('filing_status', 'Single')
@@ -233,80 +300,59 @@ async def fill_form_tool(
         refund_or_due = calc_data.get('refund_or_due', 0)
         is_refund = refund_or_due > 0
         
-        # Prepare comprehensive form data with IRS Form 1040 field mapping
+        # Prepare comprehensive form data using SEMANTIC names from DynamoDB mapping
         form_data = {
-            # === PERSONAL INFORMATION ===
-            # Name fields (fields f1_01, f1_02, f1_03)
-            'f1_01': first_name.upper(),  # First name
-            'f1_02': middle_initial.upper(),  # Middle initial
-            'f1_03': last_name.upper(),  # Last name
-            'f1_04': session_data.get('ssn', '123-45-6789'),  # SSN
+            # === PERSONAL INFORMATION === (from 'personal_info' section)
+            'taxpayer_first_name': first_name,
+            'taxpayer_last_name': last_name,
+            'taxpayer_ssn': ssn,
             
-            # Address fields
-            'f1_09': street.upper(),  # Home address
-            'f1_10': city.upper(),  # City
-            'f1_11': state.upper(),  # State
-            'f1_12': zip_code,  # ZIP code
+            # === ADDRESS === (from 'address' section)
+            'street_address': street,
+            'city': city,
+            'state': state,
+            'zip_code': zip_code,
             
-            # === FILING STATUS CHECKBOXES ===
-            'c1_1': 1 if filing_status_value == 'Single' else 0,  # Single
-            'c1_2': 1 if filing_status_value == 'Married filing jointly' else 0,  # Married filing jointly
-            'c1_3': 1 if filing_status_value == 'Married filing separately' else 0,  # MFS
-            'c1_4': 1 if filing_status_value == 'Head of household' else 0,  # HOH
-            'c1_5': 1 if filing_status_value == 'Qualifying surviving spouse' else 0,  # QSS
+            # === FILING STATUS === (from 'filing_status' section)
+            'single': True if filing_status_value == 'Single' else False,
+            'married_joint': True if filing_status_value == 'Married filing jointly' else False,
+            'married_separate': True if filing_status_value == 'Married filing separately' else False,
+            'head_household': True if filing_status_value == 'Head of household' else False,
+            'qualifying_widow': True if filing_status_value == 'Qualifying surviving spouse' else False,
             
-            # === DIGITAL ASSETS QUESTION ===
-            'c1_6': 0,  # Digital assets - No (default)
+            # === TAX YEAR === (from 'header' section)
+            'tax_year': str(calc_data.get('tax_year', 2024)),
             
-            # === INCOME SECTION ===
-            # Line 1a - Wages, salaries, tips
-            'f1_13': wages or calc_data.get('agi', 0),
+            # === INCOME === (from 'income_page1' section)
+            'wages_line_1a': wages or calc_data.get('agi', 0),  # Line 1a - Wages
+            'total_income_9': wages or calc_data.get('agi', 0),  # Line 9 - Total income
             
-            # Line 9 - Total income (same as wages for simple returns)
-            'f1_21': wages or calc_data.get('agi', 0),
+            # === ADJUSTMENTS === (from 'adjustments' section)
+            'adjusted_gross_income_11': calc_data.get('agi', wages or 0),  # Line 11 - AGI
             
-            # === ADJUSTED GROSS INCOME ===
-            # Line 11 - AGI
-            'f1_23': calc_data.get('agi', wages or 0),
+            # === DEDUCTIONS === (from 'income_page1' section)
+            'total_deductions_line_14_computed': calc_data.get('standard_deduction', 0),  # Line 12 - Standard deduction
             
-            # === STANDARD DEDUCTION ===
-            # Line 12 - Standard deduction
-            'f1_29': calc_data.get('standard_deduction', 0),
+            # === PAYMENTS === (from 'payments' section)
+            'withholding': withholding or calc_data.get('withholding', 0),  # Line 25a - Federal withholding
+            'total_payments': withholding or calc_data.get('withholding', 0),  # Line 33 - Total payments
             
-            # === TAXABLE INCOME ===
-            # Line 15 - Taxable income
-            'f1_34': calc_data.get('taxable_income', 0),
-            
-            # === TAX COMPUTATION ===
-            # Line 16 - Tax
-            'f1_35': calc_data.get('tax', 0),
-            
-            # === PAYMENTS ===
-            # Line 25a - Federal income tax withheld
-            'f1_44': withholding or calc_data.get('withholding', 0),
-            
-            # Line 33 - Total payments
-            'f1_48': withholding or calc_data.get('withholding', 0),
-            
-            # === REFUND OR AMOUNT OWED ===
-            # Line 34 - Refund
-            'f1_50': abs(refund_or_due) if is_refund else 0,
-            'f1_51': abs(refund_or_due) if is_refund else 0,  # Amount to be refunded
-            
-            # Line 37 - Amount you owe
-            'f1_56': abs(refund_or_due) if not is_refund else 0,
+            # === REFUND === (from 'refund_or_amount_owed' section)
+            'overpayment': abs(refund_or_due) if is_refund else 0,  # Line 34 - Refund
+            'amount_owed': abs(refund_or_due) if not is_refund else 0,  # Line 37 - Amount owed
             
             # === METADATA ===
-            'taxpayer_name': taxpayer_name,
             'filing_status': filing_status_value,
-            'tax_year': calc_data.get('tax_year', 2024),
-            
-            # Additional fields for reference
             'dependents': dependents or session_data.get('dependents', 0),
-            'address_full': address_full,
         }
         
-        result = await fill_tax_form(form_type, form_data)
+        # Get user_id from session for PII-safe storage
+        user_id = session_data.get('user_id')
+        logger.info(f"🔑 Filling form with user_id: {user_id} (from session: {session_id})")
+        logger.info(f"📦 Session data keys: {list(session_data.keys())}")
+        
+        # Skip questions when called from tool - we have all the data we need
+        result = await fill_tax_form(form_type, form_data, user_id=user_id, skip_questions=True)
         
         if result.get('success'):
             # Store filled form info in conversation state with versioning
@@ -639,7 +685,7 @@ EXAMPLE CONVERSATION FLOW:
 Remember: Be helpful, patient, and guide the user through each step clearly.
 """
     
-    async def start_conversation(self, session_id: str = None) -> str:
+    async def start_conversation(self, session_id: str = None, user_id: str = None) -> str:
         """Start a new tax filing conversation."""
         if not session_id:
             session_id = f"tax_session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -648,7 +694,8 @@ Remember: Be helpful, patient, and guide the user through each step clearly.
         conversation_state['current_session_id'] = session_id
         conversation_state[session_id] = {
             'started_at': datetime.now().isoformat(),
-            'status': 'started'
+            'status': 'started',
+            'user_id': user_id  # Store user_id for form filling
         }
         
         # Initial greeting message
@@ -671,14 +718,29 @@ Just let me know which one applies to you."""
         
         return initial_message
     
-    async def continue_conversation(self, user_message: str, session_id: str = None) -> str:
+    async def continue_conversation(self, user_message: str, session_id: str = None, user_id: str = None) -> str:
         """Continue the conversation with user input."""
         if not session_id:
             session_id = conversation_state.get('current_session_id', 'default')
         
+        logger.info(f"🔄 continue_conversation called:")
+        logger.info(f"   session_id: {session_id}")
+        logger.info(f"   user_id: {user_id}")
+        logger.info(f"   message: {user_message[:100]}")
+        
         try:
             # Update current session ID for tools to use
             conversation_state['current_session_id'] = session_id
+            logger.info(f"   Set current_session_id to: {session_id}")
+            
+            # Update user_id if provided
+            if user_id and session_id in conversation_state:
+                conversation_state[session_id]['user_id'] = user_id
+                logger.info(f"   Updated user_id in session to: {user_id}")
+            
+            # Debug: Show what's in this session
+            if session_id in conversation_state:
+                logger.info(f"   Session '{session_id}' has keys: {list(conversation_state[session_id].keys())}")
             
             # Get response from Strands agent
             response = await self.agent.invoke_async(user_message)

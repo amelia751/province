@@ -4,15 +4,17 @@ import { useState, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import Sidebar from '@/components/ui/sidebar';
 import Header from '@/components/interface/header';
-import ExplorerPanel from '@/components/explorer-panel/explorer-panel';
+// TODO: Re-enable ExplorerPanel later when needed
+// import ExplorerPanel from '@/components/explorer-panel/explorer-panel';
 import MainEditor from '@/components/main-editor/main-editor';
 import Chat from '@/components/chat/chat';
-import { mockAIMatters } from '@/components/explorer-panel/mock-data';
+// import { mockAIMatters } from '@/components/explorer-panel/mock-data';
 
 interface InterfaceLayoutProps {
   organizationName?: string | null;
   projectId?: string;
   debugInfo?: any;
+  userId?: string;  // Clerk user ID for PII-safe storage
 }
 
 // Explorer Resize Handle Component
@@ -209,15 +211,17 @@ function ChatResizeHandle({ onResize }: ChatResizeHandleProps) {
   );
 }
 
-export default function InterfaceLayout({ organizationName, projectId, debugInfo }: InterfaceLayoutProps) {
+export default function InterfaceLayout({ organizationName, projectId, debugInfo, userId }: InterfaceLayoutProps) {
   const [sidebarWidth, setSidebarWidth] = useState(64);
-  const [explorerWidth, setExplorerWidth] = useState(280);
+  // TODO: Re-enable explorer panel later - currently hidden
+  const [explorerWidth, setExplorerWidth] = useState(0); // Changed from 280 to 0 to hide
   const [chatWidth, setChatWidth] = useState(400);
+  // TODO: Re-enable when explorer panel is restored
   // Use first mock matter as selected project, but override the ID with the real project ID
-  const [selectedProject] = useState(() => {
-    const mockProject = mockAIMatters[0];
-    return projectId ? { ...mockProject, id: projectId } : mockProject;
-  });
+  // const [selectedProject] = useState(() => {
+  //   const mockProject = mockAIMatters[0];
+  //   return projectId ? { ...mockProject, id: projectId } : mockProject;
+  // });
   // Selected document state
   const [selectedDocument, setSelectedDocument] = useState<{
     id: string;
@@ -354,20 +358,22 @@ export default function InterfaceLayout({ organizationName, projectId, debugInfo
     setSidebarWidth(width);
   }, []);
 
+  // TODO: Re-enable explorer panel toggle later
   // Toggle explorer panel
   const handleToggleExplorer = useCallback(() => {
-    if (explorerWidth === 0) {
-      // Show explorer with default width
-      setExplorerWidth(280);
-      // If there's not enough space, hide chat
-      const availableWidth = getAvailableWidth();
-      if (280 + 400 + 400 > availableWidth) {
-        setChatWidth(0);
-      }
-    } else {
-      // Hide explorer
-      setExplorerWidth(0);
-    }
+    // Temporarily disabled - explorer panel hidden
+    // if (explorerWidth === 0) {
+    //   // Show explorer with default width
+    //   setExplorerWidth(280);
+    //   // If there's not enough space, hide chat
+    //   const availableWidth = getAvailableWidth();
+    //   if (280 + 400 + 400 > availableWidth) {
+    //     setChatWidth(0);
+    //   }
+    // } else {
+    //   // Hide explorer
+    //   setExplorerWidth(0);
+    // }
   }, [explorerWidth, chatWidth]);
 
   // Toggle chat panel
@@ -396,8 +402,9 @@ export default function InterfaceLayout({ organizationName, projectId, debugInfo
 
       {/* Main Content Area - Flex container for the three panels */}
       <div className="flex flex-1 h-full relative min-h-0 overflow-hidden">
+        {/* TODO: Re-enable Explorer Panel later when needed */}
         {/* Explorer Panel - only render if width > 0 */}
-        {explorerWidth > 0 && (
+        {/* {explorerWidth > 0 && (
           <div
             className="flex-shrink-0 relative h-full border-r border-gray-200"
             style={{ width: `${explorerWidth}px` }}
@@ -406,10 +413,9 @@ export default function InterfaceLayout({ organizationName, projectId, debugInfo
               selectedProject={selectedProject}
               onDocumentSelect={handleDocumentSelect}
             />
-            {/* Explorer Resize Handle */}
             <ExplorerResizeHandle onResize={handleExplorerWidthChange} />
           </div>
-        )}
+        )} */}
 
         {/* Main Editor Area - Takes remaining space */}
         <div className={cn(
@@ -417,10 +423,11 @@ export default function InterfaceLayout({ organizationName, projectId, debugInfo
           chatWidth === 0 && "border-r-0"
         )}>
           <MainEditor selectedDocument={selectedDocument} debugInfo={debugInfo} />
+          {/* TODO: Re-enable when explorer panel is restored */}
           {/* Main Editor Left Resize Handle - only show if explorer is visible */}
-          {explorerWidth > 0 && (
+          {/* {explorerWidth > 0 && (
             <MainEditorLeftResizeHandle onResize={handleExplorerWidthChange} />
-          )}
+          )} */}
           {/* Main Editor Right Resize Handle - only show if chat is visible */}
           {chatWidth > 0 && (
             <MainEditorRightResizeHandle onResize={handleChatWidthChange} />
@@ -435,7 +442,7 @@ export default function InterfaceLayout({ organizationName, projectId, debugInfo
           >
             {/* Chat Resize Handle */}
             <ChatResizeHandle onResize={handleChatWidthChange} />
-            <Chat engagementId={projectId} />
+            <Chat engagementId={projectId} userId={userId} />
           </div>
         )}
       </div>

@@ -138,13 +138,6 @@ export default function StartScreenClient() {
   const currentFiling = mockFilings.find(f => f.year === selectedYear);
   const pastFilings = mockFilings.filter(f => f.year < selectedYear);
 
-  // Debug current state
-  console.log('Current state:', {
-    selectedYear,
-    currentEngagementId,
-    hasCheckedEngagement,
-    user: !!user
-  });
 
   // Get deadlines for selected calendar month
   const today = new Date();
@@ -220,28 +213,17 @@ export default function StartScreenClient() {
 
       const result = await response.json();
       const engagements = result.engagements || [];
-      
-      console.log('=== FETCH TAX ENGAGEMENT DEBUG ===');
-      console.log('Raw API response:', result);
-      console.log('Engagements array:', engagements);
-      console.log('Engagements length:', engagements.length);
-      console.log('Looking for filing year:', filingYear);
-      
+
       // Check if any engagement exists for this year
       const hasEngagement = engagements.length > 0;
-      
+
       if (hasEngagement) {
         const engagement = engagements[0]; // Take the first engagement
-        console.log('Found engagement object:', engagement);
-        console.log('Engagement ID:', engagement.engagementId);
-        console.log('Setting current engagement ID to:', engagement.engagementId);
         setCurrentEngagementId(engagement.engagementId);
         return engagement.engagementId;
       } else {
-        console.log('No engagement found - array is empty');
         setCurrentEngagementId(null);
       }
-      console.log('=== END FETCH DEBUG ===');
       
       return null;
     } catch (error) {
@@ -268,11 +250,8 @@ export default function StartScreenClient() {
 
   // Load engagement on component mount and year change
   useEffect(() => {
-    console.log('useEffect triggered:', { user: !!user, selectedYear, hasCheckedEngagement });
     if (user && selectedYear && !hasCheckedEngagement) {
-      console.log('Fetching tax engagement for year:', selectedYear);
-      fetchTaxEngagement(selectedYear).then((engagementId) => {
-        console.log('Fetch completed, engagement ID:', engagementId);
+      fetchTaxEngagement(selectedYear).then(() => {
         setHasCheckedEngagement(true);
       });
     }
@@ -362,25 +341,6 @@ export default function StartScreenClient() {
 
   return (
     <div className="h-full bg-background overflow-auto">
-      {/* Debug Panel */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="bg-black text-green-400 p-4 text-xs font-mono sticky top-0 z-50">
-          <div className="mb-2 font-bold">🐛 DEBUG INFO (Copy this for debugging):</div>
-          <div className="bg-gray-900 p-2 rounded border max-h-32 overflow-auto">
-            <pre>{JSON.stringify({
-              timestamp: new Date().toISOString(),
-              selectedYear,
-              currentEngagementId: currentEngagementId || 'NULL',
-              hasCheckedEngagement,
-              isCreatingEngagement,
-              user: user ? { id: user.id, exists: true } : null,
-              pathname,
-              buttonText: currentEngagementId ? 'Open Folder' : 'Start Filing'
-            }, null, 2)}</pre>
-          </div>
-        </div>
-      )}
-      
       <div className="max-w-7xl mx-auto px-6 py-8">
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -509,13 +469,21 @@ export default function StartScreenClient() {
                             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
                           >
                             <div className="flex items-center space-x-4">
-                              <StatusIcon className={cn("h-5 w-5", getStatusConfig(filing.status).textColor)} />
+                              <StatusIcon className="h-5 w-5 text-gray-500" />
                               <div className="flex flex-col gap-2">
                                 <div className="font-medium text-gray-700">
                                   {filing.year} – ${filing.refundAmount?.toLocaleString() || 0} Refund
                                 </div>
-                                <Badge variant="secondary" className={cn("flex items-center space-x-1 w-fit", getStatusConfig(filing.status).textColor)}>
-                                  <div className={cn("h-1.5 w-1.5 rounded-full", getStatusConfig(filing.status).color)} />
+                                <Badge variant="secondary" className={cn("flex items-center space-x-1 w-fit",
+                                  filing.status === 'filed' ? "bg-true-turquoise text-white border-true-turquoise" :
+                                  filing.status === 'archived' ? "bg-dark-ecru text-darker-ecru border-dark-ecru" :
+                                  getStatusConfig(filing.status).textColor
+                                )}>
+                                  <div className={cn("h-1.5 w-1.5 rounded-full",
+                                    filing.status === 'filed' ? "bg-white" :
+                                    filing.status === 'archived' ? "bg-darker-ecru" :
+                                    getStatusConfig(filing.status).color
+                                  )} />
                                   <span>{getStatusConfig(filing.status).label}</span>
                                 </Badge>
                               </div>

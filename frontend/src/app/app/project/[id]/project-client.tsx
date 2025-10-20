@@ -20,6 +20,7 @@ export default function ProjectClient({ projectId, organizationName }: ProjectCl
       <InterfaceLayout 
         organizationName={organizationName} 
         projectId={projectId}
+        userId={user?.id}
         debugInfo={{
           timestamp: new Date().toISOString(),
           projectId,

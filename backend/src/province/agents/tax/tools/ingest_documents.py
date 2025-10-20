@@ -118,7 +118,9 @@ async def ingest_documents(s3_key: str, taxpayer_name: str, tax_year: int, docum
             try:
                 bedrock_response = None
                 try:
-                    logger.info(f"Processing with Bedrock Data Automation using profile: {blueprint_profile}")
+                    logger.info(f"🚀 Starting Bedrock Data Automation processing...")
+                    logger.info(f"   Input: s3://{input_bucket}/{s3_key}")
+                    logger.info(f"   Profile: {blueprint_profile}")
                     
                     response = runtime_client.invoke_data_automation_async(
                         inputConfiguration={
@@ -135,56 +137,87 @@ async def ingest_documents(s3_key: str, taxpayer_name: str, tax_year: int, docum
                     )
                     
                     invocation_arn = response['invocationArn']
-                    logger.info(f"Successfully started Bedrock processing: {invocation_arn}")
+                    job_uuid = invocation_arn.split('/')[-1]
+                    logger.info(f"✅ Bedrock job started: {invocation_arn}")
+                    logger.info(f"   Job UUID: {job_uuid}")
                     
-                    # Wait for completion (with timeout)
-                    max_wait_time = 120  # 2 minutes
+                    # Wait for completion with extended timeout and better feedback
+                    max_wait_time = 180  # 3 minutes (increased from 2)
                     start_time = time.time()
+                    check_count = 0
+                    
+                    logger.info(f"⏳ Waiting for Bedrock processing (max {max_wait_time}s)...")
                     
                     while time.time() - start_time < max_wait_time:
-                        status_response = runtime_client.get_data_automation_status(invocationArn=invocation_arn)
-                        status = status_response.get('status')
+                        check_count += 1
+                        elapsed = int(time.time() - start_time)
                         
-                        logger.info(f"Bedrock processing status: {status}")
-                        
-                        if status in ['COMPLETED', 'Success']:
-                            # Extract UUID from invocation ARN to get results
-                            # ARN format: arn:aws:bedrock:region:account:data-automation-invocation/uuid
-                            job_uuid = invocation_arn.split('/')[-1]
+                        try:
+                            status_response = runtime_client.get_data_automation_status(invocationArn=invocation_arn)
+                            status = status_response.get('status')
                             
-                            # Try both path formats (with and without double slash)
-                            possible_keys = [
-                                f"inference_results/{job_uuid}/0/standard_output/0/result.json",
-                                f"inference_results//{job_uuid}/0/standard_output/0/result.json"
-                            ]
+                            logger.info(f"   [{elapsed}s] Check #{check_count}: Status = {status}")
                             
-                            bedrock_response = None
-                            for result_key in possible_keys:
-                                try:
-                                    result_response = s3_client.get_object(
-                                        Bucket=output_bucket,
-                                        Key=result_key
-                                    )
-                                    bedrock_response = json.loads(result_response['Body'].read().decode('utf-8'))
-                                    logger.info(f"Successfully retrieved Bedrock results from {result_key}")
+                            if status in ['COMPLETED', 'Success']:
+                                logger.info(f"✅ Bedrock processing completed in {elapsed}s")
+                                
+                                # Try multiple result paths
+                                possible_keys = [
+                                    f"inference_results/{job_uuid}/0/standard_output/0/result.json",
+                                    f"inference_results//{job_uuid}/0/standard_output/0/result.json",
+                                    f"inference_results/{job_uuid}/0/custom_output/0/result.json"
+                                ]
+                                
+                                bedrock_response = None
+                                for result_key in possible_keys:
+                                    try:
+                                        logger.info(f"   Trying to load: {result_key}")
+                                        result_response = s3_client.get_object(
+                                            Bucket=output_bucket,
+                                            Key=result_key
+                                        )
+                                        bedrock_response = json.loads(result_response['Body'].read().decode('utf-8'))
+                                        logger.info(f"✅ Successfully loaded results from: {result_key}")
+                                        break
+                                    except Exception as e:
+                                        logger.debug(f"   Not found at {result_key}: {e}")
+                                        continue
+                                
+                                if bedrock_response:
                                     break
-                                except Exception as e:
-                                    logger.debug(f"Failed to retrieve results from {result_key}: {e}")
-                                    continue
-                            
-                            if bedrock_response:
+                                else:
+                                    logger.error(f"❌ Results not found in any expected location for job {job_uuid}")
+                                    logger.error(f"   Tried: {possible_keys}")
+                                    break
+                                    
+                            elif status in ['FAILED', 'CANCELLED', 'Failed', 'Canceled']:
+                                logger.error(f"❌ Bedrock processing failed with status: {status}")
+                                error_details = status_response.get('errorMessage', 'No error details provided')
+                                logger.error(f"   Error: {error_details}")
                                 break
+                            elif status in ['IN_PROGRESS', 'InProgress', 'RUNNING', 'Running']:
+                                # Still processing, continue waiting
+                                pass
                             else:
-                                logger.error(f"Failed to retrieve results from any of the expected paths for job {job_uuid}")
-                                break
-                        elif status in ['FAILED', 'CANCELLED']:
-                            logger.error(f"Bedrock processing failed with status: {status}")
-                            break
+                                logger.warning(f"⚠️  Unknown status: {status}")
+                            
+                        except Exception as status_error:
+                            logger.warning(f"Error checking status: {status_error}")
                         
                         time.sleep(5)  # Wait 5 seconds before checking again
+                    
+                    # Check if we timed out
+                    if not bedrock_response:
+                        elapsed = int(time.time() - start_time)
+                        if elapsed >= max_wait_time:
+                            logger.error(f"⏱️  Timeout: Bedrock processing took longer than {max_wait_time}s")
                         
                 except ClientError as e:
-                    logger.warning(f"Bedrock invocation failed: {e}")
+                    error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+                    error_message = e.response.get('Error', {}).get('Message', str(e))
+                    logger.error(f"❌ Bedrock invocation failed:")
+                    logger.error(f"   Error Code: {error_code}")
+                    logger.error(f"   Message: {error_message}")
                     bedrock_response = None
                 
                 if bedrock_response:
@@ -338,6 +371,34 @@ def _extract_w2_from_standard_output(bedrock_response: Dict[str, Any], s3_key: s
         last_name = employee_name_match.group(2).strip()
         employee_info['name'] = f"{first_name} {last_name}"
         pin_cites['employee_name'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.9, 'source': 'bedrock_standard_output'}
+    
+    # Employee address pattern - looking for address after employee name
+    # Format varies: **First Last**\n... or **First**\n**Last**\n...
+    # Flexible pattern to handle both cases
+    # Example 1: **Taylor Cox**\n613 Roger Crest Apt. 802\nLeeton IA\n**26442-8249**
+    # Example 2: **April**\n**Hensley**\n\n**31403 David Circles**\n\nWest Erinfort WY\n**45881-3334**
+    address_match = re.search(
+        r'\*\*[A-Za-z]+\*\*(?:\s*\n\s*\*\*[A-Za-z]+\*\*)?\s*\n+\s*\*\*([^\*\n]+)\*\*\s*\n+\s*([A-Za-z\s]+\s+[A-Z]{2})\s*\n\s*\*\*([0-9]{5}(?:-[0-9]{4})?)\*\*',
+        markdown_content,
+        re.MULTILINE
+    )
+    if address_match:
+        street = address_match.group(1).strip()
+        city_state = address_match.group(2).strip()
+        zip_code = address_match.group(3).strip()
+        
+        # Parse city and state
+        city_state_parts = city_state.rsplit(' ', 1)  # Split from right to get last 2-letter state
+        if len(city_state_parts) == 2:
+            city = city_state_parts[0].strip()
+            state = city_state_parts[1].strip()
+            employee_info['address'] = f"{street}, {city}, {state} {zip_code}"
+            employee_info['street'] = street
+            employee_info['city'] = city
+            employee_info['state'] = state
+            employee_info['zip'] = zip_code
+            pin_cites['employee_address'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.85, 'source': 'bedrock_standard_output'}
+            logger.info(f"Extracted employee address: {employee_info['address']}")
     
     # Extract W-2 box values using patterns based on the actual markdown structure
     # Looking at the sample, the format is like: "1 Wages, tips, other compensation\t\t\t2 Federal income tax withheld\t\n55151.93\t\t\t16606.17\t"

@@ -52,8 +52,12 @@ class TaxFormFiller:
     def _get_hybrid_mapping(self, form_type: str, tax_year: str = "2024") -> Optional[Dict[str, Any]]:
         """Load hybrid mapping from DynamoDB."""
         try:
+            # Ensure tax_year is a string
+            tax_year_str = str(tax_year)
+            logger.info(f"Loading mapping for form_type={form_type}, tax_year={tax_year_str}")
+            
             response = self.mappings_table.get_item(
-                Key={'form_type': form_type, 'tax_year': tax_year}
+                Key={'form_type': form_type, 'tax_year': tax_year_str}
             )
             item = response.get('Item')
             if item:
@@ -67,62 +71,201 @@ class TaxFormFiller:
             logger.error(f"Error loading hybrid mapping: {e}")
             return None
     
-    def _ask_ai_for_questions(self, form_data: Dict[str, Any], form_mapping: Dict[str, Any]) -> Dict[str, Any]:
-        """Use AI to identify missing critical fields and generate questions."""
+    def _get_field_metadata(self) -> Dict[str, Dict[str, Any]]:
+        """Get metadata about form fields including descriptions and requirements."""
+        return {
+            # Tax Year
+            "tax_year_begin": {"label": "Tax year begin month", "required": False, "section": "tax_year"},
+            "tax_year_end": {"label": "Tax year end month", "required": False, "section": "tax_year"},
+            "tax_year_end_year": {"label": "Tax year end year", "required": False, "section": "tax_year"},
+            
+            # Personal Information
+            "taxpayer_first_name": {"label": "Your first name", "required": True, "section": "personal_info"},
+            "taxpayer_last_name": {"label": "Your last name", "required": True, "section": "personal_info"},
+            "taxpayer_ssn": {"label": "Your Social Security Number", "required": True, "section": "personal_info"},
+            "spouse_first_name": {"label": "Spouse's first name (if married)", "required": False, "section": "personal_info"},
+            "spouse_last_name": {"label": "Spouse's last name (if married)", "required": False, "section": "personal_info"},
+            "spouse_ssn": {"label": "Spouse's Social Security Number (if married)", "required": False, "section": "personal_info"},
+            
+            # Address
+            "street_address": {"label": "Street address", "required": True, "section": "address"},
+            "apt_no": {"label": "Apartment or suite number", "required": False, "section": "address"},
+            "city": {"label": "City", "required": True, "section": "address"},
+            "state": {"label": "State", "required": True, "section": "address"},
+            "zip": {"label": "ZIP code", "required": True, "section": "address"},
+            
+            # Filing Status
+            "single": {"label": "Single filing status", "required": False, "section": "filing_status", "type": "checkbox"},
+            "married_filing_jointly": {"label": "Married filing jointly", "required": False, "section": "filing_status", "type": "checkbox"},
+            "married_filing_separately": {"label": "Married filing separately", "required": False, "section": "filing_status", "type": "checkbox"},
+            "head_of_household": {"label": "Head of household", "required": False, "section": "filing_status", "type": "checkbox"},
+            "qualifying_widow": {"label": "Qualifying widow(er)", "required": False, "section": "filing_status", "type": "checkbox"},
+            
+            # Digital Assets
+            "yes": {"label": "Digital assets - Yes", "required": False, "section": "digital_assets", "type": "checkbox"},
+            "no": {"label": "Digital assets - No", "required": False, "section": "digital_assets", "type": "checkbox"},
+            
+            # Income
+            "wages_line_1a": {"label": "Wages from W-2 (Line 1a)", "required": True, "section": "income"},
+            "wages_line_1z": {"label": "Total wages (Line 1z)", "required": True, "section": "income"},
+            "tax_exempt_interest_2a": {"label": "Tax-exempt interest (Line 2a)", "required": False, "section": "income"},
+            "taxable_interest_2b": {"label": "Taxable interest (Line 2b)", "required": False, "section": "income"},
+            "qualified_dividends_3a": {"label": "Qualified dividends (Line 3a)", "required": False, "section": "income"},
+            "ordinary_dividends_3b": {"label": "Ordinary dividends (Line 3b)", "required": False, "section": "income"},
+            
+            # Dependents
+            "dependent_1_first_name": {"label": "Dependent 1 - First name", "required": False, "section": "dependents"},
+            "dependent_1_last_name": {"label": "Dependent 1 - Last name", "required": False, "section": "dependents"},
+            "dependent_1_ssn": {"label": "Dependent 1 - SSN", "required": False, "section": "dependents"},
+            "dependent_1_relationship": {"label": "Dependent 1 - Relationship", "required": False, "section": "dependents"},
+            
+            # Refund Info
+            "routing_number_35b": {"label": "Bank routing number for direct deposit", "required": False, "section": "refund"},
+            "account_number_35d": {"label": "Bank account number for direct deposit", "required": False, "section": "refund"},
+            "account_type_checking_35c": {"label": "Account type - Checking", "required": False, "section": "refund", "type": "checkbox"},
+        }
+    
+    def _generate_comprehensive_questions(self, form_data: Dict[str, Any], form_mapping: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate comprehensive questions for ALL missing fields based on mapping."""
         try:
-            available_fields = []
+            field_metadata = self._get_field_metadata()
+            questions = []
+            
+            # Flatten the mapping to get all available semantic field names
+            available_fields = set()
             for section, fields in form_mapping.items():
                 if isinstance(fields, dict) and section != 'form_metadata':
-                    available_fields.extend(list(fields.keys())[:20])
+                    available_fields.update(fields.keys())
             
-            prompt = f"""You are helping fill IRS Form 1040. Review the data and identify MISSING critical fields.
-
-FORM DATA AVAILABLE:
-{json.dumps(form_data, indent=2)[:1500]}
-
-FORM FIELDS (examples):
-{json.dumps(available_fields[:30], indent=2)}
-
-CRITICAL FIELDS TO CHECK:
-- Bank routing/account (if refund > 0)
-- Dependent SSN/names (if has dependents)
-- Spouse info (if married filing jointly)
-
-TASK: Return JSON with:
-1. "needs_input": true/false
-2. "questions": list of questions if needs input
-3. "ready_to_fill": true/false
-
-OUTPUT:
-{{
-  "needs_input": true,
-  "questions": [
-    {{"field": "routing_number_35b", "question": "What's your bank routing number?", "context": "For $X refund"}}
-  ],
-  "ready_to_fill": false
-}}"""
-
-            response = self.bedrock.invoke_model(
-                modelId='us.anthropic.claude-3-5-sonnet-20241022-v2:0',
-                body=json.dumps({
-                    'anthropic_version': 'bedrock-2023-05-31',
-                    'max_tokens': 2000,
-                    'temperature': 0,
-                    'messages': [{'role': 'user', 'content': prompt}]
-                })
-            )
+            logger.info(f"📋 Found {len(available_fields)} fields in mapping")
+            logger.info(f"📝 User provided {len(form_data)} data fields")
             
-            ai_response = json.loads(response['body'].read())['content'][0]['text']
-            json_match = re.search(r'```json\n({.*?})\n```', ai_response, re.DOTALL)
-            if json_match:
-                ai_response = json_match.group(1)
+            # Group questions by section for better organization
+            section_order = ["personal_info", "address", "filing_status", "digital_assets", 
+                           "income", "dependents", "refund"]
             
-            return json.loads(ai_response)
+            for section in section_order:
+                section_questions = []
+                
+                for field_name, metadata in field_metadata.items():
+                    if metadata.get("section") != section:
+                        continue
+                        
+                    # Check if field is in mapping
+                    if field_name not in available_fields:
+                        continue
+                    
+                    # Check if field is already provided
+                    if field_name in form_data and form_data[field_name]:
+                        continue
+                    
+                    # Special handling for filing status - only ask if none selected
+                    if section == "filing_status":
+                        filing_statuses = ["single", "married_filing_jointly", "married_filing_separately", 
+                                         "head_of_household", "qualifying_widow"]
+                        # Check if ANY filing status is set OR if filing_status was answered
+                        if any(form_data.get(fs) for fs in filing_statuses) or form_data.get("filing_status"):
+                            break  # Skip entire filing_status section
+                        if field_name != "single":  # Only ask once for filing status
+                            continue
+                        
+                        # Ask for filing status as a single question
+                        section_questions.append({
+                            "field": "filing_status",
+                            "question": "What is your filing status?",
+                            "context": "Options: Single, Married Filing Jointly, Married Filing Separately, Head of Household, or Qualifying Widow(er)",
+                            "type": "choice",
+                            "options": ["Single", "Married Filing Jointly", "Married Filing Separately", 
+                                      "Head of Household", "Qualifying Widow(er)"],
+                            "required": True,
+                            "section": section
+                        })
+                        break
+                    
+                    # Special handling for digital assets - only ask if none selected
+                    if section == "digital_assets" and field_name == "yes":
+                        # Check if EITHER yes/no is set OR if digital_assets was answered
+                        if form_data.get("yes") or form_data.get("no") or form_data.get("digital_assets") is not None:
+                            break  # Skip entire digital_assets section
+                        section_questions.append({
+                            "field": "digital_assets",
+                            "question": "At any time during 2024, did you receive, sell, exchange, or otherwise dispose of any financial interest in virtual currency?",
+                            "context": "This includes cryptocurrency like Bitcoin",
+                            "type": "boolean",
+                            "required": True,
+                            "section": section
+                        })
+                        break
+                    
+                    # Skip spouse fields if not married
+                    if "spouse" in field_name:
+                        filing_status = form_data.get("filing_status", "")
+                        married_statuses = ["married_filing_jointly", "married_filing_separately"]
+                        if not any(form_data.get(status) for status in married_statuses):
+                            if "married" not in filing_status.lower():
+                                continue
+                    
+                    # Skip dependent fields if no dependents indicated
+                    if "dependent" in field_name and not form_data.get("has_dependents"):
+                        continue
+                    
+                    # Skip refund fields if no refund
+                    if section == "refund":
+                        refund_amount = form_data.get("refund_amount_35a", 0)
+                        if refund_amount <= 0:
+                            continue
+                    
+                    # Generate question
+                    field_type = metadata.get("type", "text")
+                    question = {
+                        "field": field_name,
+                        "question": f"Please provide: {metadata['label']}",
+                        "context": f"Section: {section.replace('_', ' ').title()}",
+                        "type": field_type,
+                        "required": metadata.get("required", False),
+                        "section": section
+                    }
+                    
+                    # Add skip option for non-required fields
+                    if not metadata.get("required"):
+                        question["question"] += " (or type 'skip' if not applicable)"
+                    
+                    section_questions.append(question)
+                
+                # Add section questions to main list
+                if section_questions:
+                    questions.extend(section_questions)
+            
+            # Return first batch of questions (limit to 5 at a time to avoid overwhelming)
+            batch_size = 5
+            questions_batch = questions[:batch_size]
+            
+            if questions_batch:
+                logger.info(f"📨 Generated {len(questions_batch)} questions (out of {len(questions)} total)")
+                return {
+                    "needs_input": True,
+                    "questions": questions_batch,
+                    "ready_to_fill": False,
+                    "total_questions_remaining": len(questions),
+                    "progress": {
+                        "completed": len([f for f in available_fields if f in form_data]),
+                        "total": len(available_fields)
+                    }
+                }
+            
+            return {
+                "needs_input": False,
+                "ready_to_fill": True,
+                "questions": []
+            }
+            
         except Exception as e:
-            logger.error(f"AI question generation error: {e}")
+            logger.error(f"Question generation error: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return {"needs_input": False, "ready_to_fill": True, "questions": []}
     
-    async def fill_tax_form(self, form_type: str, form_data: Dict[str, Any], user_responses: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def fill_tax_form(self, form_type: str, form_data: Dict[str, Any], user_responses: Optional[Dict[str, Any]] = None, user_id: Optional[str] = None, skip_questions: bool = False) -> Dict[str, Any]:
         """
         Fill tax form using AI reasoning and hybrid mapping.
         
@@ -130,12 +273,14 @@ OUTPUT:
             form_type: Type of form (1040, SCHEDULE_C, etc.)
             form_data: Form data including calculations
             user_responses: Optional responses to questions
+            user_id: Optional Clerk user ID for PII-safe storage
+            skip_questions: If True, skip the Q&A and fill with available data
             
         Returns:
             Dict with filled form URL, questions, or metadata
         """
         try:
-            logger.info(f"🤖 AI-powered filling: {form_type}")
+            logger.info(f"🤖 AI-powered filling: {form_type} (skip_questions={skip_questions}, user_id={user_id})")
             
             # 1. Load hybrid mapping
             tax_year = form_data.get('tax_year', '2024')
@@ -149,21 +294,56 @@ OUTPUT:
             
             logger.info(f"✅ Loaded hybrid mapping")
             
-            # 2. Check if AI needs to ask questions (unless user already responded)
-            if not user_responses:
-                ai_analysis = self._ask_ai_for_questions(form_data, hybrid_mapping)
+            # 2. Check if we need to ask questions (unless user already responded OR skip_questions is True)
+            if not user_responses and not skip_questions:
+                questions_analysis = self._generate_comprehensive_questions(form_data, hybrid_mapping)
                 
-                if ai_analysis.get('needs_input') and ai_analysis.get('questions'):
+                if questions_analysis.get('needs_input') and questions_analysis.get('questions'):
+                    logger.info(f"❓ Asking {len(questions_analysis['questions'])} questions")
                     return {
                         'success': False,
                         'needs_input': True,
-                        'message': "I need some additional information:",
-                        'questions': ai_analysis['questions']
+                        'message': "I need some additional information to complete your tax form:",
+                        'questions': questions_analysis['questions'],
+                        'progress': questions_analysis.get('progress', {}),
+                        'total_questions_remaining': questions_analysis.get('total_questions_remaining', 0)
                     }
+            else:
+                logger.info(f"⏭️  Skipping questions (skip_questions={skip_questions}, user_responses={bool(user_responses)})")
             
             # 3. Merge user responses into form_data
             if user_responses:
-                form_data = {**form_data, **user_responses}
+                # Handle special response formats
+                processed_responses = {}
+                for key, value in user_responses.items():
+                    # Handle "skip" responses
+                    if isinstance(value, str) and value.lower() == 'skip':
+                        continue
+                    
+                    # Handle filing status choice
+                    if key == "filing_status":
+                        if value == "Single":
+                            processed_responses["single"] = True
+                        elif value == "Married Filing Jointly":
+                            processed_responses["married_filing_jointly"] = True
+                        elif value == "Married Filing Separately":
+                            processed_responses["married_filing_separately"] = True
+                        elif value == "Head of Household":
+                            processed_responses["head_of_household"] = True
+                        elif value == "Qualifying Widow(er)":
+                            processed_responses["qualifying_widow"] = True
+                    
+                    # Handle digital assets boolean
+                    elif key == "digital_assets":
+                        if value in [True, "Yes", "yes", "Y", "y"]:
+                            processed_responses["yes"] = True
+                        else:
+                            processed_responses["no"] = True
+                    
+                    else:
+                        processed_responses[key] = value
+                
+                form_data = {**form_data, **processed_responses}
             
             # 4. Download template
             template_key = self._get_template_path(form_type)
@@ -172,7 +352,9 @@ OUTPUT:
             # 5. Fill using hybrid mapping
             filled_pdf_bytes = self._fill_pdf_with_hybrid_mapping(template_data, form_data, hybrid_mapping)
             
-            # Upload the filled form with versioning
+            # Upload the filled form with versioning (use user_id for path, keep name in metadata)
+            final_user_id = user_id or form_data.get('user_id') or 'UNKNOWN_USER'
+            logger.info(f"🔑 Uploading filled form with user_id: {final_user_id} (passed user_id: {user_id})")
             upload_result = await self._upload_filled_pdf_with_versioning(
                 file_content=filled_pdf_bytes,
                 form_type=form_type,
@@ -185,7 +367,7 @@ OUTPUT:
                     'fields_filled': str(len(form_data)),
                     'taxpayer_name': form_data.get('taxpayer_name', 'Unknown')
                 },
-                taxpayer_id=form_data.get('taxpayer_name', 'Unknown').replace(' ', '_')
+                taxpayer_id=final_user_id
             )
             
             logger.info(f"Successfully filled {form_type} form")
@@ -259,18 +441,42 @@ OUTPUT:
         import fitz
         
         logger.info("Filling with hybrid mapping...")
+        logger.info(f"📝 Form data keys: {list(form_data.keys())[:20]}")
         doc = fitz.open(stream=pdf_data, filetype='pdf')
         
-        # Flatten mapping
+        # Flatten mapping - handle both sectioned and flat structures
         flat_mapping = {}
-        for section, fields in hybrid_mapping.items():
-            if isinstance(fields, dict) and section != 'form_metadata':
-                flat_mapping.update(fields)
+        
+        # Check if this is a flat mapping (fields at top level) or sectioned (fields nested in sections)
+        sample_key = list(hybrid_mapping.keys())[0] if hybrid_mapping else None
+        is_flat = sample_key and isinstance(hybrid_mapping[sample_key], dict) and 'pdf_field_path' in hybrid_mapping[sample_key]
+        
+        if is_flat:
+            # Flat mapping: {field_name: {semantic_name, pdf_field_path, section}}
+            logger.info("   Processing flat mapping structure")
+            for field_name, field_data in hybrid_mapping.items():
+                if isinstance(field_data, dict) and 'pdf_field_path' in field_data:
+                    flat_mapping[field_name] = field_data['pdf_field_path']
+                elif isinstance(field_data, str):
+                    flat_mapping[field_name] = field_data
+        else:
+            # Sectioned mapping: {section: {field_name: pdf_path or {pdf_field_path: ...}}}
+            logger.info("   Processing sectioned mapping structure")
+            for section, fields in hybrid_mapping.items():
+                if isinstance(fields, dict) and section != 'form_metadata':
+                    for field_name, field_value in fields.items():
+                        if isinstance(field_value, str):
+                            flat_mapping[field_name] = field_value
+                        elif isinstance(field_value, dict) and 'pdf_field_path' in field_value:
+                            flat_mapping[field_name] = field_value['pdf_field_path']
         
         logger.info(f"Hybrid mapping has {len(flat_mapping)} semantic fields")
+        logger.info(f"🗺️  Sample mapping: {dict(list(flat_mapping.items())[:5])}")
         
         filled_text = 0
         filled_checkboxes = 0
+        match_attempts = 0
+        successful_matches = 0
         
         for page_num in range(doc.page_count):
             page = doc[page_num]
@@ -279,15 +485,19 @@ OUTPUT:
                 if not full_field_name:
                     continue
                 
+                match_attempts += 1
+                
                 # Find semantic name for this PDF field
                 semantic_name = None
                 for sem, pdf_path in flat_mapping.items():
                     if pdf_path == full_field_name:
                         semantic_name = sem
+                        successful_matches += 1
                         break
                 
                 if semantic_name and semantic_name in form_data:
                     value = form_data[semantic_name]
+                    logger.info(f"   ✏️  Filling {semantic_name} = {value} -> {full_field_name[:50]}")
                     
                     if widget.field_type == 7:  # Text
                         widget.field_value = str(value)
@@ -298,7 +508,10 @@ OUTPUT:
                             widget.field_value = "Yes"
                             widget.update()
                             filled_checkboxes += 1
+                elif semantic_name:
+                    logger.debug(f"   ⏭️  Semantic name '{semantic_name}' not in form_data")
         
+        logger.info(f"📊 Match stats: {successful_matches}/{match_attempts} PDF fields matched to semantic names")
         logger.info(f"✅ Filled {filled_text} text, {filled_checkboxes} checkboxes")
         
         # Save to bytes
@@ -534,13 +747,14 @@ OUTPUT:
     async def _upload_filled_pdf_with_versioning(self, file_content: bytes, form_type: str, 
                                                tax_year: int, metadata: Dict[str, str], 
                                                taxpayer_id: str = None) -> Dict[str, Any]:
-        """Upload filled PDF with versioning support."""
+        """Upload filled PDF with versioning support using user_id for PII-safe storage."""
         try:
-            # Generate taxpayer ID if not provided
-            if not taxpayer_id:
-                taxpayer_id = metadata.get('taxpayer_name', 'TAXPAYER').replace(' ', '_')
+            # Ensure taxpayer_id is provided (should be Clerk user ID)
+            if not taxpayer_id or taxpayer_id == 'UNKNOWN_USER':
+                logger.warning("No user_id provided, using fallback")
+                taxpayer_id = metadata.get('user_id', 'UNKNOWN_USER')
             
-            # Create base document ID for versioning
+            # Create base document ID for versioning (using user_id, not name)
             document_id = f"tax_form_{taxpayer_id}_{form_type}_{tax_year}"
             base_key = f"filled_forms/{taxpayer_id}/{form_type.lower()}/{tax_year}"
             
@@ -1149,19 +1363,21 @@ OUTPUT:
 
 
 # Tool function for agent integration
-async def fill_tax_form(form_type: str, form_data: Dict[str, Any]) -> Dict[str, Any]:
+async def fill_tax_form(form_type: str, form_data: Dict[str, Any], user_id: Optional[str] = None, skip_questions: bool = False) -> Dict[str, Any]:
     """
     Fill any tax form with provided data using dynamic field mapping.
     
     Args:
         form_type: Type of form to fill (1040, SCHEDULE_C, STATE_CA, etc.)
         form_data: Dictionary containing form field data
+        user_id: Optional Clerk user ID for PII-safe storage
+        skip_questions: If True, skip the Q&A and fill with available data
         
     Returns:
         Dictionary with filled form URL and metadata
     """
     filler = TaxFormFiller()
-    return await filler.fill_tax_form(form_type, form_data)
+    return await filler.fill_tax_form(form_type, form_data, user_id=user_id, skip_questions=skip_questions)
 
 
 # Tool function for getting available forms

@@ -33,6 +33,7 @@ interface ChatProps {
   onMatterCreate?: (matter: any) => void;
   onDeadlineCreate?: (deadline: any) => void;
   engagementId?: string;
+  userId?: string;  // Clerk user ID for PII-safe storage
 }
 
 interface ChatMessage {
@@ -62,10 +63,12 @@ const TaxChatInterface: React.FC<ChatProps> = ({
   onDocumentCreate,
   onMatterCreate,
   onDeadlineCreate,
-  engagementId
+  engagementId,
+  userId
 }) => {
   const [inputValue, setInputValue] = useState("");
-  const [chatMode, setChatMode] = useState<ChatMode>('voice'); // Default to voice for better UX
+  // TODO: Re-enable voice mode later - temporarily defaulting to text
+  const [chatMode, setChatMode] = useState<ChatMode>('text'); // Temporarily using text mode (was 'voice')
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const [hasReceivedFirstResponse, setHasReceivedFirstResponse] = useState(false);
@@ -88,6 +91,7 @@ const TaxChatInterface: React.FC<ChatProps> = ({
     agentName: 'TaxPlannerAgent', // Now using the correct tax agent
     autoConnect: true,
     enableWebSocket: false,
+    userId: userId,  // Pass Clerk user ID for PII-safe storage
   });
 
   // Expose debug info to global window for debugging
@@ -310,21 +314,9 @@ const TaxChatInterface: React.FC<ChatProps> = ({
           style={{ scrollBehavior: 'smooth' }}
         >
           {displayMessages.length === 0 ? (
-            <div className="space-y-6">
-              <EmptyChatState />
-              <DocumentProcessingNotifications 
-                engagementId={engagementId}
-                className="max-w-md mx-auto"
-              />
-            </div>
+            <EmptyChatState />
           ) : (
             <div className="space-y-4 max-w-4xl mx-auto px-4">
-              {/* Document Processing Notifications */}
-              <DocumentProcessingNotifications 
-                engagementId={engagementId}
-                className="mb-4"
-              />
-              
               {displayMessages.map((message, idx) => (
                 <div key={message.id} className="w-full" style={{ userSelect: 'text' }}>
                   <div className={cn("flex", message.type === 'user' ? "justify-end" : "justify-start")} style={{ userSelect: 'text' }}>

@@ -92,15 +92,17 @@ async def calc_1040(engagement_id: str, filing_status: str, dependents_count: in
 
 
 async def _load_w2_extracts(engagement_id: str) -> Dict[str, Any]:
-    """Load W-2 extract data from DynamoDB."""
+    """Load W-2 extract data from Bedrock inference results in S3."""
+    
+    import os
+    from dotenv import load_dotenv
+    load_dotenv('.env.local')
     
     settings = get_settings()
     
     try:
+        # Get user_id from engagement
         dynamodb = boto3.resource('dynamodb', region_name=settings.aws_region)
-        table = dynamodb.Table(settings.tax_documents_table_name)
-        
-        # Get user_id from engagement to construct the correct key
         engagements_table = dynamodb.Table(settings.tax_engagements_table_name)
         engagement_response = engagements_table.scan(
             FilterExpression=boto3.dynamodb.conditions.Attr('engagement_id').eq(engagement_id)
@@ -112,6 +114,7 @@ async def _load_w2_extracts(engagement_id: str) -> Dict[str, Any]:
             return None
         
         user_id = engagement_items[0]['user_id']
+        logger.info(f"Found user_id {user_id} for engagement {engagement_id}")
         
         # Query for W-2 extracts document
         response = table.get_item(

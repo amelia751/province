@@ -35,6 +35,14 @@
     "yes": "topmostSubform[0].Page1[0].c1_5[0]",
     "no": "topmostSubform[0].Page1[0].c1_6[0]"
   },
+  "income": {
+    "wages_line_1a": "topmostSubform[0].Page1[0].f1_32[0]",
+    "wages_line_1z": "topmostSubform[0].Page1[0].f1_41[0]",
+    "tax_exempt_interest_2a": "topmostSubform[0].Page1[0].f1_42[0]",
+    "taxable_interest_2b": "topmostSubform[0].Page1[0].f1_43[0]",
+    "qualified_dividends_3a": "topmostSubform[0].Page1[0].f1_44[0]",
+    "ordinary_dividends_3b": "topmostSubform[0].Page1[0].f1_45[0]"
+  },
   "dependents": {
     "dependent_1_first_name": "topmostSubform[0].Page1[0].f1_18[0]",
     "dependent_1_last_name": "topmostSubform[0].Page1[0].f1_19[0]",
