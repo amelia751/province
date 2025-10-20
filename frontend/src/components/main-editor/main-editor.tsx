@@ -632,7 +632,9 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
 
     setIsDeletingForms(true);
     try {
-      const response = await fetch(`/api/v1/forms/delete-all-filled?user_id=${userId}`, {
+      // Use full backend URL to bypass Next.js routing issues
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const response = await fetch(`${backendUrl}/api/v1/forms/delete-all-filled?user_id=${userId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
