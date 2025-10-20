@@ -269,10 +269,13 @@ async def fill_form_tool(
             # W-2 has full address extracted from markdown
             address_full = employee_info.get('address')
             street = employee_info.get('street', '123 Main St')
+            apt_no = employee_info.get('apt_no', '')
             city = employee_info.get('city', 'Anytown')
             state = employee_info.get('state', 'CA')
             zip_code = employee_info.get('zip', '90210')
             logger.info(f"📍 Using address from W-2: {address_full}")
+            if apt_no:
+                logger.info(f"   Apt/Unit: {apt_no}")
         elif session_data.get('address'):
             # Use address from session
             address_full = session_data.get('address')
@@ -329,6 +332,7 @@ async def fill_form_tool(
             
             # === ADDRESS === (from 'address' section)
             'street_address': street,
+            'apt_no': apt_no if 'apt_no' in locals() else '',
             'city': city,
             'state': state,
             'zip_code': zip_code,

@@ -392,13 +392,37 @@ def _extract_w2_from_standard_output(bedrock_response: Dict[str, Any], s3_key: s
         if len(city_state_parts) == 2:
             city = city_state_parts[0].strip()
             state = city_state_parts[1].strip()
+            
+            # Parse street for unit number (Suite, Apt, Unit, Room, #, etc.)
+            unit_patterns = [
+                r'(Apt\.?|Apartment)\s+(\S+)',
+                r'(Suite|Ste\.?)\s+(\S+)',
+                r'(Unit|#)\s*(\S+)',
+                r'(Room|Rm\.?)\s+(\S+)',
+                r'(Bldg\.?|Building)\s+(\S+)',
+                r'(Floor|Fl\.?)\s+(\S+)',
+            ]
+            
+            apt_no = ''
+            street_without_unit = street
+            for pattern in unit_patterns:
+                match = re.search(pattern, street, re.IGNORECASE)
+                if match:
+                    apt_no = match.group(2)  # Get the unit number
+                    street_without_unit = street[:match.start()].strip()  # Get street without unit
+                    logger.info(f"Extracted unit: {match.group(1)} {apt_no}")
+                    break
+            
             employee_info['address'] = f"{street}, {city}, {state} {zip_code}"
-            employee_info['street'] = street
+            employee_info['street'] = street_without_unit  # Street without unit
+            employee_info['apt_no'] = apt_no  # Unit number extracted
             employee_info['city'] = city
             employee_info['state'] = state
             employee_info['zip'] = zip_code
             pin_cites['employee_address'] = {'file': s3_key.split('/')[-1], 'page': 1, 'bbox': [0, 0, 0, 0], 'confidence': 0.85, 'source': 'bedrock_standard_output'}
             logger.info(f"Extracted employee address: {employee_info['address']}")
+            if apt_no:
+                logger.info(f"Extracted apt/unit: {apt_no}")
     
     # Extract W-2 box values using patterns based on the actual markdown structure
     # Looking at the sample, the format is like: "1 Wages, tips, other compensation\t\t\t2 Federal income tax withheld\t\n55151.93\t\t\t16606.17\t"
