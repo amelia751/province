@@ -375,10 +375,46 @@ async def fill_form_tool(
             'digital_assets_yes_checkbox': False,  # Always False unless user says yes
             'digital_assets_no': True,  # Always True unless user says yes
             
+            # === DEPENDENTS === (from 'dependents' section)
+            # Extract dependent info from session data
+            'dependent_count_qualifying': dependents or session_data.get('dependents', 0),
+            'dependent_count_other': 0,  # Other dependents (not qualifying)
+            
             # === METADATA ===
             'filing_status': filing_status_value,
             'dependents': dependents or session_data.get('dependents', 0),
         }
+        
+        # Add dependent details if available in session
+        dependents_list = session_data.get('dependents_list', [])
+        logger.info(f"📋 Processing {len(dependents_list)} dependents from session")
+        
+        for i, dep in enumerate(dependents_list[:4], 1):  # Max 4 dependents on form
+            # Name (combined first + last in one field)
+            full_name = f"{dep.get('first_name', '')} {dep.get('last_name', '')}".strip()
+            if full_name:
+                form_data[f'dependent_{i}_first_last_name'] = full_name
+            
+            # SSN
+            if dep.get('ssn'):
+                form_data[f'dependent_{i}_ssn'] = dep['ssn'].replace('-', '')
+            
+            # Relationship
+            if dep.get('relationship'):
+                form_data[f'dependent_{i}_relationship'] = dep['relationship']
+            
+            # Tax credits (default to child tax credit for "child" or "son" or "daughter")
+            relationship_lower = dep.get('relationship', '').lower()
+            if any(word in relationship_lower for word in ['child', 'son', 'daughter']):
+                form_data[f'dependent_{i}_child_tax_credit'] = True
+                form_data[f'dependent_{i}_other_credit'] = False
+            else:
+                form_data[f'dependent_{i}_child_tax_credit'] = False
+                form_data[f'dependent_{i}_other_credit'] = True
+            
+            logger.info(f"   Dependent {i}: {full_name} ({dep.get('relationship', 'N/A')})")
+        
+        form_data = {k: v for k, v in form_data.items()}
         
         # Get user_id from session for PII-safe storage
         user_id = session_data.get('user_id')
@@ -557,6 +593,61 @@ async def manage_state_tool(
 
 
 @tool
+async def add_dependent_tool(
+    first_name: str,
+    last_name: str,
+    ssn: str,
+    relationship: str,
+    session_id: str = None
+) -> str:
+    """
+    Add a dependent to the tax return.
+    
+    Args:
+        first_name: Dependent's first name
+        last_name: Dependent's last name
+        ssn: Dependent's Social Security Number (with or without dashes)
+        relationship: Relationship to taxpayer (e.g., 'daughter', 'son', 'child')
+        session_id: Session ID (uses current if not provided)
+    
+    Returns:
+        str: Confirmation message
+    """
+    try:
+        if not session_id:
+            session_id = conversation_state.get('current_session_id', 'default')
+        
+        if session_id not in conversation_state:
+            conversation_state[session_id] = {}
+        
+        # Initialize dependents_list if not exists
+        if 'dependents_list' not in conversation_state[session_id]:
+            conversation_state[session_id]['dependents_list'] = []
+        
+        # Add the dependent
+        dependent = {
+            'first_name': first_name,
+            'last_name': last_name,
+            'ssn': ssn,
+            'relationship': relationship
+        }
+        
+        conversation_state[session_id]['dependents_list'].append(dependent)
+        
+        # Update dependent count
+        count = len(conversation_state[session_id]['dependents_list'])
+        conversation_state[session_id]['dependents'] = count
+        
+        logger.info(f"👨‍👩‍👧‍👦 Added dependent: {first_name} {last_name} ({relationship}) - Total: {count}")
+        
+        return f"Successfully added dependent {first_name} {last_name} ({relationship}). Total dependents: {count}"
+    
+    except Exception as e:
+        logger.error(f"Error adding dependent: {e}")
+        return f"Error adding dependent: {str(e)}"
+
+
+@tool
 async def list_version_history_tool(document_id: str = None) -> str:
     """
     List version history for a tax document.
@@ -670,6 +761,7 @@ class TaxService:
                 fill_form_tool,
                 save_document_tool,
                 manage_state_tool,
+                add_dependent_tool,
                 list_version_history_tool
             ],
             name="TaxFilingAgent",
@@ -700,13 +792,22 @@ IMPORTANT GUIDELINES:
 - Use the tools provided to process W2s, calculate taxes, and fill forms
 - Keep track of conversation state using the manage_state_tool
 - **CRITICAL: When user tells you their filing status (single, married filing jointly, etc.), IMMEDIATELY use manage_state_tool to save it as 'filing_status'**
+- **DEPENDENTS: When user mentions dependents, IMMEDIATELY use add_dependent_tool for EACH dependent with first_name, last_name, ssn, and relationship**
 - Only handle simple W2 employee returns (no complex situations)
 - When user provides information, acknowledge it and move to the next logical step
+
+EXAMPLE DEPENDENT EXTRACTION:
+User: "I have 2 dependents: my daughter Alice Smith (SSN 123-45-6789) and my son Bob Smith (SSN 987-65-4321)"
+Agent action: 
+1. Call add_dependent_tool(first_name="Alice", last_name="Smith", ssn="123-45-6789", relationship="daughter")
+2. Call add_dependent_tool(first_name="Bob", last_name="Smith", ssn="987-65-4321", relationship="son")
+3. Respond: "Great! I've added both dependents to your return. Alice and Bob will be included in your Form 1040."
 
 TOOL USAGE:
 - Use ingest_w2_tool when user mentions W2 or you need to process W2 data
 - Use calc_1040_tool when you have enough information to calculate taxes
 - Use fill_form_tool to progressively fill out tax forms (MUST pass filing_status parameter explicitly)
+- Use add_dependent_tool when user tells you about dependents (name, SSN, relationship)
 - Use save_document_tool to save completed forms
 - Use manage_state_tool to track conversation progress
 - **IMPORTANT: Always save filing_status to state: manage_state_tool(action="set", key="filing_status", value="Single") when user says they are single**
