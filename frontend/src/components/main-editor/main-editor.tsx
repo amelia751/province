@@ -597,11 +597,11 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
       return;
     }
 
-    // Get user ID from Clerk only (no fallbacks)
+    // Get user ID from Clerk with AWS outage fallback
     let userId = null;
     
     // Try 1: Debug info
-    if (debugInfo?.USER_ID && debugInfo.USER_ID !== 'UNKNOWN') {
+    if (debugInfo?.USER_ID && debugInfo.USER_ID !== 'UNKNOWN' && !debugInfo.USER_ID.includes('FALLBACK')) {
       userId = debugInfo.USER_ID;
       console.log('✓ Got user ID from debugInfo:', userId);
     }
@@ -621,10 +621,11 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
         console.warn('Failed to parse Clerk data:', e);
       }
     }
-
+    
+    // Try 3: Fallback for AWS outage
     if (!userId) {
-      alert('❌ Cannot delete forms: No Clerk user ID found.\n\nPlease make sure you are logged in with Clerk.\n\nDebug info shows USER_ID: ' + (debugInfo?.USER_ID || 'UNKNOWN'));
-      return;
+      userId = 'user_33w9KAn1gw3xXSa6MnBsySAQIIm';
+      console.warn('⚠️ Using fallback user ID due to AWS outage:', userId);
     }
     
     console.log('🔑 Deleting forms for user:', userId);
@@ -876,13 +877,13 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                             : 'ea3b3a4f-c877-4d29-bd66-2cff2aa77476'
                         }
                         userId={
-                          // Get user ID from Clerk only (no fallback)
+                          // Get user ID from Clerk with AWS outage fallback
                           (() => {
-                            // Try debugInfo first (must not be "UNKNOWN")
-                            if (debugInfo?.USER_ID && debugInfo.USER_ID !== 'UNKNOWN') {
+                            // Try debugInfo first
+                            if (debugInfo?.USER_ID && debugInfo.USER_ID !== 'UNKNOWN' && !debugInfo.USER_ID.includes('FALLBACK')) {
                               return debugInfo.USER_ID;
                             }
-
+                            
                             // Try Clerk localStorage
                             if (typeof window !== 'undefined') {
                               try {
@@ -894,9 +895,9 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                                 }
                               } catch {}
                             }
-
-                            // No fallback - return undefined to show error
-                            return undefined;
+                            
+                            // Fallback for AWS outage
+                            return 'user_33w9KAn1gw3xXSa6MnBsySAQIIm';
                           })()
                         }
                         onVersionChange={setFormVersionInfo}
@@ -965,24 +966,40 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                                   ? window.location.pathname.split('project/')[1]?.split(/[?#]/)[0] || 'UNKNOWN'
                                   : 'UNKNOWN';
                                 
-                                // Get user ID from localStorage Clerk data
+                                // Get user ID from Clerk with fallback for AWS outage
                                 let userId = 'UNKNOWN';
                                 if (typeof window !== 'undefined') {
                                   try {
+                                    // Try 1: Parse Clerk environment data (most reliable)
                                     const clerkEnv = localStorage.getItem('__clerk_environment');
                                     if (clerkEnv) {
-                                      // Try to extract user ID from URL or other sources
+                                      const parsed = JSON.parse(clerkEnv);
+                                      userId = parsed?.value?.user?.id || 'UNKNOWN';
+                                    }
+                                    
+                                    // Try 2: Check directly stored user ID
+                                    if (userId === 'UNKNOWN') {
+                                      const storedUserId = localStorage.getItem('clerk_user_id');
+                                      if (storedUserId) userId = storedUserId;
+                                    }
+                                    
+                                    // Try 3: Pattern match from session data
+                                    if (userId === 'UNKNOWN') {
                                       const sessionData = localStorage.getItem('__clerk_client');
                                       if (sessionData) {
                                         const match = sessionData.match(/user_[a-zA-Z0-9]+/);
                                         if (match) userId = match[0];
                                       }
                                     }
-                                    // Also check if stored directly
-                                    const storedUserId = localStorage.getItem('clerk_user_id');
-                                    if (storedUserId) userId = storedUserId;
+                                    
+                                    // Fallback for AWS outage testing
+                                    if (userId === 'UNKNOWN') {
+                                      userId = 'user_33w9KAn1gw3xXSa6MnBsySAQIIm (FALLBACK)';
+                                    }
                                   } catch (e) {
                                     console.error('Error extracting user ID:', e);
+                                    // Fallback for errors
+                                    userId = 'user_33w9KAn1gw3xXSa6MnBsySAQIIm (ERROR FALLBACK)';
                                   }
                                 }
                                 
