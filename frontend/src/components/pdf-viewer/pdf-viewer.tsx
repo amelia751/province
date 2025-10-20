@@ -48,7 +48,7 @@ export default function PdfViewer({ url, annotations = [], className, onPageChan
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center px-4 py-2 bg-paper-white text-gray-600 rounded hover:bg-true-turquoise hover:text-white transition-colors"
             >
               <ExternalLink className="w-4 h-4 mr-2" />
               Open in New Tab
@@ -56,7 +56,7 @@ export default function PdfViewer({ url, annotations = [], className, onPageChan
             <a
               href={url}
               download
-              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+              className="inline-flex items-center px-4 py-2 bg-paper-white text-gray-600 rounded hover:bg-true-turquoise hover:text-white transition-colors"
             >
               <Download className="w-4 h-4 mr-2" />
               Download
@@ -79,7 +79,7 @@ export default function PdfViewer({ url, annotations = [], className, onPageChan
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center px-3 py-1.5 text-sm bg-paper-white text-gray-600 rounded hover:bg-true-turquoise hover:text-white transition-colors"
           >
             <ExternalLink className="w-4 h-4 mr-1" />
             Open
@@ -87,7 +87,7 @@ export default function PdfViewer({ url, annotations = [], className, onPageChan
           <a
             href={url}
             download
-            className="inline-flex items-center px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+            className="inline-flex items-center px-3 py-1.5 text-sm bg-paper-white text-gray-600 rounded hover:bg-true-turquoise hover:text-white transition-colors"
           >
             <Download className="w-4 h-4 mr-1" />
             Download

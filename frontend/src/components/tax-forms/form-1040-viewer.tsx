@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { ChevronUp, ChevronDown, Clock, FileText, Rabbit, RefreshCw } from 'lucide-react';
+import { ChevronUp, ChevronDown, Clock, Files, Rabbit, RefreshCw } from 'lucide-react';
 import { PdfViewer } from '@/components/pdf-viewer';
 import { cn } from '@/lib/utils';
 
@@ -155,7 +155,7 @@ export function Form1040Viewer({ engagementId, userId, className }: Form1040View
       <div className="relative flex items-center justify-between px-4 py-3 border-b bg-white">
         {/* Left: Form Info */}
         <div className="flex items-center space-x-3">
-          <FileText className="w-5 h-5 text-blue-600" />
+          <Files className="w-5 h-5 text-gray-400" strokeWidth={1.5} />
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
               Form {versionsData.form_type} - {versionsData.tax_year}

@@ -171,7 +171,7 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentReturn {
       const welcomeMessage: ChatMessage = {
         id: `welcome_${Date.now()}`,
         type: 'assistant',
-        content: `Hi! I'm here to help you file your taxes. Let's get started—what's your filing status?`,
+        content: `Hi! I'm here to help you file your taxes. Let's get started!`,
         timestamp: new Date(),
         agent: agent,
         status: 'completed',

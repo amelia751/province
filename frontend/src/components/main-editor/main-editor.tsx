@@ -1511,17 +1511,6 @@ Tax Service: ${taxServiceStatus}
             ) : activeTab ? (
               <>
                 <span>{activeTab.name}</span>
-                {activeTab.type && (
-                  <span className="text-gray-500">
-                    {activeTab.type === 'w2-form' ? 'W-2 Form' :
-                     activeTab.type === 'tax-return' ? 'Tax Return' :
-                     activeTab.type === 'tax-form-filler' ? '1040 Form' :
-                     activeTab.type === 'ingest-tool' ? 'Tax Tool' :
-                     activeTab.type?.includes('pdf') ? 'PDF Document' :
-                     activeTab.type?.includes('image') ? 'Image' :
-                     activeTab.type}
-                  </span>
-                )}
                 <span className="text-gray-500">Last edited: Just now</span>
               </>
             ) : null}

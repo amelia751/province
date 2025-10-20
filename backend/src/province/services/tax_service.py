@@ -242,8 +242,9 @@ async def fill_form_tool(
         else:
             logger.warning(f"⚠️  NO W-2 DATA FOUND in session '{session_id}' - will use fallback values!")
         
-        # Get SSN from W-2 (capital SSN key from Bedrock)
-        ssn = employee_info.get('SSN') or employee_info.get('ssn') or session_data.get('ssn', '123-45-6789')
+        # Get SSN from W-2 (capital SSN key from Bedrock) and remove dashes
+        ssn_raw = employee_info.get('SSN') or employee_info.get('ssn') or session_data.get('ssn', '123-45-6789')
+        ssn = ssn_raw.replace('-', '') if ssn_raw else '123456789'  # Remove dashes for PDF form digit boxes
         
         # Parse taxpayer name from W-2 'name' field (full name)
         if employee_info.get('name'):
@@ -293,8 +294,17 @@ async def fill_form_tool(
         
         logger.info(f"📝 Form filling with: {first_name} {last_name}, SSN: {ssn}, Address: {street}, {city}, {state} {zip_code}")
         
-        # Get filing status for checkbox mapping
+        # Get filing status for checkbox mapping (normalize case)
         filing_status_value = filing_status or session_data.get('filing_status', 'Single')
+        filing_status_normalized = filing_status_value.strip().lower()
+        
+        logger.info(f"📋 Filing status: '{filing_status_value}' (normalized: '{filing_status_normalized}')")
+        
+        # Debug: Show which checkbox will be set
+        if filing_status_normalized == 'single':
+            logger.info(f"   ✓ Setting 'single' checkbox = True")
+        elif filing_status_normalized in ['married filing jointly', 'married jointly', 'married']:
+            logger.info(f"   ✓ Setting 'married_joint' checkbox = True")
         
         # Calculate refund/owe outside dict
         refund_or_due = calc_data.get('refund_or_due', 0)
@@ -305,7 +315,7 @@ async def fill_form_tool(
             # === PERSONAL INFORMATION === (from 'personal_info' section)
             'taxpayer_first_name': first_name,
             'taxpayer_last_name': last_name,
-            'taxpayer_ssn': ssn,
+            'taxpayer_ssn': ssn,  # Already formatted without dashes
             
             # === ADDRESS === (from 'address' section)
             'street_address': street,
@@ -314,14 +324,16 @@ async def fill_form_tool(
             'zip_code': zip_code,
             
             # === FILING STATUS === (from 'filing_status' section)
-            'single': True if filing_status_value == 'Single' else False,
-            'married_joint': True if filing_status_value == 'Married filing jointly' else False,
-            'married_separate': True if filing_status_value == 'Married filing separately' else False,
-            'head_household': True if filing_status_value == 'Head of household' else False,
-            'qualifying_widow': True if filing_status_value == 'Qualifying surviving spouse' else False,
+            # Use normalized comparison to avoid case sensitivity issues
+            'single': filing_status_normalized == 'single',
+            'married_joint': filing_status_normalized in ['married filing jointly', 'married jointly', 'married'],
+            'married_separate': filing_status_normalized in ['married filing separately', 'married separately'],
+            'head_household': filing_status_normalized in ['head of household', 'head household'],
+            'qualifying_widow': filing_status_normalized in ['qualifying widow', 'qualifying widow(er)', 'qualifying surviving spouse'],
             
             # === TAX YEAR === (from 'header' section)
             'tax_year': str(calc_data.get('tax_year', 2024)),
+            'year_suffix': '',  # Blank for calendar year (Jan 1 - Dec 31)
             
             # === INCOME === (from 'income_page1' section)
             'wages_line_1a': wages or calc_data.get('agi', 0),  # Line 1a - Wages
