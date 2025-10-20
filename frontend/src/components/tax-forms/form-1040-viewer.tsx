@@ -263,10 +263,14 @@ export function Form1040Viewer({ engagementId, userId, className, onVersionChang
           // Stable cache key - only changes when version actually changes
           const cacheKey = `${currentVersion.version}-${currentVersion.timestamp}`;
           
+          // Add cache buster - use & if URL already has query params (S3 presigned URLs do)
+          const separator = currentVersion.download_url.includes('?') ? '&' : '?';
+          const urlWithCache = `${currentVersion.download_url}${separator}v=${encodeURIComponent(cacheKey)}`;
+          
           return (
             <PdfViewer
               key={cacheKey} // Forces remount when version changes
-              url={`${currentVersion.download_url}?v=${encodeURIComponent(cacheKey)}`} // Cache-buster tied to version
+              url={urlWithCache} // Cache-buster tied to version
               className="w-full h-full"
             />
           );
