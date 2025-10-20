@@ -44,6 +44,11 @@ export function Form1040Viewer({ engagementId, userId, className, onVersionChang
   const [error, setError] = useState<string | null>(null);
   const [lastChecked, setLastChecked] = useState<number>(Date.now());
 
+  // Derived state - must be declared before useEffects that use it
+  const currentVersion = versionsData?.versions[currentVersionIndex];
+  const isLatest = currentVersionIndex === 0;
+  const isOldest = versionsData && currentVersionIndex === versionsData.versions.length - 1;
+
   // Load versions on mount
   useEffect(() => {
     loadVersions();
@@ -140,10 +145,6 @@ export function Form1040Viewer({ engagementId, userId, className, onVersionChang
       setCurrentVersionIndex(currentVersionIndex - 1);
     }
   };
-
-  const currentVersion = versionsData?.versions[currentVersionIndex];
-  const isLatest = currentVersionIndex === 0;
-  const isOldest = versionsData && currentVersionIndex === versionsData.versions.length - 1;
 
   if (loading) {
     return (
