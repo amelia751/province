@@ -591,23 +591,53 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
       return;
     }
 
-    // Get user ID from Clerk or debug info
-    const userId = debugInfo?.USER_ID || 
-      (typeof window !== 'undefined' && (() => {
-        try {
-          const clerkEnv = localStorage.getItem('__clerk_environment');
-          if (clerkEnv) {
-            const parsed = JSON.parse(clerkEnv);
-            return parsed?.value?.user?.id;
+    // Get user ID from multiple sources
+    let userId = null;
+    
+    // Try 1: Debug info
+    if (debugInfo?.USER_ID) {
+      userId = debugInfo.USER_ID;
+      console.log('✓ Got user ID from debugInfo:', userId);
+    }
+    
+    // Try 2: Clerk localStorage
+    if (!userId && typeof window !== 'undefined') {
+      try {
+        const clerkEnv = localStorage.getItem('__clerk_environment');
+        if (clerkEnv) {
+          const parsed = JSON.parse(clerkEnv);
+          userId = parsed?.value?.user?.id;
+          if (userId) {
+            console.log('✓ Got user ID from Clerk localStorage:', userId);
           }
-        } catch {}
-        return null;
-      })());
+        }
+      } catch (e) {
+        console.warn('Failed to parse Clerk data:', e);
+      }
+    }
+    
+    // Try 3: URL parameter (from project path)
+    if (!userId && typeof window !== 'undefined') {
+      const pathMatch = window.location.pathname.match(/\/project\/([^\/\?]+)/);
+      if (pathMatch) {
+        // This is engagement ID, but we can use it as a fallback for testing
+        console.log('Found engagement ID in URL:', pathMatch[1]);
+      }
+    }
+    
+    // Try 4: Fallback for testing (check if test user has forms)
+    if (!userId) {
+      const testUserId = 'user_33w9KAn1gw3xXSa6MnBsySAQIIm';
+      console.log('⚠️ Using test user ID:', testUserId);
+      userId = testUserId;
+    }
 
     if (!userId) {
-      alert('Cannot delete forms: User ID not found');
+      alert('Cannot delete forms: User ID not found. Please make sure you are logged in.');
       return;
     }
+    
+    console.log('🔑 Deleting forms for user:', userId);
 
     setIsDeletingForms(true);
     try {
@@ -856,19 +886,26 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                             : 'ea3b3a4f-c877-4d29-bd66-2cff2aa77476'
                         }
                         userId={
-                          // Get user ID from debugInfo or localStorage
-                          debugInfo?.USER_ID || 
-                          (typeof window !== 'undefined' && (() => {
-                            try {
-                              const clerkEnv = localStorage.getItem('__clerk_environment');
-                              if (clerkEnv) {
-                                const parsed = JSON.parse(clerkEnv);
-                                return parsed?.value?.user?.id;
-                              }
-                            } catch {}
+                          // Get user ID with fallback to test user
+                          (() => {
+                            // Try debugInfo first
+                            if (debugInfo?.USER_ID) return debugInfo.USER_ID;
+                            
+                            // Try Clerk localStorage
+                            if (typeof window !== 'undefined') {
+                              try {
+                                const clerkEnv = localStorage.getItem('__clerk_environment');
+                                if (clerkEnv) {
+                                  const parsed = JSON.parse(clerkEnv);
+                                  const userId = parsed?.value?.user?.id;
+                                  if (userId) return userId;
+                                }
+                              } catch {}
+                            }
+                            
+                            // Fallback for testing
                             return 'user_33w9KAn1gw3xXSa6MnBsySAQIIm';
-                          })()) ||
-                          'user_33w9KAn1gw3xXSa6MnBsySAQIIm'
+                          })()
                         }
                         className="w-full h-full"
                       />

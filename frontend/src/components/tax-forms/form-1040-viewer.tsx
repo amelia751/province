@@ -36,7 +36,6 @@ export function Form1040Viewer({ engagementId, userId, className }: Form1040View
   const [currentVersionIndex, setCurrentVersionIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showTooltip, setShowTooltip] = useState(false);
   const [lastChecked, setLastChecked] = useState<number>(Date.now());
 
   // Load versions on mount
@@ -179,33 +178,6 @@ export function Form1040Viewer({ engagementId, userId, className }: Form1040View
           </button>
 
           {/* Version Navigator (Cursor Style) */}
-          <div 
-            className="relative"
-            onMouseEnter={() => setShowTooltip(true)}
-            onMouseLeave={() => setShowTooltip(false)}
-          >
-            {/* Tooltip */}
-            {showTooltip && (
-              <div className="absolute bottom-full right-0 mb-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <div className="bg-gray-900 text-white text-xs rounded-lg shadow-lg px-3 py-2 min-w-[200px]">
-                  <div className="font-semibold mb-1">{currentVersion.version}</div>
-                  <div className="text-gray-300 space-y-0.5">
-                    <div className="flex items-center space-x-1">
-                      <Clock className="w-3 h-3" />
-                      <span>{currentVersion.last_modified}</span>
-                    </div>
-                    <div>{(currentVersion.size / 1024).toFixed(0)} KB</div>
-                    {isLatest && <div className="text-green-400">✓ Latest version</div>}
-                  </div>
-                  {/* Arrow */}
-                  <div className="absolute top-full right-4 -mt-1">
-                    <div className="border-4 border-transparent border-t-gray-900"></div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-          {/* Version Control */}
           <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
             {/* Up Button (Newer) */}
             <button
@@ -217,7 +189,6 @@ export function Form1040Viewer({ engagementId, userId, className }: Form1040View
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-gray-700 hover:bg-white hover:shadow-sm"
               )}
-              title="Newer version"
             >
               <ChevronUp className="w-4 h-4" />
             </button>
@@ -239,33 +210,10 @@ export function Form1040Viewer({ engagementId, userId, className }: Form1040View
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-gray-700 hover:bg-white hover:shadow-sm"
               )}
-              title="Older version"
             >
               <ChevronDown className="w-4 h-4" />
             </button>
           </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Version Info Bar */}
-      <div className="px-4 py-2 bg-gray-50 border-b text-xs text-gray-600 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <span>
-            Viewing {currentVersionIndex + 1} of {versionsData.total_versions}
-          </span>
-          {isLatest ? (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
-              ✓ Latest
-            </span>
-          ) : (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium">
-              ⚠ Older Version
-            </span>
-          )}
-        </div>
-        <div className="text-gray-500">
-          Last modified: {currentVersion.last_modified}
         </div>
       </div>
 
@@ -275,11 +223,6 @@ export function Form1040Viewer({ engagementId, userId, className }: Form1040View
           url={currentVersion.download_url}
           className="w-full h-full"
         />
-      </div>
-
-      {/* Keyboard Shortcuts Hint */}
-      <div className="px-4 py-2 bg-gray-50 border-t text-xs text-gray-500 text-center">
-        Use ↑↓ arrow buttons to navigate between versions
       </div>
     </div>
   );
