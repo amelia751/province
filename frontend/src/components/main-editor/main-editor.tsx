@@ -91,6 +91,7 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
   const [isDeletingDocument, setIsDeletingDocument] = useState<string | null>(null);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [isDeletingForms, setIsDeletingForms] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -585,6 +586,56 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
     }
   };
 
+  const deleteAllFilledForms = async () => {
+    if (!confirm('Are you sure you want to reset ALL filled forms (all versions)? This action cannot be undone.')) {
+      return;
+    }
+
+    // Get user ID from Clerk or debug info
+    const userId = debugInfo?.USER_ID || 
+      (typeof window !== 'undefined' && (() => {
+        try {
+          const clerkEnv = localStorage.getItem('__clerk_environment');
+          if (clerkEnv) {
+            const parsed = JSON.parse(clerkEnv);
+            return parsed?.value?.user?.id;
+          }
+        } catch {}
+        return null;
+      })());
+
+    if (!userId) {
+      alert('Cannot delete forms: User ID not found');
+      return;
+    }
+
+    setIsDeletingForms(true);
+    try {
+      const response = await fetch(`/api/v1/forms/delete-all-filled?user_id=${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete all forms: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ All forms deleted:', result.message);
+      alert(`${result.message}`);
+      
+      // Refresh the Form 1040 viewer if it's open
+      window.location.reload();
+    } catch (error) {
+      console.error('❌ Error deleting all forms:', error);
+      alert(`Failed to delete all forms: ${error}`);
+    } finally {
+      setIsDeletingForms(false);
+    }
+  };
+
   // Format file size
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -793,27 +844,6 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
               ) : (
                 // Document viewer
                 <div className="h-full flex flex-col">
-                  {/* Document Header */}
-                  <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
-                    <div className="flex items-center space-x-2">
-                      <File className="h-5 w-5 text-gray-600" />
-                      <h3 className="font-medium text-gray-800">{activeTab.name}</h3>
-                      <span className="text-sm text-gray-500">({activeTab.type})</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {activeTab.url && (
-                        <a
-                          href={activeTab.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-                        >
-                          Open in New Tab
-                        </a>
-                      )}
-                    </div>
-                  </div>
-
                   {/* Document Content */}
                   <div className="flex-1 relative">
                     {activeTab.type === 'tax-return' ? (
@@ -1333,6 +1363,14 @@ Tax Service: ${taxServiceStatus}
                                 className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-gray-300 text-sm"
                               >
                                 {isDeletingAll ? 'Deleting...' : 'Delete All'}
+                              </button>
+                              <button
+                                onClick={deleteAllFilledForms}
+                                disabled={isDeletingForms}
+                                className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 disabled:bg-gray-300 text-sm"
+                                title="Reset all filled Form 1040 versions for testing"
+                              >
+                                {isDeletingForms ? 'Resetting...' : 'Reset Forms (1040)'}
                               </button>
                             </div>
                           </div>

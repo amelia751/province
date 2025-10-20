@@ -267,7 +267,7 @@ const TaxChatInterface: React.FC<ChatProps> = ({
       {!hasReceivedFirstResponse && !connectionError && (
         <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex items-center justify-center z-50 rounded-3xl">
           <div className="flex flex-col items-center space-y-3">
-            <Loader2 className="h-8 w-8 text-black animate-spin" />
+            <Loader2 className="h-6 w-6 text-black animate-spin" />
             <p className="text-sm text-gray-600">Initializing session...</p>
           </div>
         </div>

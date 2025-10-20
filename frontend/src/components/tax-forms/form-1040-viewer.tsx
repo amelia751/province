@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronUp, ChevronDown, Clock, Files, Rabbit, RefreshCw } from 'lucide-react';
 import { PdfViewer } from '@/components/pdf-viewer';
+import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 
 interface FormVersion {
@@ -131,7 +132,7 @@ export function Form1040Viewer({ engagementId, userId, className }: Form1040View
     return (
       <div className={cn("flex items-center justify-center h-full bg-gray-50", className)}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <Spinner className="h-6 w-6 mx-auto mb-2 text-gray-600" />
           <p className="text-sm text-gray-600">Loading form versions...</p>
         </div>
       </div>
@@ -155,7 +156,7 @@ export function Form1040Viewer({ engagementId, userId, className }: Form1040View
       <div className="relative flex items-center justify-between px-4 py-3 border-b bg-white">
         {/* Left: Form Info */}
         <div className="flex items-center space-x-3">
-          <Files className="w-5 h-5 text-gray-400" strokeWidth={1.5} />
+          <Files className="w-5 h-5 text-black" strokeWidth={1.5} />
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
               Form {versionsData.form_type} - {versionsData.tax_year}

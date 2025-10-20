@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from province.api.v1 import health, agents, websocket, livekit, agent_invoke, tax, form_filler, tax_service, documents, tax_engagements, document_notifications, form_versions
+from province.api.v1 import health, agents, websocket, livekit, agent_invoke, tax, form_filler, tax_service, documents, tax_engagements, document_notifications, form_versions, form_management
 
 api_router = APIRouter()
 
@@ -19,3 +19,4 @@ api_router.include_router(documents.router, tags=["documents"])
 api_router.include_router(tax_engagements.router, tags=["tax-engagements"])
 api_router.include_router(document_notifications.router, tags=["document-notifications"])
 api_router.include_router(form_versions.router, tags=["form-versions"])
+api_router.include_router(form_management.router, tags=["form-management"])

@@ -56,7 +56,7 @@ export default function PdfViewer({ url, annotations = [], className, onPageChan
             <a
               href={url}
               download
-              className="inline-flex items-center px-4 py-2 bg-paper-white text-gray-600 rounded hover:bg-true-turquoise hover:text-white transition-colors"
+              className="inline-flex items-center px-4 py-2 bg-true-turquoise text-white rounded hover:bg-true-turquoise/90 transition-colors"
             >
               <Download className="w-4 h-4 mr-2" />
               Download
@@ -87,7 +87,7 @@ export default function PdfViewer({ url, annotations = [], className, onPageChan
           <a
             href={url}
             download
-            className="inline-flex items-center px-3 py-1.5 text-sm bg-paper-white text-gray-600 rounded hover:bg-true-turquoise hover:text-white transition-colors"
+            className="inline-flex items-center px-3 py-1.5 text-sm bg-true-turquoise text-white rounded hover:bg-true-turquoise/90 transition-colors"
           >
             <Download className="w-4 h-4 mr-1" />
             Download
