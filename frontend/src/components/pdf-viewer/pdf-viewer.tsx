@@ -108,7 +108,7 @@ export default function PdfViewer({ url, annotations = [], className, onPageChan
         
         <iframe
           src={url}
-          className="w-full h-96 border-0"
+          className="w-full h-full border-0"
           onLoad={handleLoad}
           onError={handleError}
           title="PDF Document"

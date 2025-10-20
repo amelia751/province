@@ -92,6 +92,12 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
   const [isDeletingDocument, setIsDeletingDocument] = useState<string | null>(null);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [isDeletingForms, setIsDeletingForms] = useState(false);
+  const [formVersionInfo, setFormVersionInfo] = useState<{
+    currentVersion: number;
+    totalVersions: number;
+    isLatest: boolean;
+    lastModified: string;
+  } | null>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -591,11 +597,11 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
       return;
     }
 
-    // Get user ID from multiple sources
+    // Get user ID from Clerk only (no fallbacks)
     let userId = null;
     
     // Try 1: Debug info
-    if (debugInfo?.USER_ID) {
+    if (debugInfo?.USER_ID && debugInfo.USER_ID !== 'UNKNOWN') {
       userId = debugInfo.USER_ID;
       console.log('✓ Got user ID from debugInfo:', userId);
     }
@@ -615,25 +621,9 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
         console.warn('Failed to parse Clerk data:', e);
       }
     }
-    
-    // Try 3: URL parameter (from project path)
-    if (!userId && typeof window !== 'undefined') {
-      const pathMatch = window.location.pathname.match(/\/project\/([^\/\?]+)/);
-      if (pathMatch) {
-        // This is engagement ID, but we can use it as a fallback for testing
-        console.log('Found engagement ID in URL:', pathMatch[1]);
-      }
-    }
-    
-    // Try 4: Fallback for testing (check if test user has forms)
-    if (!userId) {
-      const testUserId = 'user_33w9KAn1gw3xXSa6MnBsySAQIIm';
-      console.log('⚠️ Using test user ID:', testUserId);
-      userId = testUserId;
-    }
 
     if (!userId) {
-      alert('Cannot delete forms: User ID not found. Please make sure you are logged in.');
+      alert('❌ Cannot delete forms: No Clerk user ID found.\n\nPlease make sure you are logged in with Clerk.\n\nDebug info shows USER_ID: ' + (debugInfo?.USER_ID || 'UNKNOWN'));
       return;
     }
     
@@ -886,10 +876,12 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                             : 'ea3b3a4f-c877-4d29-bd66-2cff2aa77476'
                         }
                         userId={
-                          // Get user ID with fallback to test user
+                          // Get user ID from Clerk only (no fallback)
                           (() => {
-                            // Try debugInfo first
-                            if (debugInfo?.USER_ID) return debugInfo.USER_ID;
+                            // Try debugInfo first (must not be "UNKNOWN")
+                            if (debugInfo?.USER_ID && debugInfo.USER_ID !== 'UNKNOWN') {
+                              return debugInfo.USER_ID;
+                            }
                             
                             // Try Clerk localStorage
                             if (typeof window !== 'undefined') {
@@ -903,8 +895,8 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                               } catch {}
                             }
                             
-                            // Fallback for testing
-                            return 'user_33w9KAn1gw3xXSa6MnBsySAQIIm';
+                            // No fallback - return undefined to show error
+                            return undefined;
                           })()
                         }
                         className="w-full h-full"
@@ -1582,6 +1574,11 @@ Tax Service: ${taxServiceStatus}
               <>
                 <span>Logs: {logs.length} entries</span>
                 <span>Last: {logs[logs.length - 1]?.timestamp.toLocaleTimeString() || 'None'}</span>
+              </>
+            ) : activeTab?.type === 'tax-return' ? (
+              <>
+                <span>Form 1040 - 2024</span>
+                <span className="text-gray-500">Use version controls in header to navigate</span>
               </>
             ) : activeTab ? (
               <>

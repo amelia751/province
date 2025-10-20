@@ -29,9 +29,15 @@ interface Form1040ViewerProps {
   engagementId: string;
   userId?: string;
   className?: string;
+  onVersionChange?: (versionInfo: {
+    currentVersion: number;
+    totalVersions: number;
+    isLatest: boolean;
+    lastModified: string;
+  }) => void;
 }
 
-export function Form1040Viewer({ engagementId, userId, className }: Form1040ViewerProps) {
+export function Form1040Viewer({ engagementId, userId, className, onVersionChange }: Form1040ViewerProps) {
   const [versionsData, setVersionsData] = useState<FormVersionsData | null>(null);
   const [currentVersionIndex, setCurrentVersionIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -52,6 +58,18 @@ export function Form1040Viewer({ engagementId, userId, className }: Form1040View
 
     return () => clearInterval(interval);
   }, [engagementId, versionsData]);
+
+  // Notify parent of version changes
+  useEffect(() => {
+    if (versionsData && currentVersion && onVersionChange) {
+      onVersionChange({
+        currentVersion: currentVersionIndex + 1,
+        totalVersions: versionsData.total_versions,
+        isLatest: currentVersionIndex === 0,
+        lastModified: currentVersion.last_modified,
+      });
+    }
+  }, [versionsData, currentVersionIndex, currentVersion, onVersionChange]);
 
   const loadVersions = async () => {
     try {
