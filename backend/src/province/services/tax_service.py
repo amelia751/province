@@ -300,11 +300,19 @@ async def fill_form_tool(
         
         logger.info(f"📋 Filing status: '{filing_status_value}' (normalized: '{filing_status_normalized}')")
         
-        # Debug: Show which checkbox will be set
-        if filing_status_normalized == 'single':
-            logger.info(f"   ✓ Setting 'single' checkbox = True")
-        elif filing_status_normalized in ['married filing jointly', 'married jointly', 'married']:
-            logger.info(f"   ✓ Setting 'married_joint' checkbox = True")
+        # Debug: Show ALL checkbox states
+        is_single = filing_status_normalized == 'single'
+        is_married_joint = filing_status_normalized in ['married filing jointly', 'married jointly', 'married']
+        is_married_separate = filing_status_normalized in ['married filing separately', 'married separately']
+        is_head_household = filing_status_normalized in ['head of household', 'head household']
+        is_qualifying_widow = filing_status_normalized in ['qualifying widow', 'qualifying widow(er)', 'qualifying surviving spouse']
+        
+        logger.info(f"   Filing status checkboxes:")
+        logger.info(f"     - single: {is_single}")
+        logger.info(f"     - married_joint: {is_married_joint}")
+        logger.info(f"     - married_separate: {is_married_separate}")
+        logger.info(f"     - head_household: {is_head_household}")
+        logger.info(f"     - qualifying_widow: {is_qualifying_widow}")
         
         # Calculate refund/owe outside dict
         refund_or_due = calc_data.get('refund_or_due', 0)
@@ -324,16 +332,19 @@ async def fill_form_tool(
             'zip_code': zip_code,
             
             # === FILING STATUS === (from 'filing_status' section)
-            # Use normalized comparison to avoid case sensitivity issues
-            'single': filing_status_normalized == 'single',
-            'married_joint': filing_status_normalized in ['married filing jointly', 'married jointly', 'married'],
-            'married_separate': filing_status_normalized in ['married filing separately', 'married separately'],
-            'head_household': filing_status_normalized in ['head of household', 'head household'],
-            'qualifying_widow': filing_status_normalized in ['qualifying widow', 'qualifying widow(er)', 'qualifying surviving spouse'],
+            # Use normalized comparison and explicitly set ALL checkboxes
+            # Only ONE should be True, all others MUST be False
+            'single': is_single,
+            'married_joint': is_married_joint,
+            'married_separate': is_married_separate,
+            'head_household': is_head_household,
+            'qualifying_widow': is_qualifying_widow,
             
             # === TAX YEAR === (from 'header' section)
-            'tax_year': str(calc_data.get('tax_year', 2024)),
-            'year_suffix': '',  # Blank for calendar year (Jan 1 - Dec 31)
+            # For calendar year (Jan 1 - Dec 31, 2024), these fields should be BLANK
+            # Only fill these for fiscal/other tax years
+            # 'tax_year': '',  # Blank for calendar year
+            # 'year_suffix': '',  # Blank for calendar year
             
             # === INCOME === (from 'income_page1' section)
             'wages_line_1a': wages or calc_data.get('agi', 0),  # Line 1a - Wages
