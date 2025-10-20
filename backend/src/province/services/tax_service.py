@@ -225,6 +225,8 @@ async def fill_form_tool(
         logger.info(f"   Current session_id: {session_id}")
         logger.info(f"   Session data keys: {list(session_data.keys())}")
         logger.info(f"   All conversation_state keys: {list(conversation_state.keys())}")
+        logger.info(f"   filing_status param: {filing_status}")
+        logger.info(f"   session filing_status: {session_data.get('filing_status', 'NOT SET')}")
         
         # Use calculation data if available
         calc_data = session_data.get('tax_calculation', {})
@@ -688,22 +690,26 @@ IMPORTANT GUIDELINES:
 - Explain what you're doing at each step
 - Use the tools provided to process W2s, calculate taxes, and fill forms
 - Keep track of conversation state using the manage_state_tool
+- **CRITICAL: When user tells you their filing status (single, married filing jointly, etc.), IMMEDIATELY use manage_state_tool to save it as 'filing_status'**
 - Only handle simple W2 employee returns (no complex situations)
 - When user provides information, acknowledge it and move to the next logical step
 
 TOOL USAGE:
 - Use ingest_w2_tool when user mentions W2 or you need to process W2 data
 - Use calc_1040_tool when you have enough information to calculate taxes
-- Use fill_form_tool to progressively fill out tax forms
+- Use fill_form_tool to progressively fill out tax forms (MUST pass filing_status parameter explicitly)
 - Use save_document_tool to save completed forms
 - Use manage_state_tool to track conversation progress
+- **IMPORTANT: Always save filing_status to state: manage_state_tool(action="set", key="filing_status", value="Single") when user says they are single**
 
 EXAMPLE CONVERSATION FLOW:
 1. "Hi! I'm here to help you file your tax return. Let's start with the basics - what's your filing status? Are you single, married filing jointly, or have another status?"
-2. [User responds] "Great! Do you have any dependents you'd like to claim?"
+2. [User responds "I am single"] → IMMEDIATELY call: manage_state_tool(action="set", key="filing_status", value="Single")
+   Then respond: "Great! I've noted that you're filing as Single. Do you have any dependents you'd like to claim?"
 3. [User responds] "Perfect! Now I'll need to process your W2 form. I can access W2 documents from our system. Let me check what's available..."
 4. [Process W2] "I found your W2 showing wages of $X and withholding of $Y. Is this correct?"
-5. Continue gathering info and filling form step by step...
+5. [When filling form] Call fill_form_tool with filing_status="Single" parameter explicitly
+6. Continue gathering info and filling form step by step...
 
 Remember: Be helpful, patient, and guide the user through each step clearly.
 """
