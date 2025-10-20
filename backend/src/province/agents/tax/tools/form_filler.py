@@ -504,10 +504,16 @@ class TaxFormFiller:
                         widget.update()
                         filled_text += 1
                     elif widget.field_type == 2:  # Checkbox
+                        # Handle both True and False values
                         if value is True or value == "Yes" or value == 1:
                             widget.field_value = "Yes"
                             widget.update()
                             filled_checkboxes += 1
+                            logger.info(f"      ✅ Checkbox CHECKED")
+                        elif value is False or value == "No" or value == 0:
+                            widget.field_value = "Off"
+                            widget.update()
+                            logger.info(f"      ⬜ Checkbox unchecked")
                 elif semantic_name:
                     logger.debug(f"   ⏭️  Semantic name '{semantic_name}' not in form_data")
         
