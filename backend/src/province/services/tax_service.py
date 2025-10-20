@@ -370,6 +370,11 @@ async def fill_form_tool(
             'overpayment': abs(refund_or_due) if is_refund else 0,  # Line 34 - Refund
             'amount_owed': abs(refund_or_due) if not is_refund else 0,  # Line 37 - Amount owed
             
+            # === DIGITAL ASSETS === (from 'digital_assets' section)
+            # User conversation: "Do you have digital assets?" - "No"
+            'digital_assets_yes_checkbox': False,  # Always False unless user says yes
+            'digital_assets_no': True,  # Always True unless user says yes
+            
             # === METADATA ===
             'filing_status': filing_status_value,
             'dependents': dependents or session_data.get('dependents', 0),
