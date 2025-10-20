@@ -727,6 +727,9 @@ Remember: Be helpful, patient, and guide the user through each step clearly.
             'user_id': user_id  # Store user_id for form filling
         }
         
+        logger.info(f"🎬 Started conversation - session_id: {session_id}, user_id: {user_id}")
+        logger.info(f"   Current session ID in state: {conversation_state.get('current_session_id')}")
+        
         # Initial greeting message
         initial_message = """Hi! I'm your AI tax filing assistant. I'm here to help you complete your tax return step by step. 
 
