@@ -68,52 +68,23 @@ export default function PdfViewer({ url, annotations = [], className, onPageChan
   }
 
   return (
-    <div className={cn("flex flex-col bg-white rounded-lg shadow-sm border", className)}>
-      {/* Toolbar */}
-      <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-        <div className="flex items-center space-x-2">
-          <h3 className="text-sm font-medium text-gray-700">PDF Document</h3>
-        </div>
-        <div className="flex items-center space-x-2">
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center px-3 py-1.5 text-sm bg-paper-white text-gray-600 rounded hover:bg-true-turquoise hover:text-white transition-colors"
-          >
-            <ExternalLink className="w-4 h-4 mr-1" />
-            Open
-          </a>
-          <a
-            href={url}
-            download
-            className="inline-flex items-center px-3 py-1.5 text-sm bg-true-turquoise text-white rounded hover:bg-true-turquoise/90 transition-colors"
-          >
-            <Download className="w-4 h-4 mr-1" />
-            Download
-          </a>
-        </div>
-      </div>
-
-      {/* PDF Content */}
-      <div className="flex-1 relative">
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-              <p className="text-sm text-gray-600">Loading PDF...</p>
-            </div>
+    <div className={cn("relative h-full", className)}>
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+            <p className="text-sm text-gray-600">Loading PDF...</p>
           </div>
-        )}
-        
-        <iframe
-          src={url}
-          className="w-full h-full border-0"
-          onLoad={handleLoad}
-          onError={handleError}
-          title="PDF Document"
-        />
-      </div>
+        </div>
+      )}
+
+      <iframe
+        src={url}
+        className="w-full h-full border-0"
+        onLoad={handleLoad}
+        onError={handleError}
+        title="PDF Document"
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { ChevronUp, ChevronDown, Clock, Files, Rabbit, RefreshCw } from 'lucide-react';
+import { ChevronUp, ChevronDown, Clock, Files, Rabbit, RefreshCw, ExternalLink, Download } from 'lucide-react';
 import { PdfViewer } from '@/components/pdf-viewer';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
@@ -185,7 +185,7 @@ export function Form1040Viewer({ engagementId, userId, className, onVersionChang
           </div>
         </div>
 
-        {/* Right: Refresh Button + Version Navigator */}
+        {/* Center: Version Navigator */}
         <div className="flex items-center space-x-2">
           {/* Manual Refresh Button */}
           <button
@@ -234,14 +234,43 @@ export function Form1040Viewer({ engagementId, userId, className, onVersionChang
             </button>
           </div>
         </div>
+
+        {/* Right: Open & Download Buttons */}
+        <div className="flex items-center space-x-2">
+          <a
+            href={currentVersion.download_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-3 py-1.5 text-sm bg-paper-white text-gray-600 rounded hover:bg-darker-ecru transition-colors"
+          >
+            <ExternalLink className="w-4 h-4 mr-1" />
+            Open
+          </a>
+          <a
+            href={currentVersion.download_url}
+            download
+            className="inline-flex items-center px-3 py-1.5 text-sm bg-true-turquoise text-white rounded hover:bg-true-turquoise/90 transition-colors"
+          >
+            <Download className="w-4 h-4 mr-1" />
+            Download
+          </a>
+        </div>
       </div>
 
       {/* PDF Viewer */}
       <div className="flex-1 overflow-hidden">
-        <PdfViewer
-          url={currentVersion.download_url}
-          className="w-full h-full"
-        />
+        {(() => {
+          // Stable cache key - only changes when version actually changes
+          const cacheKey = `${currentVersion.version}-${currentVersion.timestamp}`;
+          
+          return (
+            <PdfViewer
+              key={cacheKey} // Forces remount when version changes
+              url={`${currentVersion.download_url}?v=${encodeURIComponent(cacheKey)}`} // Cache-buster tied to version
+              className="w-full h-full"
+            />
+          );
+        })()}
       </div>
     </div>
   );
