@@ -871,7 +871,7 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                       <Form1040Viewer
                         engagementId={
                           // Get engagement ID from debugInfo URL or default to current session
-                          debugInfo?.url?.includes('project/') 
+                          debugInfo?.url?.includes('project/')
                             ? debugInfo.url.split('project/')[1]?.split(/[?#]/)[0] || ''
                             : 'ea3b3a4f-c877-4d29-bd66-2cff2aa77476'
                         }
@@ -882,7 +882,7 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                             if (debugInfo?.USER_ID && debugInfo.USER_ID !== 'UNKNOWN') {
                               return debugInfo.USER_ID;
                             }
-                            
+
                             // Try Clerk localStorage
                             if (typeof window !== 'undefined') {
                               try {
@@ -894,11 +894,12 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                                 }
                               } catch {}
                             }
-                            
+
                             // No fallback - return undefined to show error
                             return undefined;
                           })()
                         }
+                        onVersionChange={setFormVersionInfo}
                         className="w-full h-full"
                       />
                     ) : (activeTab.type === 'w2-form' ||
@@ -957,7 +958,7 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                         <div className="flex-1 min-h-0 space-y-4">
                           {/* Enhanced Debug Info */}
                           <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-xs h-full overflow-auto">
-                            <pre className="whitespace-pre-wrap">
+                            <pre className="whitespace-pre-wrap" suppressHydrationWarning>
                               {(() => {
                                 // Get engagement ID from URL
                                 const engagementId = typeof window !== 'undefined' && window.location.pathname.includes('project/') 
@@ -1575,12 +1576,25 @@ Tax Service: ${taxServiceStatus}
                 <span>Logs: {logs.length} entries</span>
                 <span>Last: {logs[logs.length - 1]?.timestamp.toLocaleTimeString() || 'None'}</span>
               </>
-            ) : activeTab?.type === 'tax-return' ? (
-              <>
-                <span>Form 1040 - 2024</span>
-                <span className="text-gray-500">Use version controls in header to navigate</span>
-              </>
-            ) : activeTab ? (
+             ) : activeTab?.type === 'tax-return' && formVersionInfo ? (
+                <>
+                  <div className="flex items-center space-x-2">
+                    <span>Version {formVersionInfo.currentVersion} of {formVersionInfo.totalVersions}</span>
+                    {formVersionInfo.isLatest ? (
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-medium">
+                        Latest
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-[10px] font-medium">
+                        Older Version
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-gray-500" suppressHydrationWarning>
+                    Last modified: {typeof window !== 'undefined' ? new Date(formVersionInfo.lastModified).toLocaleString() : 'Loading...'}
+                  </span>
+                </>
+              ) : activeTab ? (
               <>
                 <span>{activeTab.name}</span>
                 <span className="text-gray-500">Last edited: Just now</span>
