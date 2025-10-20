@@ -26,10 +26,11 @@ interface FormVersionsData {
 
 interface Form1040ViewerProps {
   engagementId: string;
+  userId?: string;
   className?: string;
 }
 
-export function Form1040Viewer({ engagementId, className }: Form1040ViewerProps) {
+export function Form1040Viewer({ engagementId, userId, className }: Form1040ViewerProps) {
   const [versionsData, setVersionsData] = useState<FormVersionsData | null>(null);
   const [currentVersionIndex, setCurrentVersionIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -57,9 +58,12 @@ export function Form1040Viewer({ engagementId, className }: Form1040ViewerProps)
       setLoading(true);
       setError(null);
 
-      const response = await fetch(
-        `/api/forms/1040/${engagementId}/versions?tax_year=2024`
-      );
+      // Include user_id in query if available
+      const url = userId 
+        ? `/api/forms/1040/${engagementId}/versions?tax_year=2024&user_id=${userId}`
+        : `/api/forms/1040/${engagementId}/versions?tax_year=2024`;
+
+      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error(`Failed to load form versions: ${response.statusText}`);
@@ -80,9 +84,12 @@ export function Form1040Viewer({ engagementId, className }: Form1040ViewerProps)
   // Check for new versions without showing loading state
   const checkForNewVersions = async () => {
     try {
-      const response = await fetch(
-        `/api/forms/1040/${engagementId}/versions?tax_year=2024`
-      );
+      // Include user_id in query if available
+      const url = userId 
+        ? `/api/forms/1040/${engagementId}/versions?tax_year=2024&user_id=${userId}`
+        : `/api/forms/1040/${engagementId}/versions?tax_year=2024`;
+
+      const response = await fetch(url);
 
       if (!response.ok) {
         return; // Silently fail

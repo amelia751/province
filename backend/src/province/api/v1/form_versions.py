@@ -45,7 +45,8 @@ async def get_form_versions(
     form_type: str,
     engagement_id: str,
     tax_year: int = Query(2024, description="Tax year"),
-    limit: int = Query(50, description="Maximum versions to return")
+    limit: int = Query(50, description="Maximum versions to return"),
+    user_id: Optional[str] = Query(None, description="User ID (optional, will lookup from engagement if not provided)")
 ):
     """
     Get all versions of a filled form for an engagement.
@@ -55,6 +56,7 @@ async def get_form_versions(
         engagement_id: Tax engagement ID
         tax_year: Tax year (default: 2024)
         limit: Maximum number of versions to return
+        user_id: Optional user ID (if not provided, will lookup from engagement)
         
     Returns:
         List of form versions with metadata and signed URLs
@@ -62,33 +64,30 @@ async def get_form_versions(
     try:
         settings = get_settings()
         
-        # First, get the user_id from the engagement
-        dynamodb = boto3.resource('dynamodb', region_name=settings.aws_region)
-        engagements_table = dynamodb.Table(settings.tax_engagements_table_name)
-        
-        # Query for the engagement to get user_id
-        engagement_response = engagements_table.scan(
-            FilterExpression='engagement_id = :engagement_id',
-            ExpressionAttributeValues={
-                ':engagement_id': engagement_id
-            },
-            Limit=1
-        )
-        
-        if not engagement_response.get('Items'):
-            raise HTTPException(
-                status_code=404,
-                detail=f"Engagement {engagement_id} not found"
-            )
-        
-        user_id = engagement_response['Items'][0].get('user_id')
+        # If user_id not provided, try to get it from the engagement
         if not user_id:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Engagement {engagement_id} has no associated user_id"
+            dynamodb = boto3.resource('dynamodb', region_name=settings.aws_region)
+            engagements_table = dynamodb.Table(settings.tax_engagements_table_name)
+            
+            # Query for the engagement to get user_id
+            engagement_response = engagements_table.scan(
+                FilterExpression='engagement_id = :engagement_id',
+                ExpressionAttributeValues={
+                    ':engagement_id': engagement_id
+                },
+                Limit=1
             )
-        
-        logger.info(f"Found user_id={user_id} for engagement={engagement_id}")
+            
+            if engagement_response.get('Items'):
+                user_id = engagement_response['Items'][0].get('user_id')
+                logger.info(f"Found user_id={user_id} for engagement={engagement_id}")
+            else:
+                # If engagement not found, scan S3 for any user's forms
+                # This is a fallback for testing/development
+                logger.warning(f"Engagement {engagement_id} not found in DynamoDB, scanning S3 for forms")
+                user_id = None  # Will scan all users
+        else:
+            logger.info(f"Using provided user_id={user_id} for engagement={engagement_id}")
         
         s3_client = boto3.client(
             's3',
@@ -99,17 +98,30 @@ async def get_form_versions(
         
         bucket = settings.documents_bucket_name
         
-        # Forms are now stored as: filled_forms/{user_id}/{form_type}/{tax_year}/vXXX_*.pdf
-        prefix = f"filled_forms/{user_id}/{form_type.lower()}/{tax_year}/"
-        
-        logger.info(f"Searching for forms with prefix: {prefix}")
-        
-        # List all form versions for this user
-        response = s3_client.list_objects_v2(
-            Bucket=bucket,
-            Prefix=prefix,
-            MaxKeys=limit
-        )
+        # If we have a user_id, search for that specific user's forms
+        if user_id:
+            # Forms are now stored as: filled_forms/{user_id}/{form_type}/{tax_year}/vXXX_*.pdf
+            prefix = f"filled_forms/{user_id}/{form_type.lower()}/{tax_year}/"
+            
+            logger.info(f"Searching for forms with prefix: {prefix}")
+            
+            # List all form versions for this user
+            response = s3_client.list_objects_v2(
+                Bucket=bucket,
+                Prefix=prefix,
+                MaxKeys=limit
+            )
+        else:
+            # Fallback: scan all users' forms
+            logger.info(f"Scanning all users for {form_type} forms (engagement not found in DynamoDB)")
+            
+            # List all filled forms folders
+            base_prefix = f"filled_forms/"
+            response = s3_client.list_objects_v2(
+                Bucket=bucket,
+                Prefix=base_prefix,
+                MaxKeys=1000  # Scan more to find any forms
+            )
         
         versions = []
         
@@ -121,11 +133,27 @@ async def get_form_versions(
                 if not key.endswith('.pdf'):
                     continue
                 
+                # If scanning all users, filter by form_type and tax_year
+                if not user_id:
+                    # Path format: filled_forms/{user_id}/{form_type}/{tax_year}/vXXX_*.pdf
+                    parts = key.split('/')
+                    if len(parts) < 5:
+                        continue
+                    key_form_type = parts[2]
+                    key_tax_year = parts[3]
+                    
+                    if key_form_type.lower() != form_type.lower() or key_tax_year != str(tax_year):
+                        continue
+                
                 # Extract version from filename (e.g., v031_1040_1760887161.pdf)
                 filename = key.split('/')[-1]
                 if filename.startswith('v'):
                     version_str = filename.split('_')[0]  # e.g., "v031"
-                    version_num = int(version_str[1:])  # Extract number
+                    try:
+                        version_num = int(version_str[1:])  # Extract number
+                    except (ValueError, IndexError):
+                        logger.warning(f"Invalid version format in filename: {filename}")
+                        continue
                     
                     # Generate signed URL (valid for 1 hour)
                     signed_url = s3_client.generate_presigned_url(
@@ -144,7 +172,7 @@ async def get_form_versions(
                         download_url=signed_url
                     ))
         
-        logger.info(f"Found {len(versions)} versions for user_id={user_id}, form={form_type}, year={tax_year}")
+        logger.info(f"Found {len(versions)} versions for user_id={user_id or 'ALL'}, form={form_type}, year={tax_year}")
         
         if not versions:
             raise HTTPException(
