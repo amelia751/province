@@ -825,6 +825,21 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                             ? debugInfo.url.split('project/')[1]?.split(/[?#]/)[0] || ''
                             : 'ea3b3a4f-c877-4d29-bd66-2cff2aa77476'
                         }
+                        userId={
+                          // Get user ID from debugInfo or localStorage
+                          debugInfo?.USER_ID || 
+                          (typeof window !== 'undefined' && (() => {
+                            try {
+                              const clerkEnv = localStorage.getItem('__clerk_environment');
+                              if (clerkEnv) {
+                                const parsed = JSON.parse(clerkEnv);
+                                return parsed?.value?.user?.id;
+                              }
+                            } catch {}
+                            return 'user_33w9KAn1gw3xXSa6MnBsySAQIIm';
+                          })()) ||
+                          'user_33w9KAn1gw3xXSa6MnBsySAQIIm'
+                        }
                         className="w-full h-full"
                       />
                     ) : (activeTab.type === 'w2-form' ||
