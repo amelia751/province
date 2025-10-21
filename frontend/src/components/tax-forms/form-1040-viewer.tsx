@@ -43,6 +43,7 @@ export function Form1040Viewer({ engagementId, userId, className, onVersionChang
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastChecked, setLastChecked] = useState<number>(Date.now());
+  const [forceReloadKey, setForceReloadKey] = useState(0); // Force complete reload on version change
 
   // Derived state - must be declared before useEffects that use it
   const currentVersion = versionsData?.versions[currentVersionIndex];
@@ -62,7 +63,7 @@ export function Form1040Viewer({ engagementId, userId, className, onVersionChang
     }, 5000); // Check every 5 seconds
 
     return () => clearInterval(interval);
-  }, [engagementId, versionsData]);
+  }, [engagementId, userId]); // Stable dependencies - don't reset interval on data changes
 
   // Notify parent of version changes
   useEffect(() => {
@@ -126,6 +127,7 @@ export function Form1040Viewer({ engagementId, userId, className, onVersionChang
         console.log('🔄 New form version detected, auto-refreshing...');
         setVersionsData(data);
         setCurrentVersionIndex(0); // Jump to latest version
+        setForceReloadKey(prev => prev + 1); // Force complete PDF reload
         setLastChecked(Date.now());
       }
     } catch (err) {
@@ -269,7 +271,7 @@ export function Form1040Viewer({ engagementId, userId, className, onVersionChang
           
           return (
             <PdfViewer
-              key={cacheKey} // Forces remount when version changes
+              key={`${cacheKey}-${forceReloadKey}`} // Forces remount when version changes or force reload triggered
               url={urlWithCache} // Cache-buster tied to version
               className="w-full h-full"
             />

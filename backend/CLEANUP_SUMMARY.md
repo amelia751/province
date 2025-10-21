@@ -80,3 +80,4 @@ The tax system now has a clean, unified API with:
 - Fully tested and integrated
 
 No more confusion between `ingest_w2`, `ingest_tax_document`, and `ingest_documents` - just one clean, powerful function that handles everything! 🎯
+

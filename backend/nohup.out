@@ -1,0 +1,24 @@
+INFO:     Will watch for changes in these directories: ['/Users/anhlam/province/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [952] using WatchFiles
+Falling back to default AWS credentials
+INFO:     Started server process [965]
+INFO:     Waiting for application startup.
+{"event": "================================================================================", "level": "info", "timestamp": "2025-10-21T17:48:23.186225Z"}
+{"event": "\ud83d\ude80 Province Tax Filing Backend Starting Up", "level": "info", "timestamp": "2025-10-21T17:48:23.186258Z"}
+{"event": "================================================================================", "level": "info", "timestamp": "2025-10-21T17:48:23.186271Z"}
+{"environment": "development", "event": "Environment", "level": "info", "timestamp": "2025-10-21T17:48:23.186283Z"}
+{"region": "us-east-1", "event": "AWS Region", "level": "info", "timestamp": "2025-10-21T17:48:23.186293Z"}
+{"debug": "true", "event": "Debug Mode", "level": "info", "timestamp": "2025-10-21T17:48:23.186302Z"}
+{"event": "\ud83d\udccb Registering tax agents...", "level": "info", "timestamp": "2025-10-21T17:48:23.186308Z"}
+Registered legal agent: TaxPlannerAgent
+Registered legal agent: TaxIntakeAgent
+Registered legal agent: ReviewAgent
+{"event": "\u2705 Tax agents registered successfully", "level": "info", "timestamp": "2025-10-21T17:48:23.186355Z"}
+{"event": "\ud83d\udccd API Routes available at /api/v1", "level": "info", "timestamp": "2025-10-21T17:48:23.186363Z"}
+{"event": "\ud83d\udcd6 API Documentation available at /docs", "level": "info", "timestamp": "2025-10-21T17:48:23.186368Z"}
+{"event": "\ud83c\udfaf Health check available at /health", "level": "info", "timestamp": "2025-10-21T17:48:23.186374Z"}
+{"event": "================================================================================", "level": "info", "timestamp": "2025-10-21T17:48:23.186380Z"}
+{"event": "\u2705 Backend Ready - Listening on http://0.0.0.0:8000", "level": "info", "timestamp": "2025-10-21T17:48:23.186385Z"}
+{"event": "================================================================================", "level": "info", "timestamp": "2025-10-21T17:48:23.186391Z"}
+INFO:     Application startup complete.
