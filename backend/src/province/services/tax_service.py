@@ -312,8 +312,13 @@ async def fill_form_tool(
         is_head_household = filing_status_normalized in ['head of household', 'head household']
         is_qualifying_widow = filing_status_normalized in ['qualifying widow', 'qualifying widow(er)', 'qualifying surviving spouse']
         
-        logger.info(f"   Filing status checkboxes:")
-        logger.info(f"     - single: {is_single}")
+        logger.info(f"🗳️  FILING STATUS DEBUG:")
+        logger.info(f"   Raw filing_status: '{filing_status}'")
+        logger.info(f"   Session filing_status: '{session_data.get('filing_status', 'NOT SET')}'")
+        logger.info(f"   Final filing_status_value: '{filing_status_value}'")
+        logger.info(f"   Normalized: '{filing_status_normalized}'")
+        logger.info(f"   Checkbox values:")
+        logger.info(f"     - single: {is_single} (should be True if user said 'single')")
         logger.info(f"     - married_joint: {is_married_joint}")
         logger.info(f"     - married_separate: {is_married_separate}")
         logger.info(f"     - head_household: {is_head_household}")
@@ -369,6 +374,18 @@ async def fill_form_tool(
             # === REFUND === (from 'refund_or_amount_owed' section)
             'overpayment': abs(refund_or_due) if is_refund else 0,  # Line 34 - Refund
             'amount_owed': abs(refund_or_due) if not is_refund else 0,  # Line 37 - Amount owed
+            
+            # === REFUND BANKING INFO === (from 'refund_or_amount_owed' section)
+            # Line 35a - Amount to be refunded (same as overpayment if user wants direct deposit)
+            'refund_amount': abs(refund_or_due) if is_refund else 0,
+            # Get banking info from session if available
+            'routing_number': session_data.get('routing_number', ''),
+            'account_number': session_data.get('account_number', ''),
+            'checking_account': session_data.get('account_type', '').lower() == 'checking' if session_data.get('account_type') else False,
+            'savings_account': session_data.get('account_type', '').lower() == 'savings' if session_data.get('account_type') else False,
+            
+            # Line 36 - Amount applied to estimated tax (default 0, user can specify)
+            'estimated_tax_payment': session_data.get('estimated_tax_payment', 0),
             
             # === DIGITAL ASSETS === (from 'digital_assets' section)
             # User conversation: "Do you have digital assets?" - "No"
