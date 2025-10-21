@@ -388,33 +388,49 @@ async def fill_form_tool(
         # Add dependent details if available in session
         dependents_list = session_data.get('dependents_list', [])
         logger.info(f"📋 Processing {len(dependents_list)} dependents from session")
+        logger.info(f"   Dependents list: {dependents_list}")
         
         for i, dep in enumerate(dependents_list[:4], 1):  # Max 4 dependents on form
             # Name (combined first + last in one field)
             full_name = f"{dep.get('first_name', '')} {dep.get('last_name', '')}".strip()
             if full_name:
-                form_data[f'dependent_{i}_first_last_name'] = full_name
+                key = f'dependent_{i}_first_last_name'
+                form_data[key] = full_name
+                logger.info(f"   ✅ Set {key} = '{full_name}'")
+            else:
+                logger.warning(f"   ⚠️  No name for dependent {i}")
             
             # SSN
             if dep.get('ssn'):
-                form_data[f'dependent_{i}_ssn'] = dep['ssn'].replace('-', '')
+                key = f'dependent_{i}_ssn'
+                ssn_clean = dep['ssn'].replace('-', '')
+                form_data[key] = ssn_clean
+                logger.info(f"   ✅ Set {key} = '{ssn_clean}'")
             
             # Relationship
             if dep.get('relationship'):
-                form_data[f'dependent_{i}_relationship'] = dep['relationship']
+                key = f'dependent_{i}_relationship'
+                form_data[key] = dep['relationship']
+                logger.info(f"   ✅ Set {key} = '{dep['relationship']}'")
             
             # Tax credits (default to child tax credit for "child" or "son" or "daughter")
             relationship_lower = dep.get('relationship', '').lower()
             if any(word in relationship_lower for word in ['child', 'son', 'daughter']):
-                form_data[f'dependent_{i}_child_tax_credit'] = True
-                form_data[f'dependent_{i}_other_credit'] = False
+                key_child = f'dependent_{i}_child_tax_credit'
+                key_other = f'dependent_{i}_other_credit'
+                form_data[key_child] = True
+                form_data[key_other] = False
+                logger.info(f"   ✅ Set {key_child} = True (relationship: {dep.get('relationship')})")
             else:
-                form_data[f'dependent_{i}_child_tax_credit'] = False
-                form_data[f'dependent_{i}_other_credit'] = True
-            
-            logger.info(f"   Dependent {i}: {full_name} ({dep.get('relationship', 'N/A')})")
+                key_child = f'dependent_{i}_child_tax_credit'
+                key_other = f'dependent_{i}_other_credit'
+                form_data[key_child] = False
+                form_data[key_other] = True
+                logger.info(f"   ✅ Set {key_other} = True (relationship: {dep.get('relationship')})")
         
-        form_data = {k: v for k, v in form_data.items()}
+        # Debug: Show all dependent-related keys in form_data
+        dependent_keys = {k: v for k, v in form_data.items() if 'dependent' in k}
+        logger.info(f"📦 All dependent keys in form_data: {dependent_keys}")
         
         # Get user_id from session for PII-safe storage
         user_id = session_data.get('user_id')

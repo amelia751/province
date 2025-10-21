@@ -473,6 +473,7 @@ class TaxFormFiller:
         logger.info(f"Hybrid mapping has {len(flat_mapping)} semantic fields")
         logger.info(f"🗺️  Sample mapping: {dict(list(flat_mapping.items())[:5])}")
         
+        
         filled_text = 0
         filled_checkboxes = 0
         match_attempts = 0
@@ -490,7 +491,11 @@ class TaxFormFiller:
                 # Find semantic name for this PDF field
                 semantic_name = None
                 for sem, pdf_path in flat_mapping.items():
-                    if pdf_path == full_field_name:
+                    # Normalize both strings to remove any potential whitespace/encoding issues
+                    pdf_path_clean = pdf_path.strip() if isinstance(pdf_path, str) else pdf_path
+                    full_field_clean = full_field_name.strip() if isinstance(full_field_name, str) else full_field_name
+                    
+                    if pdf_path_clean == full_field_clean:
                         semantic_name = sem
                         successful_matches += 1
                         break
