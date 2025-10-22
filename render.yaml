@@ -5,7 +5,7 @@ services:
     region: oregon
     plan: free
     buildCommand: cd backend && pip install -r requirements.txt
-    startCommand: cd backend && python -m uvicorn province.main:app --host 0.0.0.0 --port $PORT
+    startCommand: cd backend && PYTHONPATH=src python -m uvicorn province.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: AWS_ACCESS_KEY_ID
         sync: false
@@ -105,6 +105,4 @@ services:
         value: arn:aws:bedrock:us-east-1:[REDACTED-ACCOUNT-ID]:data-automation-profile/us.data-automation-v1
       - key: BEDROCK_OUTPUT_BUCKET_NAME
         value: [REDACTED-BEDROCK-BUCKET]
-      - key: PYTHONPATH
-        value: /opt/render/project/src/backend/src
 
