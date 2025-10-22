@@ -155,7 +155,7 @@ async def delete_document(request: DeleteDocumentRequest) -> Dict[str, Any]:
         # Delete from S3
         try:
             s3_client.delete_object(
-                Bucket='province-documents-[REDACTED-ACCOUNT-ID]-us-east-1',
+                Bucket='province-documents-<account-id>-<region>',
                 Key=request.document_key  # This is the s3_key
             )
             logger.info(f"Deleted document from S3: {request.document_key}")
@@ -234,7 +234,7 @@ async def delete_all_user_documents(request: ListDocumentsRequest) -> Dict[str, 
                 # Delete from S3
                 try:
                     s3_client.delete_object(
-                        Bucket='province-documents-[REDACTED-ACCOUNT-ID]-us-east-1',
+                        Bucket='province-documents-<account-id>-<region>',
                         Key=s3_key
                     )
                 except Exception as s3_error:

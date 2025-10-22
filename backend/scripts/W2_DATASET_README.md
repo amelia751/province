@@ -28,7 +28,7 @@ This directory contains scripts to download and upload the Kaggle W2 dataset for
 3. **Environment Variables**
    ```bash
    # Optional - will use config defaults if not set
-   export DOCUMENTS_BUCKET_NAME=province-documents-[REDACTED-ACCOUNT-ID]-us-east-2
+   export DOCUMENTS_BUCKET_NAME=province-documents-YOUR_AWS_ACCOUNT_ID-us-east-2
    ```
 
 ## Quick Start (Manual Download - Recommended)
@@ -87,7 +87,7 @@ If you have Kaggle API credentials set up:
 
 After successful completion:
 
-- **S3 Location**: `s3://province-documents-[REDACTED-ACCOUNT-ID]-us-east-2/datasets/w2-forms/`
+- **S3 Location**: `s3://province-documents-YOUR_AWS_ACCOUNT_ID-us-east-2/datasets/w2-forms/`
 - **Manifest File**: `w2_dataset_manifest.json` (local)
 - **File Types**: PDF, PNG, JPG, TIFF (W2 forms and images)
 
@@ -158,7 +158,7 @@ backend/scripts/
 ```json
 {
   "dataset_name": "mcvishnu1/fake-w2-us-tax-form-dataset",
-  "bucket_name": "province-documents-[REDACTED-ACCOUNT-ID]-us-east-2",
+  "bucket_name": "province-documents-YOUR_AWS_ACCOUNT_ID-us-east-2",
   "s3_prefix": "datasets/w2-forms/",
   "upload_summary": {
     "total_files": 150,

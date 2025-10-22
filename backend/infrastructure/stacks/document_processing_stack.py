@@ -31,7 +31,7 @@ class DocumentProcessingStack(Stack):
         # Get existing S3 bucket
         documents_bucket = s3.Bucket.from_bucket_name(
             self, "DocumentsBucket",
-            bucket_name="province-documents-[REDACTED-ACCOUNT-ID]-us-east-1"
+            bucket_name="province-documents-<account-id>-<region>"
         )
 
         # Create DynamoDB table for chat notifications
@@ -134,7 +134,7 @@ class DocumentProcessingStack(Stack):
 
         # Enable S3 event notifications to EventBridge
         # Note: This needs to be done manually or via AWS CLI as CDK doesn't support it directly
-        # aws s3api put-bucket-notification-configuration --bucket province-documents-[REDACTED-ACCOUNT-ID]-us-east-1 --notification-configuration file://s3-notification-config.json
+        # aws s3api put-bucket-notification-configuration --bucket province-documents-<account-id>-<region> --notification-configuration file://s3-notification-config.json
 
         # Create API endpoint for polling notifications
         notifications_api = _lambda.Function(

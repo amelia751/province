@@ -463,7 +463,7 @@ def get_or_create_lambda_role(env):
         else:
             print(f"⚠️ Role {role_name} not found, would need to create it")
             # For now, return a placeholder - you might need to create the role manually
-            return f"arn:aws:iam::[REDACTED-ACCOUNT-ID]:role/{role_name}"
+            return f"arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/{role_name}"
             
     except Exception as e:
         print(f"❌ Error checking role: {e}")

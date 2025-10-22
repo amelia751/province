@@ -53,8 +53,8 @@ class BedrockW2Tester:
         )
         
         # Configuration
-        self.project_arn = "arn:aws:bedrock:us-east-1:[REDACTED-ACCOUNT-ID]:data-automation-project/834f77d00483"
-        self.documents_bucket = os.getenv('DOCUMENTS_BUCKET_NAME', 'province-documents-[REDACTED-ACCOUNT-ID]-us-east-1')
+        self.project_arn = "arn:aws:bedrock:us-east-1:YOUR_AWS_ACCOUNT_ID:data-automation-project/834f77d00483"
+        self.documents_bucket = os.getenv('DOCUMENTS_BUCKET_NAME', 'province-documents-<account-id>-<region>')
         self.output_bucket = self.documents_bucket  # Use same bucket for output
         
         logger.info(f"Initialized Bedrock W2 Tester for region: {self.aws_region}")

@@ -5,7 +5,7 @@
 
 set -e
 
-BUCKET_NAME="province-documents-[REDACTED-ACCOUNT-ID]-us-east-2"
+BUCKET_NAME="province-documents-YOUR_AWS_ACCOUNT_ID-us-east-2"
 
 echo "🔒 Restoring S3 Security Settings for Development Bucket"
 echo "======================================================="

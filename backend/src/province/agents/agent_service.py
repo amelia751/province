@@ -171,7 +171,7 @@ def register_tax_agents():
         - Complex tax situations
 
         Always maintain a helpful, professional tone and explain what you're doing at each step.""",
-        foundation_model="arn:aws:bedrock:us-east-1:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        foundation_model="arn:aws:bedrock:us-east-1:YOUR_AWS_ACCOUNT_ID:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
         knowledge_bases=["tax_code"],
         action_groups=["save_document", "get_signed_url", "ingest_w2", "calc_1040", "render_1040_draft", "create_deadline", "pii_scan"]
     )
@@ -193,7 +193,7 @@ def register_tax_agents():
         - State information
 
         Always be thorough but friendly in collecting this information.""",
-        foundation_model="arn:aws:bedrock:us-east-1:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        foundation_model="arn:aws:bedrock:us-east-1:YOUR_AWS_ACCOUNT_ID:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
         knowledge_bases=["tax_code"],
         action_groups=["save_document", "get_signed_url", "ingest_w2", "calc_1040"]
     )
@@ -216,7 +216,7 @@ def register_tax_agents():
         - Create tax filing deadlines and calendar events
         - Perform final compliance checks and PII scanning
         - Ensure accuracy and completeness""",
-        foundation_model="arn:aws:bedrock:us-east-1:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        foundation_model="arn:aws:bedrock:us-east-1:YOUR_AWS_ACCOUNT_ID:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
         knowledge_bases=["tax_code"],
         action_groups=["save_document", "render_1040_draft", "create_deadline", "pii_scan"]
     )

@@ -23,7 +23,7 @@ def update_agent_model(bedrock_agent, agent_id, agent_name):
         current_config = response['agent']
         
         # Update the foundation model to use inference profile
-        inference_profile_arn = "arn:aws:bedrock:us-east-2:[REDACTED-ACCOUNT-ID]:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0"
+        inference_profile_arn = "arn:aws:bedrock:us-east-2:YOUR_AWS_ACCOUNT_ID:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0"
         
         logger.info(f"Updating {agent_name} ({agent_id}) to use inference profile...")
         

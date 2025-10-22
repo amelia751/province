@@ -44,7 +44,7 @@ class BedrockDataAutomationSetup:
         )
         
         # S3 bucket for documents
-        self.documents_bucket = os.getenv('DOCUMENTS_BUCKET_NAME', 'province-documents-[REDACTED-ACCOUNT-ID]-us-east-1')
+        self.documents_bucket = os.getenv('DOCUMENTS_BUCKET_NAME', 'province-documents-<account-id>-<region>')
         
         logger.info(f"Initialized Bedrock Data Automation setup for region: {self.aws_region}")
         logger.info(f"Using documents bucket: {self.documents_bucket}")

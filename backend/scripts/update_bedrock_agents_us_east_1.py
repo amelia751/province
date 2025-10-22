@@ -90,7 +90,7 @@ def update_action_group_lambda_us_east_1(bedrock_agent, agent_id, action_group_i
     """Update an action group to use the correct us-east-1 Lambda function."""
     
     # Correct Lambda ARN for us-east-1
-    correct_lambda_arn = "arn:aws:lambda:us-east-1:[REDACTED-ACCOUNT-ID]:function:province-tax-filing-tools"
+    correct_lambda_arn = "arn:aws:lambda:us-east-1:YOUR_AWS_ACCOUNT_ID:function:province-tax-filing-tools"
     
     print(f"\n🔄 Updating action group: {action_group_name}")
     print(f"   🎯 Target Lambda: {correct_lambda_arn}")
@@ -161,7 +161,7 @@ def main():
         return
     
     updated_agents = []
-    correct_lambda_arn = "arn:aws:lambda:us-east-1:[REDACTED-ACCOUNT-ID]:function:province-tax-filing-tools"
+    correct_lambda_arn = "arn:aws:lambda:us-east-1:YOUR_AWS_ACCOUNT_ID:function:province-tax-filing-tools"
     
     for agent in agents:
         agent_id = agent['agentId']

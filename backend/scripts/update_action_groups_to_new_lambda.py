@@ -82,7 +82,7 @@ def get_action_group_details(bedrock_agent, agent_id, action_group_id):
 def update_action_group_lambda(bedrock_agent, agent_id, action_group_id, action_group_name):
     """Update an action group to use the new Lambda function."""
     
-    new_lambda_arn = "arn:aws:lambda:us-east-2:[REDACTED-ACCOUNT-ID]:function:province-tax-tools-ingest-documents"
+    new_lambda_arn = "arn:aws:lambda:us-east-2:YOUR_AWS_ACCOUNT_ID:function:province-tax-tools-ingest-documents"
     
     print(f"\n🔄 Updating action group: {action_group_name}")
     
@@ -207,7 +207,7 @@ def main():
             print(f"   • {agent_name}")
         
         print(f"\n🔧 New Lambda Function:")
-        print(f"   📦 ARN: arn:aws:lambda:us-east-2:[REDACTED-ACCOUNT-ID]:function:province-tax-tools-ingest-documents")
+        print(f"   📦 ARN: arn:aws:lambda:us-east-2:YOUR_AWS_ACCOUNT_ID:function:province-tax-tools-ingest-documents")
         print(f"   🎯 Features: ingest_documents, fill_tax_form, enhanced error handling")
         
         print(f"\n🎯 Next Steps:")

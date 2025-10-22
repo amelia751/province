@@ -50,7 +50,7 @@ All IRS tax forms from the S3 templates bucket have been integrated into the Exp
 - Forms are properly categorized by type (`tax-return`, `w2-form`)
 
 ### S3 Integration
-- **Source Bucket**: `province-templates-[REDACTED-ACCOUNT-ID]-us-east-1`
+- **Source Bucket**: `province-templates-<account-id>-<region>`
 - **S3 Path**: `tax_forms/2024/`
 - **Direct Access**: Each form includes a `url` property for direct S3 access
 - **Total Size**: ~12.5 MB of tax forms

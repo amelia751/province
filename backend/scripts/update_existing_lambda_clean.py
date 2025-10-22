@@ -377,7 +377,7 @@ def update_action_groups_to_existing_lambda():
         print("❌ Missing Bedrock credentials")
         return False
     
-    existing_lambda_arn = "arn:aws:lambda:us-east-2:[REDACTED-ACCOUNT-ID]:function:province-tax-filing-tools"
+    existing_lambda_arn = "arn:aws:lambda:us-east-2:YOUR_AWS_ACCOUNT_ID:function:province-tax-filing-tools"
     
     try:
         # List all agents
@@ -512,7 +512,7 @@ def main():
         print("🎉 CLEAN LAMBDA UPDATE COMPLETE!")
         print("=" * 70)
         print("✅ SINGLE LAMBDA FUNCTION:")
-        print("   📦 ARN: arn:aws:lambda:us-east-2:[REDACTED-ACCOUNT-ID]:function:province-tax-filing-tools")
+        print("   📦 ARN: arn:aws:lambda:us-east-2:YOUR_AWS_ACCOUNT_ID:function:province-tax-filing-tools")
         print("   🎯 Features: Clean ingest_documents API")
         print("   🔄 Redirects: ingest_w2_pdf → ingest_documents")
         print("")

@@ -25,8 +25,8 @@ fi
 # Check if Bedrock credentials are set
 if [[ -z "$BEDROCK_AWS_ACCESS_KEY_ID" ]]; then
     echo "⚠️  Setting Bedrock credentials..."
-    export BEDROCK_AWS_ACCESS_KEY_ID=[REDACTED-AWS-KEY-2]
-    export BEDROCK_AWS_SECRET_ACCESS_KEY=[REDACTED-AWS-SECRET-2]
+    export BEDROCK_AWS_ACCESS_KEY_ID=YOUR_BEDROCK_ACCESS_KEY_ID
+    export BEDROCK_AWS_SECRET_ACCESS_KEY=YOUR_BEDROCK_SECRET_ACCESS_KEY
 fi
 
 echo "📋 Step 1: Creating DynamoDB Tables..."

@@ -160,7 +160,7 @@ tail -f /Users/anhlam/province/backend/server.log
 ### S3 Bucket Contents
 Verify documents are uploaded:
 ```bash
-aws s3 ls s3://province-documents-[REDACTED-ACCOUNT-ID]-us-east-1/tax-engagements/ --recursive --region us-east-1
+aws s3 ls s3://province-documents-<account-id>-<region>/tax-engagements/ --recursive --region us-east-1
 ```
 
 ### DynamoDB Tables

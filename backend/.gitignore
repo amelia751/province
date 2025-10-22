@@ -150,3 +150,8 @@ cdk.context.json
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Project-specific
+scripts/
+form_mappings/
+nohup.out

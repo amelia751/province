@@ -30,7 +30,7 @@ def get_pdf_fields():
         'templates/F1040_2024.pdf'
     ]
     
-    bucket = 'province-documents-[REDACTED-ACCOUNT-ID]-us-east-1'
+    bucket = 'province-documents-<account-id>-<region>'
     pdf_bytes = None
     
     for key in possible_keys:

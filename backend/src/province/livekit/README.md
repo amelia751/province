@@ -35,9 +35,9 @@ Required environment variables (see `backend/.env.local`):
 
 ```bash
 # LiveKit Connection
-LIVEKIT_URL=[REDACTED-LIVEKIT-URL]
-LIVEKIT_API_KEY=[REDACTED-LIVEKIT-KEY]
-LIVEKIT_API_SECRET=[REDACTED-LIVEKIT-SECRET]
+LIVEKIT_URL=wss://your-livekit-url.livekit.cloud
+LIVEKIT_API_KEY=your_livekit_api_key
+LIVEKIT_API_SECRET=your_livekit_api_secret
 
 # Agent Configuration
 AGENT_ENV=production

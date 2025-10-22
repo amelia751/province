@@ -335,7 +335,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 143030,
-    url: 'https://province-documents-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/datasets/w2-forms/W2_Clean_DataSet_01_20Sep2019/W2_XL_input_clean_1000.pdf'
+    url: 'https://province-documents-<account-id>-<region>.s3.us-east-1.amazonaws.com/datasets/w2-forms/W2_Clean_DataSet_01_20Sep2019/W2_XL_input_clean_1000.pdf'
   },
   {
     id: 'doc-w2-2',
@@ -347,7 +347,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 350672,
-    url: 'https://province-documents-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/datasets/w2-forms/W2_Clean_DataSet_01_20Sep2019/W2_XL_input_clean_1000.jpg'
+    url: 'https://province-documents-<account-id>-<region>.s3.us-east-1.amazonaws.com/datasets/w2-forms/W2_Clean_DataSet_01_20Sep2019/W2_XL_input_clean_1000.jpg'
   },
   {
     id: 'doc-tax-2',
@@ -409,7 +409,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 163287,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040.pdf'
   },
   {
     id: 'form-1040s1',
@@ -421,7 +421,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 90905,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040s1.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040s1.pdf'
   },
   {
     id: 'form-1040s2',
@@ -433,7 +433,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 234638,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040s2.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040s2.pdf'
   },
   {
     id: 'form-1040s3',
@@ -445,7 +445,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 69979,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040s3.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040s3.pdf'
   },
   
   // Itemized Deductions and Income Schedules
@@ -459,7 +459,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 78925,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040sa.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040sa.pdf'
   },
   {
     id: 'form-1040sb',
@@ -471,7 +471,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 76237,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040sb.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040sb.pdf'
   },
   {
     id: 'form-1040sc',
@@ -483,7 +483,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 122304,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040sc.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040sc.pdf'
   },
   {
     id: 'form-1040sd',
@@ -495,7 +495,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 97168,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040sd.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040sd.pdf'
   },
   {
     id: 'form-1040se',
@@ -507,7 +507,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 148158,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040se.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f1040se.pdf'
   },
   
   // Tax Credits and Special Forms
@@ -521,7 +521,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 115238,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f8812.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f8812.pdf'
   },
   {
     id: 'form-2441',
@@ -533,7 +533,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 121249,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f2441.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f2441.pdf'
   },
   {
     id: 'form-8863',
@@ -545,7 +545,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 118839,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f8863.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f8863.pdf'
   },
   {
     id: 'form-8880',
@@ -557,7 +557,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 95617,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f8880.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f8880.pdf'
   },
   {
     id: 'form-8962',
@@ -569,7 +569,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 117814,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f8962.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f8962.pdf'
   },
   {
     id: 'form-8867',
@@ -581,7 +581,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 134641,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f8867.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f8867.pdf'
   },
   
   // Information Returns (1099 Forms) - moved to Documents folder since these are received documents
@@ -595,7 +595,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 538774,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f1099int.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f1099int.pdf'
   },
   {
     id: 'form-1099div',
@@ -607,7 +607,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 539778,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f1099div.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f1099div.pdf'
   },
   {
     id: 'form-1099r',
@@ -619,7 +619,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 601017,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f1099r.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f1099r.pdf'
   },
   {
     id: 'form-1099g',
@@ -631,7 +631,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 523268,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/f1099g.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/f1099g.pdf'
   },
   
   // W-2 Template (moved to Documents/W2 folder where it belongs)
@@ -645,7 +645,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 1343180,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/fw2.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/fw2.pdf'
   },
   
   // Instructions and Reference Materials
@@ -659,7 +659,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 4375877,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/i1040gi.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/i1040gi.pdf'
   },
   {
     id: 'form-tax-tables',
@@ -671,7 +671,7 @@ const taxReturnDocuments: AIDocument[] = [
     aiGenerated: false,
     collaborators: ['tax.preparer@firm.com'],
     size: 2967636,
-    url: 'https://province-templates-[REDACTED-ACCOUNT-ID]-us-east-1.s3.us-east-1.amazonaws.com/tax_forms/2024/i1040tt.pdf'
+    url: 'https://province-templates-<account-id>-<region>.s3.us-east-1.amazonaws.com/tax_forms/2024/i1040tt.pdf'
   }
 ];
 
