@@ -1,0 +1,110 @@
+services:
+  - type: web
+    name: province-backend
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && python -m uvicorn province.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: BEDROCK_AWS_ACCESS_KEY_ID
+        sync: false
+      - key: BEDROCK_AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: DATA_AUTOMATION_AWS_ACCESS_KEY_ID
+        sync: false
+      - key: DATA_AUTOMATION_AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_DEFAULT_REGION
+        value: us-east-1
+      - key: AWS_REGION
+        value: us-east-1
+      - key: AWS_ACCOUNT_ID
+        value: "[REDACTED-ACCOUNT-ID]"
+      - key: BEDROCK_REGION
+        value: us-east-1
+      - key: BEDROCK_MODEL_ID
+        value: us.anthropic.claude-3-5-sonnet-20240620-v1:0
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: DOCUMENTS_BUCKET_NAME
+        value: province-documents-[REDACTED-ACCOUNT-ID]-us-east-1
+      - key: TEMPLATES_BUCKET_NAME
+        value: province-templates-[REDACTED-ACCOUNT-ID]-us-east-1
+      - key: LIVEKIT_URL
+        value: [REDACTED-LIVEKIT-URL]
+      - key: LIVEKIT_API_KEY
+        value: [REDACTED-LIVEKIT-KEY]
+      - key: LIVEKIT_API_SECRET
+        sync: false
+      - key: AGENT_ENV
+        value: production
+      - key: AGENT_MAX_CONCURRENT_JOBS
+        value: "8"
+      - key: AGENT_LOAD_THRESHOLD
+        value: "0.9"
+      - key: AGENT_SHUTDOWN_TIMEOUT
+        value: "60"
+      - key: AGENT_NAMESPACE
+        value: province-ai-agent
+      - key: HEALTH_CHECK_PORT
+        value: "8080"
+      - key: DEEPGRAM_API_KEY
+        sync: false
+      - key: CARTESIA_API_KEY
+        sync: false
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        sync: false
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: REDIS_URL
+        value: redis-17120.c278.us-east-1-4.ec2.redns.redis-cloud.com:17120
+      - key: FRONTEND_URL
+        sync: false
+      - key: FLASK_ENV
+        value: production
+      - key: CORS_ORIGINS
+        sync: false
+      - key: CORS_ALLOW_CREDENTIALS
+        value: "True"
+      - key: TAX_ENGAGEMENTS_TABLE_NAME
+        value: province-tax-engagements
+      - key: TAX_DOCUMENTS_TABLE_NAME
+        value: province-tax-documents
+      - key: TAX_PERMISSIONS_TABLE_NAME
+        value: province-tax-permissions
+      - key: TAX_DEADLINES_TABLE_NAME
+        value: province-tax-deadlines
+      - key: TAX_CONNECTIONS_TABLE_NAME
+        value: province-tax-connections
+      - key: DOCUMENT_VERSIONS_TABLE_NAME
+        value: province-document-versions
+      - key: DOCUMENT_NOTIFICATIONS_TABLE_NAME
+        value: province-document-notifications
+      - key: FORM_MAPPINGS_TABLE_NAME
+        value: province-form-mappings
+      - key: REVIEWAGENT_AGENT_ID
+        value: 66F6XWZQ9C
+      - key: TAXINTAKEAGENT_AGENT_ID
+        value: ZHQN5UJYEV
+      - key: TAXPLANNERAGENT_AGENT_ID
+        value: YLNFZM0YEM
+      - key: KAGGLE_USERNAME
+        value: provincetax
+      - key: KAGGLE_KEY
+        sync: false
+      - key: BEDROCK_DATA_AUTOMATION_PROJECT_ARN
+        value: arn:aws:bedrock:us-east-1:[REDACTED-ACCOUNT-ID]:data-automation-project/7e4243a29f93
+      - key: BEDROCK_DATA_AUTOMATION_PROFILE_ARN
+        value: arn:aws:bedrock:us-east-1:[REDACTED-ACCOUNT-ID]:data-automation-profile/us.data-automation-v1
+      - key: BEDROCK_OUTPUT_BUCKET_NAME
+        value: [REDACTED-BEDROCK-BUCKET]
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend/src
+
