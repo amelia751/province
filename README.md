@@ -19,7 +19,7 @@ province/
 ├── backend/          # FastAPI backend with Bedrock integration
 ├── frontend/         # Next.js 15 frontend with Clerk authentication
 ├── tax-rules/        # Tax calculation rules engine
-└── FRONTEND_TEST_SCRIPT.md  # Comprehensive testing guide
+└── TEST_SCRIPT.md    # Comprehensive testing guide
 ```
 
 ## 🚀 Quick Start
@@ -174,7 +174,7 @@ Once the backend is running, visit:
 
 ## 🧪 Testing
 
-See [FRONTEND_TEST_SCRIPT.md](./FRONTEND_TEST_SCRIPT.md) for comprehensive testing instructions.
+See [TEST_SCRIPT.md](./TEST_SCRIPT.md) for comprehensive testing instructions.
 
 **Quick Test:**
 1. Start backend on port 8000
@@ -274,7 +274,7 @@ vercel
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test thoroughly using `FRONTEND_TEST_SCRIPT.md`
+4. Test thoroughly using `TEST_SCRIPT.md`
 5. Submit a pull request
 
 ## 📄 License
