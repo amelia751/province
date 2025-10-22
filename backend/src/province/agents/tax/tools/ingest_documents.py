@@ -65,9 +65,12 @@ async def ingest_documents(s3_key: str, taxpayer_name: str, tax_year: int, docum
         # Use Bedrock Data Automation configuration from environment
         project_arn = os.getenv('BEDROCK_DATA_AUTOMATION_PROJECT_ARN')
         profile_arn = os.getenv('BEDROCK_DATA_AUTOMATION_PROFILE_ARN')
-        input_bucket = settings.documents_bucket_name or os.getenv('DOCUMENTS_BUCKET_NAME', "province-documents-<account-id>-<region>")
+        input_bucket = settings.documents_bucket_name or os.getenv('DOCUMENTS_BUCKET_NAME')
         output_bucket = os.getenv('BEDROCK_OUTPUT_BUCKET_NAME')
-        aws_account_id = os.getenv('AWS_ACCOUNT_ID', 'YOUR_AWS_ACCOUNT_ID')
+        aws_account_id = os.getenv('AWS_ACCOUNT_ID')
+        
+        if not input_bucket or not output_bucket or not aws_account_id:
+            raise ValueError("Missing required environment variables: DOCUMENTS_BUCKET_NAME, BEDROCK_OUTPUT_BUCKET_NAME, or AWS_ACCOUNT_ID")
         
         logger.info(f"Bedrock config check - Project ARN: {'***' + project_arn[-10:] if project_arn else 'NOT_FOUND'}")
         logger.info(f"Bedrock config check - Profile ARN: {'***' + profile_arn[-10:] if profile_arn else 'NOT_FOUND'}")
