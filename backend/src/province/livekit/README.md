@@ -47,9 +47,9 @@ AGENT_SHUTDOWN_TIMEOUT=60
 HEALTH_CHECK_PORT=8080
 
 # TTS/STT API Keys
-DEEPGRAM_API_KEY=your_key_here
-CARTESIA_API_KEY=your_key_here
-GOOGLE_APPLICATION_CREDENTIALS=your_credentials_here
+DEEPGRAM_API_KEY=your_deepgram_api_key
+CARTESIA_API_KEY=your_cartesia_api_key
+GOOGLE_APPLICATION_CREDENTIALS=your_google_credentials_json
 ```
 
 ## Running the Agent

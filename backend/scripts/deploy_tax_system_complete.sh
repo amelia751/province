@@ -24,9 +24,15 @@ fi
 
 # Check if Bedrock credentials are set
 if [[ -z "$BEDROCK_AWS_ACCESS_KEY_ID" ]]; then
-    echo "⚠️  Setting Bedrock credentials..."
-    export BEDROCK_AWS_ACCESS_KEY_ID=YOUR_BEDROCK_ACCESS_KEY_ID
-    export BEDROCK_AWS_SECRET_ACCESS_KEY=YOUR_BEDROCK_SECRET_ACCESS_KEY
+    echo "❌ Error: BEDROCK_AWS_ACCESS_KEY_ID not set"
+    echo "Please set your AWS credentials in .env.local or environment variables"
+    exit 1
+fi
+
+if [[ -z "$BEDROCK_AWS_SECRET_ACCESS_KEY" ]]; then
+    echo "❌ Error: BEDROCK_AWS_SECRET_ACCESS_KEY not set"
+    echo "Please set your AWS credentials in .env.local or environment variables"
+    exit 1
 fi
 
 echo "📋 Step 1: Creating DynamoDB Tables..."
