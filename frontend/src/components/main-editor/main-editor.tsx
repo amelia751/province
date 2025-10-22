@@ -102,19 +102,8 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
-  // Available W2 files for testing
-  const w2Files = [
-    {
-      name: 'W2_XL_input_clean_1000.pdf',
-      url: 'https://province-documents-<account-id>-<region>.s3.us-east-1.amazonaws.com/datasets/w2-forms/W2_Clean_DataSet_01_20Sep2019/W2_XL_input_clean_1000.pdf',
-      type: 'pdf'
-    },
-    {
-      name: 'W2_XL_input_clean_1000.jpg',
-      url: 'https://province-documents-<account-id>-<region>.s3.us-east-1.amazonaws.com/datasets/w2-forms/W2_Clean_DataSet_01_20Sep2019/W2_XL_input_clean_1000.jpg',
-      type: 'image'
-    }
-  ];
+  // Available W2 files for testing - configured via environment variables
+  const w2Files: Array<{name: string; url: string; type: string}> = [];
 
   // Bedrock Data Automation W2 processing function
   const processWithBedrockDataAutomation = async (fileUrl: string, fileName: string) => {
@@ -1023,7 +1012,6 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                                   '📋 FORM_STATUS': {
                                     description: 'Current form versions and fill status',
                                     formVersionsEndpoint: `/api/v1/forms/1040/${engagementId}/versions`,
-                                    s3Path: `s3://province-documents-<account-id>-<region>/filled_forms/${userId}/1040/2024/`,
                                     expectedFields: '17+ critical fields (name, SSN, wages, refund, etc.)',
                                     checkMainEditor: 'Switch to "Form 1040" tab to see filled form',
                                   },
@@ -1253,7 +1241,6 @@ const MainEditor: React.FC<MainEditorProps> = ({ selectedDocument, debugInfo }) 
                                     },
                                     '📋 FORM_STATUS': {
                                       formVersionsEndpoint: `/api/v1/forms/1040/${engagementId}/versions`,
-                                      s3Path: `s3://province-documents-<account-id>-<region>/filled_forms/${userId}/1040/2024/`,
                                       expectedFields: '17+ critical fields',
                                     },
                                     '⚡ TAX_SERVICE_STATUS': {
