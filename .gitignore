@@ -76,3 +76,4 @@ __pycache__/
 *_test_results.json
 test_*.json
 temp_*.json
+.kiro/
