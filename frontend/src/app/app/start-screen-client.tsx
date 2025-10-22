@@ -67,7 +67,7 @@ const mockFilings: TaxFiling[] = [
     id: 'tax-2025-001',
     year: 2025,
     status: 'draft',
-    refundAmount: 192,
+    refundAmount: undefined, // No hardcoded amount - will be calculated
     lastUpdated: new Date('2025-10-05'),
     formType: 'Federal 1040',
   },
@@ -375,18 +375,16 @@ export default function StartScreenClient() {
                     </Button>
                   </div>
                   {currentEngagementId ? (
-                    currentFiling.refundAmount && (
-                      <div className="flex-1 flex items-center justify-center text-center">
-                        <div>
-                          <div className="text-5xl font-semibold text-gray-700 mb-2">
-                            ${currentFiling.refundAmount.toLocaleString()}
-                          </div>
-                          <div className="text-sm text-muted-foreground tracking-wider uppercase">
-                            Total {currentFiling.year} Tax Refund
-                          </div>
+                    <div className="flex-1 flex items-center justify-center text-center">
+                      <div>
+                        <div className="text-5xl font-semibold text-gray-700 mb-2">
+                          $
+                        </div>
+                        <div className="text-sm text-muted-foreground tracking-wider uppercase">
+                          Total {currentFiling.year} Tax Return
                         </div>
                       </div>
-                    )
+                    </div>
                   ) : (
                     <div className="flex-1 flex items-center justify-center text-center">
                       <div>

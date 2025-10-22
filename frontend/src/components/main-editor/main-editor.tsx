@@ -54,20 +54,21 @@ interface LogEntry {
 }
 
 const mockTabs: EditorTab[] = [
-  {
-    id: "debug",
-    name: "🐛 Debug Info",
-    path: "system/debug",
-    isDirty: false,
-    isActive: true,
-    type: "debug"
-  },
+  // Temporarily commented out for cleaner UI
+  // {
+  //   id: "debug",
+  //   name: "🐛 Debug Info",
+  //   path: "system/debug",
+  //   isDirty: false,
+  //   isActive: true,
+  //   type: "debug"
+  // },
   {
     id: "form-1040",
     name: "📋 Form 1040",
     path: "forms/1040",
     isDirty: false,
-    isActive: false,
+    isActive: true, // Changed to active since debug is commented out
     type: "tax-return"
   },
   {

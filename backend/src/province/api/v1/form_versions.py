@@ -315,3 +315,65 @@ async def get_form_pdf(
             detail=f"Failed to fetch form PDF: {str(e)}"
         )
 
+
+@router.get("/{form_type}/template")
+async def get_form_template(
+    form_type: str,
+    tax_year: int = Query(2024, description="Tax year")
+):
+    """
+    Get a blank template form for the specified form type and tax year.
+    Returns a redirect to a presigned S3 URL.
+    """
+    try:
+        settings = get_settings()
+        bucket = settings.templates_bucket_name  # Fixed: use templates_bucket_name for templates
+        
+        # Template path mapping
+        template_paths = {
+            '1040': f'tax_forms/{tax_year}/f1040.pdf',
+            'SCHEDULE_C': f'tax_forms/{tax_year}/f1040sc.pdf',
+            'SCHEDULE_D': f'tax_forms/{tax_year}/f1040sd.pdf',
+        }
+        
+        template_key = template_paths.get(form_type.upper(), f'tax_forms/{tax_year}/f{form_type.lower()}.pdf')
+        
+        logger.info(f"Fetching template form: form_type={form_type}, tax_year={tax_year}, bucket={bucket}, key={template_key}")
+        
+        # Initialize S3 client
+        s3_client = boto3.client(
+            's3',
+            region_name=settings.aws_region
+        )
+        
+        # Check if template exists
+        try:
+            s3_client.head_object(Bucket=bucket, Key=template_key)
+        except Exception as e:
+            logger.error(f"Template not found: {template_key}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Template form not found for {form_type} - {tax_year}"
+            )
+        
+        # Generate presigned URL (valid for 1 hour)
+        template_url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': bucket, 'Key': template_key},
+            ExpiresIn=3600
+        )
+        
+        logger.info(f"Generated template URL for {form_type} - {tax_year}")
+        
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=template_url)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching template form: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch template form: {str(e)}"
+        )
+

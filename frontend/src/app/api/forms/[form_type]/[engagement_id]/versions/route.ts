@@ -4,10 +4,10 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:800
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { form_type: string; engagement_id: string } }
+  { params }: { params: Promise<{ form_type: string; engagement_id: string }> }
 ) {
   try {
-    const { form_type, engagement_id } = params;
+    const { form_type, engagement_id } = await params;
     const searchParams = request.nextUrl.searchParams;
     const tax_year = searchParams.get('tax_year') || '2024';
     const limit = searchParams.get('limit') || '50';

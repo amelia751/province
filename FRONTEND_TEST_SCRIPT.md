@@ -1,215 +1,436 @@
-# 🧪 Frontend Conversation Test Script
+# Frontend Tax Filing Test Script
 
-## Pre-Test Setup
-1. ✅ Backend running on `http://localhost:8000`
-2. ✅ Frontend running on `http://localhost:3000`
-3. ✅ Logged in with Clerk user ID: `user_33w9KAn1gw3xXSa6MnBsySAQIIm`
-4. ✅ W-2 file ready: `~/Downloads/W2_XL_input_clean_1000.pdf`
+**Test Date**: October 21, 2025  
+**User ID**: `user_33w9KAn1gw3xXSa6MnBsySAQIIm`  
+**Engagement ID**: `ea3b3a4f-c877-4d29-bd66-2cff2aa77476`
 
----
+## Quick Reference - Test Data
 
-## 📝 Test Conversation Flow
-
-### Step 1: Initial Greeting
-**You type:** `Hi, I need help filing my taxes`
-
-**Expected Response:**
-- Agent introduces itself
-- Asks for filing status or W-2 upload
-
----
-
-### Step 2: Upload W-2
-**Action:** Drag and drop `W2_XL_input_clean_1000.pdf` into chat
-
-**Expected Response:**
-- Processing message
-- Confirmation: "I've successfully processed your W-2"
-- Shows wages: **$55,151.93**
-- Shows withholding: **$16,606.17**
-- Asks follow-up questions (filing status)
+| Field | Value |
+|-------|-------|
+| **Filing Status** | Single |
+| **Dependents** | 2 (Alice Smith, Bob Smith) |
+| **Alice SSN** | 123-45-6789 |
+| **Bob SSN** | 987-65-4321 |
+| **Digital Assets** | No |
+| **Bank Routing Number** | 123456789 |
+| **Bank Account Number** | 987654321 |
+| **Account Type** | Checking |
 
 ---
 
-### Step 3: Filing Status
-**You type:** `I'm filing as Single`
+## Prerequisites
 
-**Expected Response:**
-- Confirms filing status saved
-- Asks next question (dependents)
-
----
-
-### Step 4: Dependents
-**You type:** `I have no dependents`
-
-**Expected Response:**
-- Confirms dependents saved
-- May ask for ZIP code or proceed to calculation
+1. **Backend Running**: Port 8000
+2. **Frontend Running**: Port 3000  
+3. **Logged In**: Clerk authentication (user_33w9KAn1gw3xXSa6MnBsySAQIIm)
+4. **W-2 Document**: `W2_XL_input_clean_1000.pdf` in Downloads folder
+5. **Clean State**: Reset forms using "Reset Forms (1040)" button if needed
 
 ---
 
-### Step 5: ZIP Code (if asked)
-**You type:** `My ZIP code is 45881`
+## Test Flow
 
-**Expected Response:**
-- Confirms location
-- Ready to calculate
+### STEP 1: Upload W-2 Document
 
----
+**Action**: Drag and drop or upload `W2_XL_input_clean_1000.pdf` to the chat
 
-### Step 6: Calculate Taxes
-**You type:** `Please calculate my taxes`
+**Expected Result**:
+- ✅ Upload progress indicator appears
+- ✅ Document appears in Documents Management tab
+- ✅ Agent responds: "I've received your W-2 document..."
 
-**Expected Response:**
-- Shows calculation summary:
-  - AGI: **$55,151.93**
-  - Standard Deduction: **$14,600.00**
-  - Tax Liability: **$4,634.23**
-  - **REFUND: $11,971.94** 💰
-- Asks if you want to fill Form 1040
+**Wait Time**: ~30-60 seconds for Bedrock processing
 
 ---
 
-### Step 7: Fill Form
-**You type:** `Yes, please fill out my Form 1040`
+### STEP 2: Agent Processes W-2
 
-**Expected Response:**
-- "I've successfully filled out your Form 1040"
-- Version number (e.g., v001)
-- **Main Editor should update with the filled form PDF**
-
----
-
-### Step 8: Verify in Main Editor
-**Action:** Switch to Main Editor tab → "📋 Form 1040 (Your Taxes)"
-
-**Expected:**
-- ✅ Form 1040 visible
-- ✅ Shows version (v001)
-- ✅ Fields filled:
-  - Name: John Smith
-  - SSN: 123-45-6789
-  - Address: 123 Main St, Anytown, CA 90210
-  - Filing Status: Single ✓
-  - Wages: $55,151.93
-  - Withholding: $16,606.17
-  - Refund: $11,971.94
-
----
-
-## 🐛 Debug Info - Quick Access
-
-### If Anything Fails:
-
-1. **Switch to Debug Info Tab** in Main Editor
-2. **Click "📋 Copy Debug Info"** button
-3. **Paste it to me** - I'll diagnose the issue
-
-### What the Debug Info Contains:
-- ✅ Your User ID (Clerk)
-- ✅ Engagement ID (project ID)
-- ✅ Session ID (agent session)
-- ✅ Recent API calls & responses
-- ✅ Chat state (messages, agent name)
-- ✅ Any errors
-- ✅ Backend connection status
-- ✅ Form filling status
-- ✅ S3 path for your forms
-
-**This makes troubleshooting instant!** 🚀
-
----
-
-## ✅ Success Criteria
-
-- [ ] W-2 uploads successfully
-- [ ] Agent extracts wages ($55,151.93) and withholding ($16,606.17)
-- [ ] Conversation flows naturally (no errors)
-- [ ] Tax calculation returns correct refund ($11,971.94)
-- [ ] Form 1040 is filled and saved
-- [ ] Form appears in Main Editor automatically
-- [ ] All critical fields are filled (17+ fields)
-- [ ] No console errors in browser
-
----
-
-## 🔄 Quick Reset (if needed)
-
-If you need to restart the test:
-```bash
-# Delete test data (run in terminal)
-aws s3 rm s3://province-documents-[REDACTED-ACCOUNT-ID]-us-east-1/filled_forms/user_33w9KAn1gw3xXSa6MnBsySAQIIm/ --recursive
-aws s3 rm s3://province-documents-[REDACTED-ACCOUNT-ID]-us-east-1/documents/user_33w9KAn1gw3xXSa6MnBsySAQIIm/ --recursive
+**You Say**: 
+```
+Please process my W-2 document
 ```
 
-Then refresh the page and start over.
+**Expected Agent Response**:
+```
+I've successfully processed your W-2 document from [Employer Name]. 
+Here's what I extracted:
+- Wages: $55,151.93
+- Federal tax withheld: $16,606.17
+- Employee: [Your Name]
+- SSN: 077-49-4905
+- Address: 31403 David Circles Suite 863, West Erinfort, WY 45881-3334
+
+What is your filing status for 2024? (Single, Married filing jointly, etc.)
+```
+
+**Debug Check**:
+- Open Debug Info tab
+- Verify `w2_processed: true` in CHAT_STATE
+- Verify document appears in STORAGE section
 
 ---
 
-## 📋 Copy/Paste Quick Test
+### STEP 3: Filing Status
 
-**For fastest test, copy/paste these in order:**
+**You Say**: 
+```
+I am single
+```
 
-1. `Hi, I need help filing my taxes`
-2. [Upload W2_XL_input_clean_1000.pdf]
-3. `I'm filing as Single`
-4. `I have no dependents`
-5. `My ZIP code is 45881`
-6. `Please calculate my taxes`
-7. `Yes, please fill out my Form 1040`
+**Expected Agent Response**:
+```
+Great! I've noted that you're filing as Single. 
+Do you have any dependents you'd like to claim?
+```
 
-**Expected result:** 
-- Form 1040 appears in Main Editor 
-- Refund: **$11,971.94** 💰
-- All critical fields filled
+**Watch For**:
+- ✅ Form 1040 tab should show v001 PDF loading (auto-refresh)
+- ✅ "Single" checkbox should be ticked in the PDF
+- ✅ NO other filing status boxes should be checked
 
----
-
-## 🎨 Visual Checks
-
-### In Chat:
-- Messages should appear instantly
-- No "Processing..." stuck forever
-- Agent responses are conversational and helpful
-- File uploads show progress
-
-### In Main Editor:
-- PDF renders clearly
-- Can zoom in/out
-- Fields are filled with correct values
-- Version number shows (v001, v002, etc.)
-- No blank pages
-
-### In Debug Info:
-- User ID shows correctly
-- Engagement ID matches URL
-- No errors in the ERRORS section
-- Recent API calls show status 200
+**Debug Check**:
+- Filing status should show in conversation state
+- Form 1040 v001 should appear in S3
 
 ---
 
-## 🚨 Common Issues & Solutions
+### STEP 4: Dependents - First Child
 
-### Issue: W-2 upload fails
-**Solution:** Check Debug Info → BACKEND → Test Backend button. Backend might be down.
+**You Say**: 
+```
+I have 2 dependents. My first dependent is my daughter Alice Smith with SSN 123-45-6789
+```
 
-### Issue: Form doesn't appear in Main Editor
-**Solution:** Check Debug Info → FORM_STATUS → s3Path. Verify form was saved.
+**Expected Agent Response**:
+```
+Thank you. I've added Alice to your return. 
+Can you provide the information for your second dependent?
+```
 
-### Issue: Agent doesn't respond
-**Solution:** Check Debug Info → CHAT_STATE → isConnected should be true.
-
-### Issue: Form fields are empty
-**Solution:** Copy Debug Info and send to me - likely a mapping issue.
+**Watch For**:
+- ✅ Form 1040 updates to v002
+- ✅ Alice's name appears in dependent table
+- ✅ Child tax credit checkbox ticked for Alice
 
 ---
 
-## 📞 Need Help?
+### STEP 5: Dependents - Second Child
 
-If anything fails:
-1. Click "📋 Copy Debug Info" in Main Editor
-2. Paste it to me
-3. I'll fix it immediately
+**You Say**: 
+```
+My second dependent is my son Bob Smith with SSN 987-65-4321
+```
 
-**The enhanced debug info includes everything I need to diagnose and fix issues instantly!** 🎯
+**Expected Agent Response**:
+```
+Perfect! I've added Bob to your return as well. 
+At any time during 2024, did you receive, sell, exchange, or dispose of any digital assets?
+```
+
+**Watch For**:
+- ✅ Form 1040 updates to v003
+- ✅ Both Alice and Bob appear in dependent table
+- ✅ Child tax credit checked for both
+
+---
+
+### STEP 6: Digital Assets
+
+**You Say**: 
+```
+No, I don't have any digital assets
+```
+
+**Expected Agent Response**:
+```
+Thank you. Can anyone claim you as a dependent on their tax return?
+```
+
+**Watch For**:
+- ✅ Form 1040 updates to v004
+- ✅ Digital Assets "No" checkbox is checked
+- ✅ Digital Assets "Yes" checkbox is NOT checked
+
+---
+
+### STEP 7: Standard Deduction
+
+**You Say**: 
+```
+No one can claim me as a dependent
+```
+
+**Expected Agent Response**:
+```
+Great! Now, for your refund - would you like to receive it via direct deposit?
+If so, I'll need your routing number and account number.
+```
+
+**Watch For**:
+- ✅ Form 1040 updates to v005
+- ✅ Standard deduction checkboxes remain unchecked (correct for this case)
+
+---
+
+### STEP 8: Banking Information (Direct Deposit)
+
+**You Say**: 
+```
+For my refund, use routing number 123456789, account number 987654321, checking account
+```
+
+**Alternative Phrasing** (any of these should work):
+```
+I'd like direct deposit. My routing number is 123456789 and account number is 987654321. It's a checking account.
+```
+```
+Please deposit my refund to my checking account. Routing: 123456789, Account: 987654321
+```
+
+**Expected Agent Response**:
+```
+Perfect! I've saved your direct deposit information for your refund:
+- Routing Number: 123456789
+- Account Number: 987654321
+- Account Type: Checking
+
+Your Form 1040 is now complete with all the information. 
+Would you like me to show you the final version?
+```
+
+**Watch For**:
+- ✅ Form 1040 updates to v006
+- ✅ **Routing number** filled: `123456789` (9 digits)
+- ✅ **Account number** filled: `987654321` (can be 4-17 digits)
+- ✅ **Checking account** checkbox is checked (Line 35c)
+- ✅ **Savings account** checkbox is NOT checked
+- ✅ Refund amount appears on Line 35a
+
+**Important Notes**:
+- Routing numbers are always 9 digits
+- Account numbers vary by bank (typically 8-12 digits)
+- Only one account type (checking OR savings) should be selected
+
+---
+
+### STEP 9: Request Final Form
+
+**You Say**: 
+```
+Please fill out my Form 1040 and show me the completed form
+```
+
+**Expected Agent Response**:
+```
+Great! I've successfully filled out your Form 1040. This is version [7-8].
+
+You can view your completed Form 1040 at:
+[S3 URL]
+
+Here's a summary:
+1. Filing Status: Single ✓
+2. Your name and SSN from W-2 ✓
+3. Address from W-2 ✓
+4. 2 dependents (Alice and Bob) ✓
+5. Wages: $55,151.93 ✓
+6. Federal withholding: $16,606.17 ✓
+7. Calculated refund: $15,971.94 ✓
+8. Direct deposit: Routing 123456789, Account 987654321 (Checking) ✓
+```
+
+**Watch For**:
+- ✅ Form 1040 updates to v007 or v008
+- ✅ PDF viewer automatically reloads to show latest version
+- ✅ All fields are properly filled (see detailed verification below)
+
+---
+
+## Detailed Form Verification Checklist
+
+### Page 1 - Top Section
+- [ ] **Name**: April Hensley (or name from your W-2)
+- [ ] **SSN**: 077494905 (no dashes, 9 digits)
+- [ ] **Address**: 31403 David Circles Suite 863
+- [ ] **City/State/ZIP**: West Erinfort, WY 45881-3334
+
+### Filing Status (Page 1, Top)
+- [ ] **Single**: ✅ CHECKED
+- [ ] **Married filing jointly**: ❌ NOT CHECKED
+- [ ] **Married filing separately**: ❌ NOT CHECKED
+- [ ] **Head of household**: ❌ NOT CHECKED
+- [ ] **Qualifying surviving spouse**: ❌ NOT CHECKED
+
+### Digital Assets (Page 1, Below Filing Status)
+- [ ] **At any time during 2024...**
+  - [ ] **Yes**: ❌ NOT CHECKED
+  - [ ] **No**: ✅ CHECKED
+
+### Dependents Section (Page 1, Middle)
+- [ ] **Dependent 1**:
+  - Name: Alice Smith
+  - SSN: 123456789
+  - Relationship: daughter
+  - Child tax credit: ✅ CHECKED
+  - Other credit: ❌ NOT CHECKED
+- [ ] **Dependent 2**:
+  - Name: Bob Smith
+  - SSN: 987654321
+  - Relationship: son
+  - Child tax credit: ✅ CHECKED
+  - Other credit: ❌ NOT CHECKED
+
+### Income Section (Page 1, Bottom)
+- [ ] **Line 1a (Wages)**: $55,151.93
+- [ ] **Line 9 (Total income)**: $55,151.93
+- [ ] **Line 11 (Adjusted Gross Income)**: $55,151.93
+
+### Standard Deduction (Page 1, Bottom)
+- [ ] **Line 12 (Standard deduction)**: $14,600.00 (2024 single)
+- [ ] **Checkboxes**: All unchecked (correct - no one claims you)
+
+### Tax and Credits (Page 2, Top)
+- [ ] **Line 15 (Taxable income)**: $40,551.93
+- [ ] **Line 16 (Tax)**: $4,634.23
+- [ ] **Child tax credit**: Calculated based on 2 children
+
+### Payments (Page 2, Middle)
+- [ ] **Line 25a (Federal withholding)**: $16,606.17
+
+### Refund Section (Page 2, Bottom) - DIRECT DEPOSIT DETAILS
+- [ ] **Line 34 (Overpayment/Refund)**: $15,971.94
+- [ ] **Line 35a (Amount to be refunded)**: $15,971.94
+- [ ] **Line 35b (Routing number)**: `021000021` (9 digits, no dashes)
+- [ ] **Line 35c (Account type)**: 
+  - Checking: ✅ CHECKED
+  - Savings: ❌ NOT CHECKED
+- [ ] **Line 35d (Account number)**: `987654321` (no dashes or special characters)
+
+**💡 Important**: The routing number field should show all 9 digits clearly. The account number should be clearly legible.
+
+---
+
+## Auto-Reload Test
+
+**Purpose**: Verify the form auto-reloads when new versions are created
+
+**Test Steps**:
+1. Click "Reset Forms (1040)" button
+2. Wait for confirmation
+3. Start conversation again from STEP 2
+4. **Watch the Form 1040 tab carefully**
+5. You should see the PDF viewer automatically reload every time the agent fills a new version
+
+**Expected Behavior**:
+- Console logs: `🔄 New form version detected!`
+- PDF viewer should smoothly transition to new version
+- Version counter should update (v001 → v002 → v003...)
+- NO page flickering or reloading unless there's a new version
+
+**If Reloading Too Often**:
+- Check browser console for logs
+- Should only reload when version count increases
+- Should NOT reload every 5 seconds if no new version
+
+---
+
+## Troubleshooting
+
+### W-2 Processing Fails
+**Symptom**: Agent says "There was an issue processing the W2 document"  
+**Fix**: 
+1. Check Bedrock role permissions in AWS Console
+2. See `BEDROCK_W2_PROCESSING_FIX.md`
+3. Wait 60 seconds and try again
+
+### Form Not Auto-Loading
+**Symptom**: Form 1040 tab shows "No Form 1040 Available"  
+**Fix**:
+1. Check Debug Info tab → USER_ID (should be your Clerk ID)
+2. Click manual refresh button (↻)
+3. Check console for API errors
+
+### Wrong Checkbox Checked
+**Symptom**: "Married filing jointly" checked instead of "Single"  
+**Fix**:
+1. Copy Debug Info (full text)
+2. Share with developer
+3. Check DynamoDB mapping for filing status fields
+
+### Form Reloads Every 5 Seconds
+**Symptom**: PDF keeps reloading even when idle  
+**Fix**:
+1. Check browser console for logs
+2. Should see "No changes detected" message
+3. If still reloading, check `form-1040-viewer.tsx` for stale closure
+
+### Banking Info Not Filled
+**Symptom**: Routing/account numbers missing  
+**Fix**:
+1. Check if you said "checking" or "savings"
+2. Agent needs explicit account type
+3. Retry with full sentence
+
+---
+
+## Success Criteria
+
+✅ **W-2 Processing**: Name, SSN, address extracted correctly  
+✅ **Filing Status**: "Single" checkbox checked, all others unchecked  
+✅ **Dependents**: Both children listed with correct SSNs  
+✅ **Digital Assets**: "No" checkbox checked  
+✅ **Income**: Wages, withholding, refund calculated correctly  
+✅ **Banking**: Routing number, account number, checking box filled  
+✅ **Auto-Reload**: Form updates automatically as agent fills it  
+✅ **Version History**: Can navigate between versions (v001 → v008)
+
+---
+
+## Debug Info Copy Template
+
+**If anything goes wrong, copy this from Debug Info tab:**
+
+```
+USER_ID: [copy here]
+ENGAGEMENT_ID: [copy here]
+FORM_STATUS: [copy here]
+CHAT_STATE: [copy full JSON here]
+RECENT_API_CALLS: [copy last 5-10 calls]
+ERRORS: [copy any errors]
+```
+
+**Then share with developer for investigation.**
+
+---
+
+## Expected Timeline
+
+| Step | Time | Cumulative |
+|------|------|------------|
+| Upload W-2 | 5s | 5s |
+| Bedrock Processing | 30-60s | 35-65s |
+| Filing Status | 10s | 45-75s |
+| Dependents (2) | 20s | 65-95s |
+| Digital Assets | 10s | 75-105s |
+| Standard Deduction | 10s | 85-115s |
+| Banking Info | 10s | 95-125s |
+| Final Form Fill | 15s | 110-140s |
+| **Total** | **~2-3 minutes** | |
+
+---
+
+## Notes
+
+- **Auto-Refresh**: Form checks for new versions every 5 seconds
+- **Polling**: Bedrock waits up to 3 minutes for processing
+- **Version Numbers**: May not be sequential if you're retesting
+- **Cache Busting**: Each PDF has unique URL to prevent browser caching
+- **PII Safety**: All forms saved under Clerk user ID, not name
+
+---
+
+## End of Test
+
+**If all checkboxes pass**, your system is working perfectly! 🎉
+
+**If any fail**, use the Debug Info template above to investigate.
